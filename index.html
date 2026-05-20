@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NWS Hourly Weather Forecast</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="header">NWS Hourly Weather Forecast Graph</div>
+
+<div id="controls">
+  <label>Coordinates:</label>
+  <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon">
+  <button onclick="loadForecast()">Load</button>
+  <label>Start:</label>
+  <select id="startSel"></select>
+  <button onclick="applyStart()">Go</button>
+  <div id="loc"></div>
+</div>
+
+<div id="status">Loading…</div>
+<div id="chart-wrap"><canvas id="c"></canvas></div>
+<div id="tip"></div>
+<div id="footer">Data: NOAA/NWS api.weather.gov — times shown in local browser timezone</div>
+
+<script src="app.js"></script>
+</body>
+</html>
