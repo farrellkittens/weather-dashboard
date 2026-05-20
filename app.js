@@ -100,6 +100,25 @@ function expand(vals, n) {
   return out.slice(0,n);
 }
 
+// Converts NWS weather coverage descriptor to a probability percentage
+const COVERAGE_PCT = {slight_chance:20, isolated:20, chance:40, scattered:40, likely:70, occasional:70, frequent:80, definite:90};
+
+// Expands NWS `weather` property into per-hour thunderstorm probabilities.
+// Each value is an array of condition objects; we pick the max thunder coverage.
+function expandThunder(vals, n) {
+  const out = [];
+  for (const v of (vals||[])) {
+    const [ts, dur] = v.validTime.split('/');
+    const t0 = new Date(ts), hrs = parseDur(dur);
+    const conditions = Array.isArray(v.value) ? v.value : [];
+    const pct = conditions
+      .filter(c => c.weather && c.weather.toLowerCase().includes('thunderstorm'))
+      .reduce((mx, c) => Math.max(mx, COVERAGE_PCT[c.coverage] ?? 0), 0);
+    for (let h = 0; h < hrs; h++) out.push({time: new Date(t0.getTime()+h*3.6e6), value: pct||null});
+  }
+  return out.slice(0, n);
+}
+
 const cToF   = c => c==null?null:Math.round(c*9/5+32);
 const kToMph = v => v==null?null:Math.round(v/1.60934);
 const mmToIn = v => v==null?null:+(v/25.4).toFixed(2);
@@ -141,7 +160,9 @@ async function loadForecast() {
     const wd =expand(p.windDirection?.values,       N);
     const wg =expand(p.windGust?.values,            N).map(x=>({...x,value:kToMph(x.value)}));
     const pop=expand(p.probabilityOfPrecipitation?.values,N);
-    const thr=expand(p.probabilityOfThunderstorms?.values,N);
+    const thr=p.probabilityOfThunderstorms?.values?.length
+      ? expand(p.probabilityOfThunderstorms.values, N)
+      : expandThunder(p.weather?.values, N);
     const qpf=expand(p.quantitativePrecipitation?.values, N).map(x=>({...x,value:mmToIn(x.value)}));
     const snw=expand(p.snowfallAmount?.values,      N).map(x=>({...x,value:mmToIn(x.value)}));
     const snowPop=expand(p.probabilityOfSnow?.values,N);
@@ -508,12 +529,13 @@ function drawPrecip(panel,y0,h,n){
   }
 
   const popVals=D.map(d=>d[panel.popKey]);
+  const bw=HW*0.5, boff=HW*0.25;
   for(let i=0;i<n;i++){
     const pv=popVals[i];
     if(pv==null||pv<20)continue;
     const barH=base-toY(pv);
     ctx.fillStyle=panel.barColor+'99';
-    ctx.fillRect(LEFT+BUFFER*HW+i*HW,toY(pv),HW,barH);
+    ctx.fillRect(LEFT+BUFFER*HW+i*HW+boff,toY(pv),bw,barH);
   }
 
   if(panel.precipKey){
