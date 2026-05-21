@@ -149,17 +149,46 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #2b2b2b; col
 
 #sample-modal-panel {
   position: relative;
-  width: min(76vw, 980px);
+  width: min(70vw, 1120px);
   max-height: 86vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px 16px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: minmax(300px, 46%) minmax(260px, 1fr);
+  grid-template-areas:
+    "sample title"
+    "sample description"
+    "sample legend";
+  gap: 10px 18px;
+  align-items: start;
+  padding: 18px 22px 20px;
   background: #20202d;
   border: 1px solid rgba(190,204,220,0.28);
   border-radius: 8px;
   box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+}
+
+#sample-modal-description {
+  grid-area: description;
+  width: 100%;
+  color: #aeb4c0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#sample-modal-description p {
+  margin-bottom: 7px;
+}
+
+#sample-modal-description .legend-bar {
+  margin-top: 9px;
+}
+
+#sample-modal-description .legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #8a90a0;
+  margin-top: 3px;
 }
 
 #sample-modal-close {
@@ -178,23 +207,26 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #2b2b2b; col
 }
 
 #sample-modal-title {
+  grid-area: title;
   color: #dce8f7;
   font-size: 15px;
   padding-right: 34px;
 }
 
 #sample-modal-canvas {
-  width: min(70vw, 70vh);
-  height: min(70vw, 70vh);
-  max-width: 760px;
-  max-height: 760px;
+  grid-area: sample;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  max-height: 72vh;
   background: #171724;
   border: 1px solid #2f3143;
   border-radius: 6px;
 }
 
 #sample-modal-legend-wrap {
-  width: min(70vw, 520px);
+  grid-area: legend;
+  width: 100%;
   display: none;
 }
 
@@ -285,6 +317,13 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #2b2b2b; col
   min-width: 0;
   background: #1a1a2a; border: 1px solid #2e2e40; border-radius: 6px;
   padding: 6px; display: flex; flex-direction: column; align-items: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.rose-cell:hover,
+.rose-cell:focus-within {
+  border-color: rgba(168,196,232,0.82);
+  box-shadow: 0 0 0 1px rgba(168,196,232,0.22), 0 8px 24px rgba(0,0,0,0.22);
 }
 canvas { display: block; max-width: 100%; }
 canvas[data-rose-canvas="true"] { cursor: crosshair; }
@@ -318,7 +357,7 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
 
 #rose-tooltip {
   position: fixed;
-  z-index: 20;
+  z-index: 60;
   display: none;
   pointer-events: none;
   min-width: 150px;
@@ -331,6 +370,20 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
   font-size: 11px;
   line-height: 1.35;
   padding: 7px 8px;
+}
+
+#sample-modal.rose-modal #sample-modal-panel {
+  width: min(50vw, 50vh, 720px);
+  min-width: 360px;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "title"
+    "sample"
+    "legend";
+}
+
+#sample-modal.rose-modal #sample-modal-canvas {
+  max-height: none;
 }
 
 .tooltip-title {
@@ -351,6 +404,23 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
 
 @media (max-width: 1100px) {
   #rose-explainer { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  #sample-modal-panel {
+    width: min(92vw, 760px);
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "title"
+      "sample"
+      "description"
+      "legend";
+  }
+
+  #sample-modal.rose-modal #sample-modal-panel {
+    width: min(92vw, 520px);
+    min-width: 0;
+  }
 }
 
 @media (max-width: 760px) {

@@ -149,10 +149,14 @@ function offsetCoords(lat, lon, bearingDeg, distKm) {
 // ════════════════════════════════════════════════════════════
 // NWS API HELPERS
 // ════════════════════════════════════════════════════════════
-async function fetchHourlyUrl(lat, lon) {
+async function fetchPointUrls(lat, lon) {
   const r = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
   if (!r.ok) throw new Error(r.status);
-  return (await r.json()).properties.forecastHourly;
+  const props = (await r.json()).properties;
+  return {
+    hourlyUrl: props.forecastHourly,
+    gridUrl: props.forecastGridData,
+  };
 }
 
 async function fetchPeriods(url) {
@@ -161,10 +165,38 @@ async function fetchPeriods(url) {
   return (await r.json()).properties.periods;
 }
 
+async function fetchGridProperties(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(r.status);
+  return (await r.json()).properties;
+}
+
 function parseWind(s) {
   if (!s) return 0;
   const m = s.match(/(\d+)/);
   return m ? +m[1] : 0;
+}
+
+function parseDurationMs(duration) {
+  const m = duration.match(/P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?/);
+  if (!m) return 0;
+  const days = +(m[1] || 0);
+  const hours = +(m[2] || 0);
+  const minutes = +(m[3] || 0);
+  const seconds = +(m[4] || 0);
+  return (((days * 24 + hours) * 60 + minutes) * 60 + seconds) * 1000;
+}
+
+function gridValueAt(values, hoursFromNow) {
+  if (!values?.length) return null;
+  const target = new Date(Date.now() + hoursFromNow * 3_600_000);
+  const match = values.find(item => {
+    const [start, duration] = item.validTime.split('/');
+    const startTime = new Date(start).getTime();
+    const endTime = startTime + parseDurationMs(duration);
+    return target.getTime() >= startTime && target.getTime() < endTime;
+  });
+  return match?.value ?? null;
 }
 
 function thunderValue(period) {
@@ -202,36 +234,46 @@ async function loadData(peak) {
 
   setStatus(`Fetching NWS grid assignments for summit plus ${samplePoints.length} direction/distance samples…`);
   const [summitResult, pointResults] = await Promise.all([
-    fetchHourlyUrl(peak.lat, peak.lon)
-      .then(url => ({ url }))
-      .catch(() => ({ url: null })),
+    fetchPointUrls(peak.lat, peak.lon)
+      .catch(() => ({ hourlyUrl: null, gridUrl: null })),
     Promise.all(samplePoints.map(d =>
-      fetchHourlyUrl(d.coords.lat, d.coords.lon)
-        .then(url => ({ ...d, url }))
-        .catch(() => ({ ...d, url: null }))
+      fetchPointUrls(d.coords.lat, d.coords.lon)
+        .then(urls => ({ ...d, ...urls }))
+        .catch(() => ({ ...d, hourlyUrl: null, gridUrl: null }))
     )),
   ]);
 
-  // Deduplicate forecast URLs — adjacent directions often share a grid cell
-  const urlSet = new Set([
-    summitResult.url,
-    ...pointResults.map(r => r.url),
+  // Deduplicate forecast/grid URLs — adjacent directions often share a grid cell
+  const hourlyUrlSet = new Set([
+    summitResult.hourlyUrl,
+    ...pointResults.map(r => r.hourlyUrl),
   ].filter(Boolean));
-  setStatus(`Fetching ${urlSet.size} unique NWS forecast grids…`);
+  const gridUrlSet = new Set([
+    summitResult.gridUrl,
+    ...pointResults.map(r => r.gridUrl),
+  ].filter(Boolean));
+  setStatus(`Fetching ${hourlyUrlSet.size} unique NWS hourly forecasts and ${gridUrlSet.size} grid datasets…`);
 
-  const urlMap = new Map();
-  await Promise.all(
-    Array.from(urlSet).map(url =>
+  const hourlyMap = new Map();
+  const gridMap = new Map();
+  await Promise.all([
+    ...Array.from(hourlyUrlSet).map(url =>
       fetchPeriods(url)
-        .then(p  => urlMap.set(url, p))
-        .catch(() => urlMap.set(url, null))
-    )
-  );
+        .then(p => hourlyMap.set(url, p))
+        .catch(() => hourlyMap.set(url, null))
+    ),
+    ...Array.from(gridUrlSet).map(url =>
+      fetchGridProperties(url)
+        .then(p => gridMap.set(url, p))
+        .catch(() => gridMap.set(url, null))
+    ),
+  ]);
 
   roseData = {
     summit: {
       coords: { lat: peak.lat, lon: peak.lon },
-      periods: summitResult.url ? urlMap.get(summitResult.url) : null,
+      periods: summitResult.hourlyUrl ? hourlyMap.get(summitResult.hourlyUrl) : null,
+      grid: summitResult.gridUrl ? gridMap.get(summitResult.gridUrl) : null,
     },
     directions: DIRECTIONS.map((dir, dirIdx) => ({
       ...dir,
@@ -240,7 +282,8 @@ async function loadData(peak) {
         return {
           ...band,
           coords: point?.coords ?? null,
-          periods: point?.url ? urlMap.get(point.url) : null,
+          periods: point?.hourlyUrl ? hourlyMap.get(point.hourlyUrl) : null,
+          grid: point?.gridUrl ? gridMap.get(point.gridUrl) : null,
         };
       }),
     })),
@@ -263,14 +306,15 @@ function getPeriodAt(periods, hoursFromNow) {
   );
 }
 
-function extractValue(period, variable) {
+function extractValue(period, variable, grid, hoursFromNow) {
+  if (variable === 'sky') return gridValueAt(grid?.skyCover?.values, hoursFromNow);
   if (!period) return null;
   switch (variable) {
     case 'wind':   return parseWind(period.windSpeed);
     case 'gust':   return parseWind(period.windGust);
     case 'temp':   return period.temperature ?? null;
     case 'precip': return period.probabilityOfPrecipitation?.value ?? 0;
-    case 'sky':    return period.skyCover ?? null;
+    case 'sky':    return null;
     case 'thunder':return thunderValue(period);
     default:       return 0;
   }
@@ -367,11 +411,20 @@ function drawBandGrid(ctx, W, cx, cy, R, options = {}) {
   if (options.showDistanceLabels) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `${Math.round(W * 0.030)}px Arial`;
+    ctx.font = `bold ${Math.round(W * 0.030)}px Arial`;
     DISTANCE_BANDS.forEach((band, i) => {
       const { outer } = ringBounds(i, R);
-      ctx.fillStyle = 'rgba(230,236,245,0.72)';
-      ctx.fillText(band.label, cx + 4, cy - outer + 10);
+      const x = Math.round(cx + 4);
+      const y = Math.round(cy - outer + 10);
+      const metrics = ctx.measureText(band.label);
+      const padX = Math.max(4, Math.round(W * 0.014));
+      const padY = Math.max(2, Math.round(W * 0.007));
+      const labelW = Math.ceil(metrics.width) + padX * 2;
+      const labelH = Math.round(W * 0.046);
+      ctx.fillStyle = 'rgba(8,10,16,0.68)';
+      ctx.fillRect(Math.round(x - labelW / 2), Math.round(y - labelH / 2), labelW, labelH);
+      ctx.fillStyle = '#fbfdff';
+      ctx.fillText(band.label, x, y);
     });
   }
 }
@@ -449,8 +502,13 @@ function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options
       ctx.closePath();
       ctx.fillStyle   = rgba(col, alpha);
       ctx.fill();
-      ctx.strokeStyle = variable === 'sky' ? 'rgba(20,24,32,0.52)' : rgba(col, 0.95);
-      ctx.lineWidth   = variable === 'sky' ? 0.75 : 0.55;
+      if (variable === 'thunder') {
+        ctx.strokeStyle = 'rgba(245,248,255,0.46)';
+        ctx.lineWidth = 0.95;
+      } else {
+        ctx.strokeStyle = variable === 'sky' ? 'rgba(20,24,32,0.52)' : rgba(col, 0.95);
+        ctx.lineWidth   = variable === 'sky' ? 0.75 : 0.55;
+      }
       ctx.stroke();
     }
   }
@@ -535,11 +593,11 @@ function updateLegend(variable, timeIdx, min, max) {
 function collectValues(varKey) {
   const values = [];
   for (const offset of TIME_OFFSETS) {
-    const summitValue = extractValue(getPeriodAt(roseData.summit?.periods, offset), varKey);
+    const summitValue = extractValue(getPeriodAt(roseData.summit?.periods, offset), varKey, roseData.summit?.grid, offset);
     if (summitValue !== null) values.push(summitValue);
     for (const dir of roseData.directions) {
       for (const band of dir.bands) {
-        const v = extractValue(getPeriodAt(band.periods, offset), varKey);
+        const v = extractValue(getPeriodAt(band.periods, offset), varKey, band.grid, offset);
         if (v !== null) values.push(v);
       }
     }
@@ -551,14 +609,16 @@ function valuesForOffset(varKey, offset) {
   return roseData.directions.map(dir =>
     dir.bands.map(band => {
       const period = getPeriodAt(band.periods, offset);
-      return { value: extractValue(period, varKey), missing: !period };
+      const value = extractValue(period, varKey, band.grid, offset);
+      return { value, missing: value === null };
     })
   );
 }
 
 function summitValueForOffset(varKey, offset) {
   const period = getPeriodAt(roseData.summit?.periods, offset);
-  return { value: extractValue(period, varKey), missing: !period };
+  const value = extractValue(period, varKey, roseData.summit?.grid, offset);
+  return { value, missing: value === null };
 }
 
 function timeLabel(offset) {
@@ -753,7 +813,7 @@ function drawAll() {
         fullDirectionLabels: false,
         summitValue: summit.value,
       });
-      roseCanvasMeta.set(`rose-${varKey}-${timeIdx}`, { variable: varKey, offset, values, summit });
+      roseCanvasMeta.set(`rose-${varKey}-${timeIdx}`, { variable: varKey, offset, values, summit, min: globalMin, max: globalMax });
       updateLegend(varKey, timeIdx, globalMin, globalMax);
     });
   }
@@ -813,28 +873,51 @@ function drawExplainers() {
     summitValue: 45,
   });
 
+  function cardDescription(canvasId) {
+    const copy = document.getElementById(canvasId)
+      ?.closest('.explainer-card, #sample-map-card')
+      ?.querySelector('.explainer-copy, .sample-map-copy');
+    if (!copy) return '';
+    const clone = copy.cloneNode(true);
+    clone.querySelector('h2')?.remove();
+    return clone.innerHTML;
+  }
+
   samplePreviewMeta.set('explainer-temp', {
     type: 'rose', title: 'Temperature Rose', variable: 'temp', values: tempValues, min: 35, max: 88, summitValue: 62,
+    description: cardDescription('explainer-temp'),
   });
   samplePreviewMeta.set('explainer-precip', {
     type: 'rose', title: 'Precipitation Rose', variable: 'precip', values: precipValues, min: 0, max: 100, summitValue: 35,
+    description: cardDescription('explainer-precip'),
   });
   samplePreviewMeta.set('explainer-wind', {
     type: 'rose', title: 'Wind Rose', variable: 'wind', values: windValues, min: 0, max: 50, summitValue: 18,
+    description: cardDescription('explainer-wind'),
   });
   samplePreviewMeta.set('explainer-sky', {
     type: 'rose', title: 'Sky Cover Rose', variable: 'sky', values: skyValues, min: 0, max: 100, summitValue: 60,
+    description: cardDescription('explainer-sky'),
   });
   samplePreviewMeta.set('explainer-thunder', {
     type: 'rose', title: 'Thunderstorm Rose', variable: 'thunder', values: thunderValues, min: 0, max: 100, summitValue: 45,
+    description: cardDescription('explainer-thunder'),
   });
   samplePreviewMeta.set('sample-map', {
     type: 'map', title: 'Sample Point Map',
+    description: cardDescription('sample-map'),
   });
 }
 
 function redrawSampleModal(meta) {
   if (!meta) return;
+  const canvas = document.getElementById('sample-modal-canvas');
+  if (canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const maxSize = Math.round(window.innerHeight * 0.72);
+    const size = Math.max(220, Math.min(Math.round(rect.width || 220), maxSize));
+    canvas.style.height = `${size}px`;
+  }
   const setup = setupResponsiveCanvas('sample-modal-canvas');
   if (!setup) return;
   if (meta.type === 'map') {
@@ -849,6 +932,66 @@ function redrawSampleModal(meta) {
   });
 }
 
+function redrawRoseModal(sourceId) {
+  const sourceMeta = roseCanvasMeta.get(sourceId);
+  if (!sourceMeta) return;
+
+  const canvas = document.getElementById('sample-modal-canvas');
+  if (canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const size = Math.max(260, Math.round(Math.min(rect.width || 360, window.innerWidth * 0.50, window.innerHeight * 0.50)));
+    canvas.style.height = `${size}px`;
+  }
+
+  const setup = setupResponsiveCanvas('sample-modal-canvas');
+  if (!setup) return;
+  drawRose(setup.ctx, setup.width, sourceMeta.values, sourceMeta.min, sourceMeta.max, sourceMeta.variable, {
+    showDistanceLabels: true,
+    fullDirectionLabels: true,
+    showScaleNote: false,
+    summitValue: sourceMeta.summit.value,
+  });
+
+  roseCanvasMeta.set('sample-modal-canvas', {
+    ...sourceMeta,
+    sourceId,
+  });
+}
+
+function openRoseModal(sourceId) {
+  const sourceMeta = roseCanvasMeta.get(sourceId);
+  const modal = document.getElementById('sample-modal');
+  const title = document.getElementById('sample-modal-title');
+  const legendWrap = document.getElementById('sample-modal-legend-wrap');
+  const legend = document.getElementById('sample-modal-legend');
+  const labels = document.getElementById('sample-modal-labels');
+  const descDiv = document.getElementById('sample-modal-description');
+  const canvas = document.getElementById('sample-modal-canvas');
+  if (!sourceMeta || !modal || !title || !legendWrap || !legend || !labels || !canvas) return;
+
+  const cfg = VAR_CONFIG[sourceMeta.variable];
+  title.textContent = `${cfg.label} · ${timeLabel(sourceMeta.offset)}`;
+  if (descDiv) {
+    descDiv.innerHTML = '';
+    descDiv.hidden = true;
+  }
+
+  modal.dataset.roseSourceId = sourceId;
+  delete modal.dataset.sampleId;
+  modal.classList.add('open', 'rose-modal');
+  modal.setAttribute('aria-hidden', 'false');
+
+  canvas.dataset.roseCanvas = 'true';
+  legendWrap.classList.add('open');
+  legend.dataset.variable = sourceMeta.variable;
+  legend.dataset.min = sourceMeta.min;
+  legend.dataset.max = sourceMeta.max;
+  legend.style.background = gradientFor(sourceMeta.variable, sourceMeta.min, sourceMeta.max);
+  labels.innerHTML = legendLabels(sourceMeta.variable, sourceMeta.min, sourceMeta.max).map(label => `<span>${label}</span>`).join('');
+
+  requestAnimationFrame(() => redrawRoseModal(sourceId));
+}
+
 function openSampleModal(canvasId) {
   const meta = samplePreviewMeta.get(canvasId);
   const modal = document.getElementById('sample-modal');
@@ -856,10 +999,19 @@ function openSampleModal(canvasId) {
   const legendWrap = document.getElementById('sample-modal-legend-wrap');
   const legend = document.getElementById('sample-modal-legend');
   const labels = document.getElementById('sample-modal-labels');
+  const descDiv = document.getElementById('sample-modal-description');
   if (!meta || !modal || !title || !legendWrap || !legend || !labels) return;
 
   modal.dataset.sampleId = canvasId;
+  delete modal.dataset.roseSourceId;
+  modal.classList.remove('rose-modal');
+  roseCanvasMeta.delete('sample-modal-canvas');
+  document.getElementById('sample-modal-canvas')?.removeAttribute('data-rose-canvas');
   title.textContent = meta.title;
+  if (descDiv) {
+    descDiv.innerHTML = meta.description || '';
+    descDiv.hidden = !meta.description;
+  }
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
 
@@ -883,7 +1035,11 @@ function closeSampleModal() {
   const modal = document.getElementById('sample-modal');
   if (!modal) return;
   modal.classList.remove('open');
+  modal.classList.remove('rose-modal');
   modal.setAttribute('aria-hidden', 'true');
+  delete modal.dataset.roseSourceId;
+  roseCanvasMeta.delete('sample-modal-canvas');
+  document.getElementById('sample-modal-canvas')?.removeAttribute('data-rose-canvas');
   hideLegendHoverBox();
 }
 
@@ -967,10 +1123,16 @@ window.addEventListener('DOMContentLoaded', () => {
   updatePeakInfo();
   document.addEventListener('mousemove', event => {
     if (event.target?.matches?.('canvas[data-rose-canvas="true"]')) {
+      event.target.style.cursor = cellFromPoint(event.target, event.clientX, event.clientY) ? 'crosshair' : 'pointer';
       showRoseTooltip(event.target, event);
     } else {
       hideRoseTooltip();
     }
+  });
+  document.addEventListener('click', event => {
+    const cell = event.target?.closest?.('.rose-cell');
+    const canvas = cell?.querySelector('canvas[data-rose-canvas="true"]');
+    if (canvas && roseCanvasMeta.has(canvas.id)) openRoseModal(canvas.id);
   });
   document.addEventListener('mouseleave', hideRoseTooltip);
   document.getElementById('rose-explainer')?.addEventListener('click', event => {
@@ -990,6 +1152,11 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     if (roseData) drawSampleMap();
     const modal = document.getElementById('sample-modal');
+    const roseSourceId = modal?.dataset.roseSourceId;
+    if (modal?.classList.contains('open') && roseSourceId) {
+      redrawRoseModal(roseSourceId);
+      return;
+    }
     const sampleId = modal?.dataset.sampleId;
     if (modal?.classList.contains('open') && sampleId) {
       redrawSampleModal(samplePreviewMeta.get(sampleId));
