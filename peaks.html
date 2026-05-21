@@ -28,7 +28,7 @@
       <canvas id="explainer-temp"></canvas>
     </div>
     <div class="explainer-copy">
-      <h2>Temperature Rose</h2>
+      <h2>Temperature</h2>
       <p>Each wedge points away from the summit. Rings step outward from 1 to 20 miles, and color shows the forecast value at that distance and direction.</p>
       <p>The temperature heat map syncs across all four time columns: coolest raw temperature is blue, warmest raw temperature is orange.</p>
       <div class="legend-bar legend-temp"></div>
@@ -45,7 +45,7 @@
       <canvas id="explainer-precip"></canvas>
     </div>
     <div class="explainer-copy">
-      <h2>Precipitation Rose</h2>
+      <h2>Precipitation</h2>
       <p>Precipitation uses the same 64 summit-relative samples.</p>
       <p>Light green means low chance of precipitation; deeper blue means a higher chance for that direction and distance.</p>
       <div class="legend-bar legend-precip"></div>
@@ -62,7 +62,7 @@
       <canvas id="explainer-wind"></canvas>
     </div>
     <div class="explainer-copy">
-      <h2>Wind Rose</h2>
+      <h2>Wind</h2>
       <p>Wind uses the same directions and distance bands. Longer range from the summit is farther from the center; color intensity shows stronger wind.</p>
       <p>White is calm, yellow is light, orange is moderate, pink is strong, and purple marks 40+ mph wind in the sampled area.</p>
       <div class="legend-bar legend-wind"></div>
@@ -79,7 +79,7 @@
       <canvas id="explainer-sky"></canvas>
     </div>
     <div class="explainer-copy">
-      <h2>Sky Cover Rose</h2>
+      <h2>Sky Cover</h2>
       <p>Sky cover is drawn as 64 individual boxes rather than averaged quadrants, so every direction and mileage band has its own value.</p>
       <p>Blue means clearer sky; pale gray-white means more cloud cover.</p>
       <div class="legend-bar legend-sky"></div>
@@ -97,7 +97,7 @@
     </div>
     <div class="sample-map-copy">
       <h2>Sample Point Map</h2>
-      <p>Each dot is one forecast sample coordinate used by the roses: 16 directions at 1, 5, 10, and 20 miles from the summit.</p>
+      <p>Each dot is one forecast sample coordinate used by the panels: 16 directions at 1, 5, 10, and 20 miles from the summit.</p>
       <div id="sample-map-status">Waiting for forecast samples…</div>
     </div>
   </div>
@@ -107,8 +107,8 @@
       <canvas id="explainer-thunder"></canvas>
     </div>
     <div class="explainer-copy">
-      <h2>Thunderstorm Rose</h2>
-      <p>Thunderstorm probability is sampled across the same summit, direction, and distance points as the other roses.</p>
+      <h2>Thunderstorm</h2>
+      <p>Thunderstorm probability is sampled across the same summit, direction, and distance points as the other panels.</p>
       <p>Cool violet means low thunderstorm signal; bright magenta means higher thunderstorm risk.</p>
       <div class="legend-bar legend-thunder"></div>
       <div class="legend-labels">
@@ -121,7 +121,7 @@
 </section>
 
 <div id="interaction-note">
-  Hover any rose segment, or the center summit dot, to see its value, direction, mileage band, and time. When this is optimized for mobile, the same readout will be tap-based instead of hover-based.
+  Hover or tap any segment, or the center summit dot, to see its value, direction, mileage band, and time.
 </div>
 
 <div id="roses-wrap">

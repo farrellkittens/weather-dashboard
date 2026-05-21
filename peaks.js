@@ -28,6 +28,7 @@ const DIRECTIONS = [
 ];
 
 const TIME_OFFSETS = [0, 6, 12, 24]; // hours from now
+const MOBILE_ROSE_MEDIA = '(max-width: 920px)';
 const MI_TO_KM = 1.60934;
 const DISTANCE_BANDS = [
   { label: '1 mi',  miles: 1,  km: 1 * MI_TO_KM },
@@ -58,6 +59,7 @@ let currentPeak = PEAKS[0];
 let roseData    = null;  // { summit, directions: [{name, bearing, bands: [{label, periods}]}] }
 const roseCanvasMeta = new Map();
 const samplePreviewMeta = new Map();
+const roseSelections = new Map();
 
 // ════════════════════════════════════════════════════════════
 // COLOR FUNCTIONS
@@ -220,6 +222,7 @@ function thunderValue(period) {
 // ════════════════════════════════════════════════════════════
 async function loadData(peak) {
   roseData = null;
+  roseSelections.clear();
   setStatus('Calculating offset coordinates…');
 
   const samplePoints = DIRECTIONS.flatMap((dir, dirIdx) =>
@@ -466,6 +469,32 @@ function drawSummitDot(ctx, W, cx, cy, color = '#ffffff') {
   ctx.stroke();
 }
 
+function selectedCellPoint(cell, W, cx, cy, R) {
+  if (!cell) return null;
+  if (cell.summit) return { x: cx, y: cy };
+
+  const { inner, outer } = ringBounds(cell.bandIdx, R);
+  const radius = (inner + outer) / 2;
+  const angle = (cell.dirIdx * 22.5 - 90) * Math.PI / 180;
+  return {
+    x: cx + Math.cos(angle) * radius,
+    y: cy + Math.sin(angle) * radius,
+  };
+}
+
+function drawSelectionDot(ctx, W, cx, cy, R, cell) {
+  const point = selectedCellPoint(cell, W, cx, cy, R);
+  if (!point) return;
+
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, Math.max(4, W * 0.018), 0, 2 * Math.PI);
+  ctx.fillStyle = '#050505';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.86)';
+  ctx.lineWidth = Math.max(1.5, W * 0.006);
+  ctx.stroke();
+}
+
 function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options = {}) {
   if (!ctx) return;
   const cfg  = VAR_CONFIG[variable];
@@ -518,6 +547,7 @@ function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options
   const summitColor = summitValue == null ? '#ffffff' : cfg.colorFn(summitValue, useMin, useMax);
   drawSummitDot(ctx, W, cx, cy, summitColor);
   drawDirectionLabels(ctx, W, cx, cy, R, options.fullDirectionLabels);
+  drawSelectionDot(ctx, W, cx, cy, R, options.selectedCell);
 
   // ── Scale note ──
   if (options.showScaleNote !== false) {
@@ -534,16 +564,40 @@ function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options
 
 function updateColumnHeaders() {
   TIME_OFFSETS.forEach((offset, i) => {
-    const el = document.getElementById(`col-hdr-${i}`);
-    if (!el) return;
     const label = offset === 0 ? 'Now' : `+${offset} hrs`;
-    let html = `<span class="col-hdr-main">${label}</span>`;
-    if (offset > 0) {
-      const t = new Date(Date.now() + offset * 3_600_000);
-      html += `<span class="col-hdr-time">${t.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric' })}</span>`;
+    const time = forecastTimeLabel(offset);
+    const el = document.getElementById(`col-hdr-${i}`);
+    if (el) {
+      el.innerHTML = `<span class="col-hdr-main">${label}</span><span class="col-hdr-time">${time}</span>`;
     }
-    el.innerHTML = html;
+    document.querySelectorAll(`.rose-row .rose-cell:nth-child(${i + 2})`).forEach(cell => {
+      cell.dataset.offsetLabel = label;
+      cell.dataset.offsetTime = time;
+      cell.dataset.offsetDate = forecastDateLabel(offset);
+      cell.dataset.offsetClock = forecastClockLabel(offset);
+    });
   });
+}
+
+function forecastTimeLabel(offset) {
+  const t = new Date(Date.now() + offset * 3_600_000);
+  return t.toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function forecastDateLabel(offset) {
+  const t = new Date(Date.now() + offset * 3_600_000);
+  return t.toLocaleString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function forecastClockLabel(offset) {
+  const t = new Date(Date.now() + offset * 3_600_000);
+  return t.toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 function gradientFor(variable, min, max) {
@@ -570,8 +624,8 @@ function legendLabels(variable, min, max) {
 
 function legendNote(variable) {
   if (variable === 'temp') return '';
-  if (variable === 'sky') return 'Each rose has 64 sky-cover boxes; blue is clear, white is overcast.';
-  if (variable === 'precip') return 'Climate.gov-style green to blue ramp; deeper blue means higher chance.';
+  if (variable === 'sky') return 'Each panel has 64 sky-cover boxes; blue is clear sky, white is overcast.';
+  if (variable === 'precip') return 'Deeper blue means higher chance.';
   if (variable === 'thunder') return 'Violet to magenta shows increasing thunderstorm probability.';
   if (variable === 'wind') return 'Bins are >= lower mph and < upper mph; purple is 40+.';
   return 'Shared scale across now, +6, +12, and +24 hours.';
@@ -627,6 +681,10 @@ function timeLabel(offset) {
   return `+${offset} hrs · ${t.toLocaleString(undefined, { weekday: 'short', hour: 'numeric' })}`;
 }
 
+function isMobileRoseLayout() {
+  return window.matchMedia?.(MOBILE_ROSE_MEDIA).matches;
+}
+
 function formattedValue(variable, value) {
   const cfg = VAR_CONFIG[variable];
   if (value == null) return 'No data';
@@ -657,6 +715,23 @@ function cellFromPoint(canvas, clientX, clientY) {
   return { dirIdx, bandIdx };
 }
 
+function validRoseCell(meta, cell) {
+  if (!meta || !cell) return false;
+  const point = cell.summit ? meta.summit : meta.values[cell.dirIdx]?.[cell.bandIdx];
+  return !!point && !point.missing && point.value !== null;
+}
+
+function positionTooltip(event) {
+  const tooltip = document.getElementById('rose-tooltip');
+  if (!tooltip) return;
+
+  const aboveTap = event.pointerType === 'touch';
+  const x = aboveTap ? event.clientX - 75 : event.clientX + 14;
+  const y = aboveTap ? event.clientY - 96 : event.clientY + 14;
+  tooltip.style.left = `${Math.max(8, Math.min(window.innerWidth - 235, x))}px`;
+  tooltip.style.top = `${Math.max(8, Math.min(window.innerHeight - 90, y))}px`;
+}
+
 function showRoseTooltip(canvas, event) {
   const meta = roseCanvasMeta.get(canvas.id);
   const tooltip = document.getElementById('rose-tooltip');
@@ -671,12 +746,12 @@ function showRoseTooltip(canvas, event) {
     return;
   }
 
-  const point = cell.summit ? meta.summit : meta.values[cell.dirIdx]?.[cell.bandIdx];
-  if (!point || point.missing || point.value === null) {
+  if (!validRoseCell(meta, cell)) {
     hideRoseTooltip();
     return;
   }
 
+  const point = cell.summit ? meta.summit : meta.values[cell.dirIdx]?.[cell.bandIdx];
   const cfg = VAR_CONFIG[meta.variable];
   const locationLine = cell.summit
     ? `Summit · ${currentPeak.name}`
@@ -687,13 +762,50 @@ function showRoseTooltip(canvas, event) {
     <div class="tooltip-meta">${timeLabel(meta.offset)}</div>
   `;
   tooltip.style.display = 'block';
-  tooltip.style.left = `${Math.max(8, Math.min(window.innerWidth - 235, event.clientX + 14))}px`;
-  tooltip.style.top = `${Math.max(8, Math.min(window.innerHeight - 90, event.clientY + 14))}px`;
+  positionTooltip(event);
 }
 
 function hideRoseTooltip() {
   const tooltip = document.getElementById('rose-tooltip');
   if (tooltip) tooltip.style.display = 'none';
+}
+
+function drawRoseCanvasById(canvasId) {
+  const meta = roseCanvasMeta.get(canvasId);
+  if (!meta) return;
+
+  if (canvasId === 'sample-modal-canvas') {
+    const setup = setupResponsiveCanvas(canvasId);
+    if (!setup) return;
+    drawRose(setup.ctx, setup.width, meta.values, meta.min, meta.max, meta.variable, {
+      showDistanceLabels: true,
+      fullDirectionLabels: true,
+      showScaleNote: false,
+      summitValue: meta.summit.value,
+      selectedCell: roseSelections.get(canvasId) || roseSelections.get(meta.sourceId),
+    });
+    return;
+  }
+
+  const ctx = setupCanvas(canvasId);
+  drawRose(ctx, ROSE_PX, meta.values, meta.min, meta.max, meta.variable, {
+    showDistanceLabels: true,
+    fullDirectionLabels: false,
+    summitValue: meta.summit.value,
+    selectedCell: roseSelections.get(canvasId),
+  });
+}
+
+function selectRoseCell(canvas, event) {
+  const meta = roseCanvasMeta.get(canvas.id);
+  const cell = cellFromPoint(canvas, event.clientX, event.clientY);
+  if (!validRoseCell(meta, cell)) return false;
+
+  roseSelections.set(canvas.id, cell);
+  if (meta.sourceId) roseSelections.set(meta.sourceId, cell);
+  drawRoseCanvasById(canvas.id);
+  showRoseTooltip(canvas, event);
+  return true;
 }
 
 function projectSamplePoint(lat, lon, centerLat, centerLon, scale, cx, cy) {
@@ -812,6 +924,7 @@ function drawAll() {
         showDistanceLabels: true,
         fullDirectionLabels: false,
         summitValue: summit.value,
+        selectedCell: roseSelections.get(`rose-${varKey}-${timeIdx}`),
       });
       roseCanvasMeta.set(`rose-${varKey}-${timeIdx}`, { variable: varKey, offset, values, summit, min: globalMin, max: globalMax });
       updateLegend(varKey, timeIdx, globalMin, globalMax);
@@ -884,23 +997,23 @@ function drawExplainers() {
   }
 
   samplePreviewMeta.set('explainer-temp', {
-    type: 'rose', title: 'Temperature Rose', variable: 'temp', values: tempValues, min: 35, max: 88, summitValue: 62,
+    type: 'rose', title: 'Temperature', variable: 'temp', values: tempValues, min: 35, max: 88, summitValue: 62,
     description: cardDescription('explainer-temp'),
   });
   samplePreviewMeta.set('explainer-precip', {
-    type: 'rose', title: 'Precipitation Rose', variable: 'precip', values: precipValues, min: 0, max: 100, summitValue: 35,
+    type: 'rose', title: 'Precipitation', variable: 'precip', values: precipValues, min: 0, max: 100, summitValue: 35,
     description: cardDescription('explainer-precip'),
   });
   samplePreviewMeta.set('explainer-wind', {
-    type: 'rose', title: 'Wind Rose', variable: 'wind', values: windValues, min: 0, max: 50, summitValue: 18,
+    type: 'rose', title: 'Wind', variable: 'wind', values: windValues, min: 0, max: 50, summitValue: 18,
     description: cardDescription('explainer-wind'),
   });
   samplePreviewMeta.set('explainer-sky', {
-    type: 'rose', title: 'Sky Cover Rose', variable: 'sky', values: skyValues, min: 0, max: 100, summitValue: 60,
+    type: 'rose', title: 'Sky Cover', variable: 'sky', values: skyValues, min: 0, max: 100, summitValue: 60,
     description: cardDescription('explainer-sky'),
   });
   samplePreviewMeta.set('explainer-thunder', {
-    type: 'rose', title: 'Thunderstorm Rose', variable: 'thunder', values: thunderValues, min: 0, max: 100, summitValue: 45,
+    type: 'rose', title: 'Thunderstorm', variable: 'thunder', values: thunderValues, min: 0, max: 100, summitValue: 45,
     description: cardDescription('explainer-thunder'),
   });
   samplePreviewMeta.set('sample-map', {
@@ -950,12 +1063,16 @@ function redrawRoseModal(sourceId) {
     fullDirectionLabels: true,
     showScaleNote: false,
     summitValue: sourceMeta.summit.value,
+    selectedCell: roseSelections.get(sourceId),
   });
 
   roseCanvasMeta.set('sample-modal-canvas', {
     ...sourceMeta,
     sourceId,
   });
+  if (roseSelections.has(sourceId)) {
+    roseSelections.set('sample-modal-canvas', roseSelections.get(sourceId));
+  }
 }
 
 function openRoseModal(sourceId) {
@@ -1006,6 +1123,7 @@ function openSampleModal(canvasId) {
   delete modal.dataset.roseSourceId;
   modal.classList.remove('rose-modal');
   roseCanvasMeta.delete('sample-modal-canvas');
+  roseSelections.delete('sample-modal-canvas');
   document.getElementById('sample-modal-canvas')?.removeAttribute('data-rose-canvas');
   title.textContent = meta.title;
   if (descDiv) {
@@ -1039,6 +1157,7 @@ function closeSampleModal() {
   modal.setAttribute('aria-hidden', 'true');
   delete modal.dataset.roseSourceId;
   roseCanvasMeta.delete('sample-modal-canvas');
+  roseSelections.delete('sample-modal-canvas');
   document.getElementById('sample-modal-canvas')?.removeAttribute('data-rose-canvas');
   hideLegendHoverBox();
 }
@@ -1123,15 +1242,44 @@ window.addEventListener('DOMContentLoaded', () => {
   updatePeakInfo();
   document.addEventListener('mousemove', event => {
     if (event.target?.matches?.('canvas[data-rose-canvas="true"]')) {
-      event.target.style.cursor = cellFromPoint(event.target, event.clientX, event.clientY) ? 'crosshair' : 'pointer';
+      const meta = roseCanvasMeta.get(event.target.id);
+      const cell = cellFromPoint(event.target, event.clientX, event.clientY);
+      event.target.style.cursor = validRoseCell(meta, cell) ? 'crosshair' : 'pointer';
       showRoseTooltip(event.target, event);
     } else {
       hideRoseTooltip();
     }
   });
+  document.addEventListener('pointerdown', event => {
+    if (!event.target?.matches?.('canvas[data-rose-canvas="true"]')) return;
+    if (event.target.closest?.('.rose-cell') && isMobileRoseLayout()) {
+      hideRoseTooltip();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (selectRoseCell(event.target, event)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  });
   document.addEventListener('click', event => {
-    const cell = event.target?.closest?.('.rose-cell');
-    const canvas = cell?.querySelector('canvas[data-rose-canvas="true"]');
+    const roseCell = event.target?.closest?.('.rose-cell');
+    if (roseCell && isMobileRoseLayout()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.target?.matches?.('canvas[data-rose-canvas="true"]')) {
+      const meta = roseCanvasMeta.get(event.target.id);
+      const cell = cellFromPoint(event.target, event.clientX, event.clientY);
+      if (validRoseCell(meta, cell)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+    }
+    const canvas = roseCell?.querySelector('canvas[data-rose-canvas="true"]');
     if (canvas && roseCanvasMeta.has(canvas.id)) openRoseModal(canvas.id);
   });
   document.addEventListener('mouseleave', hideRoseTooltip);

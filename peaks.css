@@ -65,6 +65,12 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #2b2b2b; col
   justify-content: center;
 }
 
+.explainer-rose-wrap canvas {
+  max-width: 100%;
+  height: auto !important;
+  aspect-ratio: 1;
+}
+
 .explainer-copy h2 {
   font-size: 14px;
   color: #dce8f7;
@@ -328,6 +334,13 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #2b2b2b; col
 canvas { display: block; max-width: 100%; }
 canvas[data-rose-canvas="true"] { cursor: crosshair; }
 
+.rose-cell canvas[data-rose-canvas="true"] {
+  width: min(100%, 300px) !important;
+  height: auto !important;
+  aspect-ratio: 1;
+  touch-action: manipulation;
+}
+
 .rose-legend {
   width: min(100%, 260px);
   color: #777d8a;
@@ -423,18 +436,90 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
   }
 }
 
+@media (max-width: 920px) {
+  .rose-header-row {
+    display: none;
+  }
+
+  .rose-row {
+    display: block;
+  }
+
+  .rose-row + .rose-row {
+    margin-top: 14px;
+  }
+
+  .rose-row-label {
+    width: auto;
+    min-width: 0;
+    text-align: left;
+    padding: 0 0 7px;
+    color: #dce8f7;
+    font-size: 13px;
+  }
+
+  .rose-cell {
+    display: grid;
+    grid-template-columns: 66px minmax(0, 300px);
+    justify-content: center;
+    align-items: center;
+    gap: 0 10px;
+    width: 100%;
+    padding-block: 8px;
+  }
+
+  .rose-cell + .rose-cell {
+    margin-top: 8px;
+  }
+
+  .rose-cell::before {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    color: #a8c4e8;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1.25;
+    text-align: right;
+    content: attr(data-offset-label) "\A" attr(data-offset-date) "\A" attr(data-offset-clock);
+    white-space: pre-line;
+  }
+
+  .rose-cell canvas[data-rose-canvas="true"] {
+    grid-column: 2;
+    width: 100% !important;
+  }
+
+  .rose-legend {
+    grid-column: 2;
+    width: 100%;
+  }
+
+  #rose-tooltip {
+    max-width: min(260px, calc(100vw - 16px));
+    font-size: 12px;
+    padding: 8px 9px;
+  }
+}
+
 @media (max-width: 760px) {
   .explainer-card,
   #sample-map-card {
     grid-template-columns: 1fr;
   }
+}
 
-  .rose-row,
-  .rose-header-row {
-    min-width: 760px;
+@media (max-width: 430px) {
+  #roses-wrap {
+    padding-inline: 10px;
   }
 
-  #roses-wrap {
-    overflow-x: auto;
+  .rose-cell {
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 0 8px;
+    padding: 5px;
+  }
+
+  .rose-cell::before {
+    font-size: 11px;
   }
 }
