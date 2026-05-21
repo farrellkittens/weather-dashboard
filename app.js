@@ -42,7 +42,7 @@ const PANELS = [
   { id:'temp', label:'Temperature / Wind Chill / Dewpoint (°F)', h: Math.round(115*SCALE), type:'multi',
     lines:[
       {key:'temp',      color:'#e03030', label:'Temp'},
-      {key:'windChill', color:'#4488ee', label:'Wind Chill', dash:[4,3]},
+      {key:'windChill', color:'#4488ee', label:'Wind Chill'},
       {key:'dewpoint',  color:'#33bb55', label:'Dewpoint'},
     ],
     tooltipKeys:['temp','windChill','dewpoint'],
@@ -52,7 +52,7 @@ const PANELS = [
     lines:[
       {key:'skyCover', color:'#6aaddd', label:'Sky Cover'},
       {key:'rh',       color:'#44bb55', label:'Humidity'},
-      {key:'pop',      color:'#ccaa22', label:'PoP', dash:[3,2]},
+      {key:'pop',      color:'#ccaa22', label:'PoP'},
     ],
     tooltipKeys:['skyCover','rh','pop'],
   },
@@ -74,6 +74,10 @@ const PANELS = [
   { id:'snow', label:'Snow (%)', h: Math.round(85*SCALE), type:'precip',
     precipKey:'snowfall', popKey:'snowPop', barColor:'#5599dd', labelColor:'#5599dd',
     tooltipKeys:['snowPop','snowfall'],
+  },
+
+  { id:'uv', label:'UV Index', h: Math.round(90*SCALE), type:'uv',
+    tooltipKeys:['uvIndex'],
   },
 ];
 
@@ -147,8 +151,16 @@ async function loadForecast() {
     document.getElementById('loc').textContent=`${city}${city?', ':''}${state}  (${lat.toFixed(4)}, ${lon.toFixed(4)})  ·  ${gridId} ${gridX},${gridY}`;
 
     setStatus('Fetching forecast data…');
-    const gd=await fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}`).then(r=>r.json());
+    const [gd, uvRes] = await Promise.all([
+      fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}`).then(r=>r.json()),
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=uv_index&timezone=UTC&forecast_days=7`).then(r=>r.json()).catch(()=>null),
+    ]);
     const p=gd.properties;
+
+    const uvMap=new Map();
+    if(uvRes?.hourly?.time && uvRes.hourly.uv_index){
+      uvRes.hourly.time.forEach((t,i)=>uvMap.set(t.slice(0,13), uvRes.hourly.uv_index[i]));
+    }
 
     const N=168;
     const tmp=expand(p.temperature?.values,         N).map(x=>({...x,value:cToF(x.value)}));
@@ -184,6 +196,7 @@ async function loadForecast() {
       snow:      snw[i]?.value??null,
       snowfall:  snw[i]?.value??null,
       snowPop:   snowPop[i]?.value??null,
+      uvIndex:   uvMap.get(tmp[i]?.time?.toISOString().slice(0,13))??null,
     }));
 
     buildStartDropdown();
@@ -379,19 +392,23 @@ function drawPanel(panel,y0,n,W){
   ctx.fillStyle=C.axisBg;
   ctx.fillRect(0,y0,LEFT,panel.h);
 
+  ctx.font=`${Math.round(9*SCALE)}px Arial`;ctx.textBaseline='middle';
   if(panel.type==='multi'){
     let lx=LEFT+BUFFER*HW+Math.round(6*SCALE);
-    ctx.font=`${Math.round(9*SCALE)}px Arial`;
-    ctx.textBaseline='middle';
     for(const line of panel.lines){
       ctx.fillStyle=line.color||C.labelTxt;
       ctx.fillText(line.label, lx, y0+LABEL_H/2);
-      lx+=ctx.measureText(line.label).width+Math.round(8*SCALE);
+      lx+=ctx.measureText(line.label).width+Math.round(16*SCALE);
     }
+  } else if(panel.type==='wind'){
+    let lx=LEFT+BUFFER*HW+Math.round(6*SCALE);
+    for(const [label,color] of [['Speed','#dd44aa'],['Gust','#6699ee']]){
+      ctx.fillStyle=color;ctx.fillText(label,lx,y0+LABEL_H/2);
+      lx+=ctx.measureText(label).width+Math.round(16*SCALE);
+    }
+    ctx.fillStyle=C.axisTxt;ctx.fillText('(mph)',lx,y0+LABEL_H/2);
   } else {
-    ctx.font=`${Math.round(9*SCALE)}px Arial`;
     ctx.fillStyle=panel.labelColor||C.labelTxt;
-    ctx.textBaseline='middle';
     ctx.fillText(panel.label, LEFT+BUFFER*HW+Math.round(6*SCALE), y0+LABEL_H/2);
   }
 
@@ -401,6 +418,7 @@ function drawPanel(panel,y0,n,W){
   if     (panel.type==='multi')  drawMulti(panel,dataY,dataH,n);
   else if(panel.type==='wind')   drawWind(dataY,dataH,n);
   else if(panel.type==='precip') drawPrecip(panel,dataY,dataH,n);
+  else if(panel.type==='uv')     drawUV(dataY,dataH,n);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -426,7 +444,7 @@ function drawMulti(panel,y0,h,n){
     ctx.beginPath();ctx.moveTo(LEFT,y);ctx.lineTo(LEFT+BUFFER*HW+n*HW,y);ctx.stroke();
   }
 
-  for(const line of panel.lines){
+  for(const [li, line] of panel.lines.entries()){
     const vals=D.map(d=>d[line.key]);
     ctx.strokeStyle=line.color;ctx.lineWidth=1.7;ctx.lineJoin='round';
     if(line.dash)ctx.setLineDash(line.dash);else ctx.setLineDash([]);
@@ -437,13 +455,25 @@ function drawMulti(panel,y0,h,n){
       go?ctx.lineTo(x,y):(ctx.moveTo(x,y),go=true);
     }
     ctx.stroke();ctx.setLineDash([]);
+  }
 
-    ctx.font=`${Math.round(8.5*SCALE)}px Arial`;
-    ctx.fillStyle=line.color;
-    ctx.textAlign='center';ctx.textBaseline='bottom';
+  // labels after all lines; collision is checked per time column only (same-x overlap is the only real risk)
+  ctx.font=`${Math.round(8.5*SCALE)}px Arial`;ctx.textAlign='center';
+  const colPlaced=new Map();
+  const fh=Math.round(10*SCALE);
+  for(const [li,line] of panel.lines.entries()){
+    const vals=D.map(d=>d[line.key]);
+    const above=li!==1;
+    ctx.textBaseline=above?'bottom':'top';ctx.fillStyle=line.color;
     for(let i=0;i<n;i++){
-      if(D[i].time.getHours()%3===0&&vals[i]!=null)
-        ctx.fillText(vals[i],LEFT+BUFFER*HW+i*HW,toY(vals[i])-2);
+      if(D[i].time.getHours()%3!==0||vals[i]==null)continue;
+      const x=LEFT+BUFFER*HW+i*HW+HW/2;
+      const ly=toY(vals[i])+(above?-6:6);
+      const top=above?ly-fh:ly, bot=above?ly:ly+fh;
+      const col=colPlaced.get(i)||[];
+      if(col.some(r=>top<r.bot+1&&bot>r.top-1)){col.push({top,bot});colPlaced.set(i,col);continue;}
+      ctx.fillText(String(vals[i]),x,ly);
+      col.push({top,bot});colPlaced.set(i,col);
     }
   }
 }
@@ -473,13 +503,19 @@ function drawWind(y0,h,n){
   }
 
   drawLine2(wsV,'#dd44aa',1.7,null,toY,n);
-  drawLine2(wgV,'#3366cc',1.4,[4,3],toY,n);
+  drawLine2(wgV,'#6699ee',1.4,null,toY,n);
 
-  ctx.font=`${Math.round(8.5*SCALE)}px Arial`;ctx.fillStyle='#dd44aa';
-  ctx.textAlign='center';ctx.textBaseline='bottom';
+  // speed labels below, gust labels above — they go away from each other so no collision
+  ctx.font=`${Math.round(8.5*SCALE)}px Arial`;ctx.textAlign='center';
+  ctx.textBaseline='top';ctx.fillStyle='#dd44aa';
   for(let i=0;i<n;i++){
-    if(D[i].time.getHours()%3===0&&wsV[i]!=null)
-      ctx.fillText(wsV[i],LEFT+BUFFER*HW+i*HW,toY(wsV[i])-2);
+    if(D[i].time.getHours()%3!==0||wsV[i]==null)continue;
+    ctx.fillText(String(wsV[i]),LEFT+BUFFER*HW+i*HW+HW/2,toY(wsV[i])+4);
+  }
+  ctx.textBaseline='bottom';ctx.fillStyle='#6699ee';
+  for(let i=0;i<n;i++){
+    if(D[i].time.getHours()%3!==0||wgV[i]==null)continue;
+    ctx.fillText(String(wgV[i]),LEFT+BUFFER*HW+i*HW+HW/2,toY(wgV[i])-4);
   }
 
   const cy=y0+arrowH/2;
@@ -515,8 +551,8 @@ function drawArrow(cx,cy,deg,len){
 // ════════════════════════════════════════════════════════════
 function drawPrecip(panel,y0,h,n){
   const pad=4, iH=h-pad*2;
-  const base=y0+pad+iH;
   const toY=pct=>y0+pad+iH-(pct/100)*iH;
+  const barBase=y0+h-1;
 
   const thresholds=[{v:20,lbl:'SChc'},{v:40,lbl:'Chc'},{v:55,lbl:'Lkly'},{v:70,lbl:'Ocnl'}];
   ctx.font=`${Math.round(8.5*SCALE)}px Arial`;ctx.fillStyle=C.axisTxt;
@@ -533,14 +569,13 @@ function drawPrecip(panel,y0,h,n){
   for(let i=0;i<n;i++){
     const pv=popVals[i];
     if(pv==null||pv<20)continue;
-    const barH=base-toY(pv);
     ctx.fillStyle=panel.barColor+'99';
-    ctx.fillRect(LEFT+BUFFER*HW+i*HW+boff,toY(pv),bw,barH);
+    ctx.fillRect(LEFT+BUFFER*HW+i*HW+boff,toY(pv),bw,barBase-toY(pv));
   }
 
   if(panel.precipKey){
-    const BAR_H=Math.round(h*0.18);
-    const barY=base-BAR_H;
+    const BAR_H=Math.round(0.75*(barBase-toY(20)));
+    const barY=barBase-BAR_H;
 
     for(let i=0;i<n;i+=3){
       const end=Math.min(i+3,n);
@@ -553,13 +588,103 @@ function drawPrecip(panel,y0,h,n){
         ctx.fillRect(x1,barY,x2-x1,BAR_H);
         ctx.font=`${Math.round(7.5*SCALE)}px Arial`;ctx.fillStyle='#fff';
         ctx.textAlign='center';ctx.textBaseline='middle';
-        const lbl=panel.precipKey==='snowfall'?`${total.toFixed(1)}"❄`:`${total.toFixed(2)}"`;
+        const lbl=`${total.toFixed(2)}"`;
         ctx.fillText(lbl,(x1+x2)/2,barY+BAR_H/2);
       }
       ctx.strokeStyle='rgba(50,50,50,0.85)';
       ctx.lineWidth=1;
       ctx.strokeRect(x1+0.5,barY+0.5,x2-x1-1,BAR_H-1);
     }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// UV INDEX PANEL
+// ════════════════════════════════════════════════════════════
+function drawUV(y0,h,n){
+  const vals=D.map(d=>d.uvIndex);
+  if(!vals.some(v=>v!=null))return;
+
+  const maxUV=11, pad=Math.round(4*SCALE);
+  const bH=h-pad*2;
+  const baseY=y0+pad+bH;
+  const toY=v=>y0+pad+bH-Math.min(v/maxUV,1)*bH;
+  const toX=i=>LEFT+BUFFER*HW+i*HW+HW/2;
+
+  // muted colors matched to the chart's perceptual luminance
+  const bands=[
+    {v:3,  label:'Moderate', color:'#3aab52'},
+    {v:6,  label:'High',     color:'#b89a28'},
+    {v:8,  label:'V. High',  color:'#bf7828'},
+    {v:maxUV, label:'Extreme', color:'#c84030'},
+  ];
+
+  // threshold lines + y-axis category labels
+  ctx.font=`${Math.round(8.5*SCALE)}px Arial`;
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(const b of bands){
+    const ty=toY(b.v);
+    if(ty<y0||ty>y0+h) continue;
+    ctx.strokeStyle=C.gridH; ctx.lineWidth=1; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(LEFT,ty); ctx.lineTo(LEFT+BUFFER*HW+n*HW,ty); ctx.stroke();
+    ctx.fillStyle=b.color;
+    ctx.fillText(b.label, LEFT-Math.round(4*SCALE), ty);
+  }
+
+  // build point list
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const v=vals[i];
+    if(v!=null) pts.push({x:toX(i), y:toY(v)});
+  }
+  if(pts.length<2) return;
+
+  // vertical gradient with hard band transitions
+  const grad=ctx.createLinearGradient(0, toY(maxUV), 0, baseY);
+  grad.addColorStop(0,      'rgba(200,64,48,0.72)');
+  grad.addColorStop(3/11,   'rgba(200,64,48,0.72)');
+  grad.addColorStop(3/11,   'rgba(191,120,40,0.72)');
+  grad.addColorStop(5/11,   'rgba(191,120,40,0.72)');
+  grad.addColorStop(5/11,   'rgba(184,154,40,0.72)');
+  grad.addColorStop(8/11,   'rgba(184,154,40,0.72)');
+  grad.addColorStop(8/11,   'rgba(58,171,82,0.72)');
+  grad.addColorStop(1,      'rgba(58,171,82,0.72)');
+
+  // smooth filled area using cubic bezier through midpoints
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, baseY);
+  ctx.lineTo(pts[0].x, pts[0].y);
+  for(let i=1;i<pts.length;i++){
+    const p0=pts[i-1], p1=pts[i];
+    const mx=(p0.x+p1.x)/2;
+    ctx.bezierCurveTo(mx,p0.y, mx,p1.y, p1.x,p1.y);
+  }
+  ctx.lineTo(pts[pts.length-1].x, baseY);
+  ctx.closePath();
+  ctx.fillStyle=grad;
+  ctx.fill();
+
+  // subtle stroke on top of the fill
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for(let i=1;i<pts.length;i++){
+    const p0=pts[i-1], p1=pts[i];
+    const mx=(p0.x+p1.x)/2;
+    ctx.bezierCurveTo(mx,p0.y, mx,p1.y, p1.x,p1.y);
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.22)';
+  ctx.lineWidth=1.5; ctx.setLineDash([]);
+  ctx.stroke();
+
+  // labels where UV crosses a band threshold
+  const uvCat=v=>v<=3?'#3aab52':v<=6?'#b89a28':v<=8?'#bf7828':'#c84030';
+  ctx.font=`${Math.round(8.5*SCALE)}px Arial`;ctx.textAlign='center';ctx.textBaseline='bottom';
+  for(let i=1;i<n;i++){
+    const prev=vals[i-1], curr=vals[i];
+    if(prev==null||curr==null)continue;
+    if(![3,6,8].some(t=>(prev<t&&curr>=t)||(prev>=t&&curr<t)))continue;
+    ctx.fillStyle=uvCat(curr);
+    ctx.fillText(Math.round(curr), toX(i), toY(curr)-4);
   }
 }
 
@@ -607,6 +732,7 @@ function bindHover(n,W){
       snow:      ()=>d.snow?`Snow: ${d.snow}"`:null,
       snowfall:  ()=>d.snowfall?`Snowfall: ${d.snowfall}"`:null,
       snowPop:   ()=>`Snow PoP: ${f(d.snowPop)}%  ${popLabel(d.snowPop)||''}`,
+      uvIndex:   ()=>d.uvIndex!=null?`UV Index: ${Math.round(d.uvIndex)}`:null,
     };
 
     const lines=[`<b>${tl}</b>`,
