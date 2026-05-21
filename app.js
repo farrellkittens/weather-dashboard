@@ -48,11 +48,11 @@ const PANELS = [
     tooltipKeys:['temp','windChill','dewpoint'],
   },
 
-  { id:'sky', label:'Sky Cover / Rel. Humidity / PoP (%)', h: Math.round(90*SCALE), type:'multi', fixedRange:[0,100],
+  { id:'sky', label:'Sky Cover / Rel. Humidity / Precipitation Potential (%)', h: Math.round(90*SCALE), type:'multi', fixedRange:[0,100],
     lines:[
       {key:'skyCover', color:'#6aaddd', label:'Sky Cover'},
       {key:'rh',       color:'#44bb55', label:'Humidity'},
-      {key:'pop',      color:'#ccaa22', label:'PoP'},
+      {key:'pop',      color:'#cc7722', label:'Precip %'},
     ],
     tooltipKeys:['skyCover','rh','pop'],
   },
@@ -104,6 +104,19 @@ function expand(vals, n) {
   return out.slice(0,n);
 }
 
+// Like expand() but divides value by interval length — use for accumulated quantities
+// (QPF, snowfall) so that summing N hours gives the correct N-hour total.
+function expandRate(vals, n) {
+  const out=[];
+  for (const v of (vals||[])) {
+    const [ts,dur]=v.validTime.split('/');
+    const t0=new Date(ts), hrs=parseDur(dur);
+    const rate=v.value/Math.max(hrs,1);
+    for (let h=0;h<hrs;h++) out.push({time:new Date(t0.getTime()+h*3.6e6), value:rate});
+  }
+  return out.slice(0,n);
+}
+
 // Converts NWS weather coverage descriptor to a probability percentage
 const COVERAGE_PCT = {slight_chance:20, isolated:20, chance:40, scattered:40, likely:70, occasional:70, frequent:80, definite:90};
 
@@ -135,10 +148,162 @@ function popLabel(p){ if(p==null)return null; if(p>=70)return'Ocnl'; if(p>=55)re
 function floor3h(d){ const h=d.getHours(); return new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(h/3)*3,0,0,0); }
 
 // ════════════════════════════════════════════════════════════
+// CITY AUTOCOMPLETE
+// ════════════════════════════════════════════════════════════
+const STATE_ABBR = {
+  'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+  'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+  'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA',
+  'Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD',
+  'Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO',
+  'Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ',
+  'New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH',
+  'Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+  'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+  'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+  'District of Columbia':'DC','Puerto Rico':'PR'
+};
+
+let _suggestTimer = null;
+let _suggestions  = [];
+let _activeIdx    = -1;
+
+function cityLabel(r) {
+  const p = r.properties;
+  const name = /^\d{5}/.test(p.name) ? (p.city || p.town || p.name) : p.name;
+  const st = STATE_ABBR[p.state] || '';
+  return st ? `${name}, ${st}` : name;
+}
+
+function debounceSuggest() {
+  clearTimeout(_suggestTimer);
+  _suggestTimer = setTimeout(fetchSuggestions, 320);
+}
+
+async function fetchSuggestions() {
+  const q = document.getElementById('city').value.trim();
+  if (q.length < 2) { closeSuggestions(); return; }
+  try {
+    const res = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=15&lang=en`,
+      { headers: { 'User-Agent': 'NWS-Weather-Dashboard/1.0' } }
+    );
+    const data = await res.json();
+    const us = data.features
+      .filter(f => f.properties.countrycode === 'US' && f.properties.name)
+      .slice(0, 7);
+    renderSuggestions(us);
+  } catch(e) { closeSuggestions(); }
+}
+
+function setActiveItem(idx) {
+  _activeIdx = idx;
+  document.querySelectorAll('.sug-item').forEach((el, i) => { el.style.background = i === idx ? '#1e4a7a' : ''; });
+}
+
+function renderSuggestions(results) {
+  _activeIdx = -1;
+  _suggestions = results;
+  const box = document.getElementById('city-suggestions');
+  if (!results.length) { closeSuggestions(); return; }
+  box.innerHTML = '';
+  for (const r of results) {
+    const label = cityLabel(r);
+    const el = document.createElement('div');
+    el.className = 'sug-item';
+    el.textContent = label;
+    el.style.cursor = 'pointer';
+    el.addEventListener('mouseover', () => { _activeIdx = -1; el.style.background = '#1e4a7a'; });
+    el.addEventListener('mouseout',  () => { el.style.background = ''; });
+    el.onmousedown = e => { e.preventDefault(); selectSuggestion(r.geometry.coordinates[1], r.geometry.coordinates[0], label); };
+    box.appendChild(el);
+  }
+  const rect = document.getElementById('city').getBoundingClientRect();
+  box.style.position   = 'fixed';
+  box.style.zIndex     = '9999';
+  box.style.top        = (rect.bottom + 3) + 'px';
+  box.style.left       = rect.left + 'px';
+  box.style.background = '#1e1e2a';
+  box.style.border     = '1px solid #556';
+  box.style.borderRadius = '4px';
+  box.style.boxShadow  = '0 6px 20px rgba(0,0,0,0.75)';
+  box.style.minWidth   = '220px';
+  box.style.overflow   = 'hidden';
+  box.style.display    = 'block';
+}
+
+function selectSuggestion(lat, lon, label) {
+  document.getElementById('city').value = label;
+  document.getElementById('coords').value = `${parseFloat(lat).toFixed(6)}, ${parseFloat(lon).toFixed(6)}`;
+  closeSuggestions();
+  loadForecast();
+}
+
+function closeSuggestions() {
+  _activeIdx = -1;
+  _suggestions = [];
+  const box = document.getElementById('city-suggestions');
+  box.style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (e.target !== document.getElementById('city')) closeSuggestions();
+});
+
+document.getElementById('city').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeSuggestions(); return; }
+  const box = document.getElementById('city-suggestions');
+  const open = box.style.display !== 'none' && _suggestions.length;
+  if (e.key === 'ArrowDown') {
+    if (!open) return;
+    e.preventDefault();
+    setActiveItem(Math.min(_activeIdx + 1, _suggestions.length - 1));
+    return;
+  }
+  if (e.key === 'ArrowUp') {
+    if (!open) return;
+    e.preventDefault();
+    setActiveItem(Math.max(_activeIdx - 1, -1));
+    return;
+  }
+  if (e.key === 'Enter') {
+    if (open) {
+      const idx = _activeIdx >= 0 ? _activeIdx : 0;
+      const r = _suggestions[idx];
+      selectSuggestion(r.geometry.coordinates[1], r.geometry.coordinates[0], cityLabel(r));
+    } else {
+      lookupCity();
+    }
+  }
+});
+
+async function lookupCity() {
+  const q = document.getElementById('city').value.trim();
+  if (!q) return;
+  closeSuggestions();
+  setStatus('Looking up city…');
+  try {
+    const res = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10&lang=en`,
+      { headers: { 'User-Agent': 'NWS-Weather-Dashboard/1.0' } }
+    );
+    const data = await res.json();
+    const r = data.features.find(f => f.properties.countrycode === 'US' && f.properties.name);
+    if (!r) { setStatus('City not found'); return; }
+    const label = cityLabel(r);
+    document.getElementById('city').value = label;
+    document.getElementById('coords').value = `${parseFloat(r.geometry.coordinates[1]).toFixed(6)}, ${parseFloat(r.geometry.coordinates[0]).toFixed(6)}`;
+    loadForecast();
+  } catch(e) {
+    setStatus('City lookup failed');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // FETCH
 // ════════════════════════════════════════════════════════════
 async function loadForecast() {
-  const raw=document.getElementById('coords').value.trim();
+  const raw=document.getElementById('coords').value.trim().replace(/[()]/g,'');
   const parts=raw.split(/[\s,]+/).filter(Boolean);
   const lat=parseFloat(parts[0]), lon=parseFloat(parts[1]);
   if(isNaN(lat)||isNaN(lon)){setStatus('Invalid coordinates');return;}
@@ -148,7 +313,8 @@ async function loadForecast() {
     const pt=await fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`).then(r=>r.json());
     const {gridId,gridX,gridY,relativeLocation}=pt.properties;
     const city=relativeLocation?.properties?.city||'', state=relativeLocation?.properties?.state||'';
-    document.getElementById('loc').textContent=`${city}${city?', ':''}${state}  (${lat.toFixed(4)}, ${lon.toFixed(4)})  ·  ${gridId} ${gridX},${gridY}`;
+    document.getElementById('loc').textContent=`${city}${city?', ':''}${state}  (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+    document.getElementById('grid-ref').textContent=`  ·  ${gridId} ${gridX},${gridY}`;
 
     setStatus('Fetching forecast data…');
     const [gd, uvRes] = await Promise.all([
@@ -175,8 +341,8 @@ async function loadForecast() {
     const thr=p.probabilityOfThunderstorms?.values?.length
       ? expand(p.probabilityOfThunderstorms.values, N)
       : expandThunder(p.weather?.values, N);
-    const qpf=expand(p.quantitativePrecipitation?.values, N).map(x=>({...x,value:mmToIn(x.value)}));
-    const snw=expand(p.snowfallAmount?.values,      N).map(x=>({...x,value:mmToIn(x.value)}));
+    const qpf=expandRate(p.quantitativePrecipitation?.values, N).map(x=>({...x,value:x.value==null?null:x.value/25.4}));
+    const snw=expandRate(p.snowfallAmount?.values,      N).map(x=>({...x,value:x.value==null?null:x.value/25.4}));
     const snowPop=expand(p.probabilityOfSnow?.values,N);
 
     const n=Math.min(tmp.length,N);
@@ -392,24 +558,41 @@ function drawPanel(panel,y0,n,W){
   ctx.fillStyle=C.axisBg;
   ctx.fillRect(0,y0,LEFT,panel.h);
 
-  ctx.font=`${Math.round(9*SCALE)}px Arial`;ctx.textBaseline='middle';
+  ctx.font=`bold ${Math.round(10*SCALE)}px Arial`;ctx.textBaseline='middle';
+  const labelGap=Math.round(16*SCALE);
+  const wordGap=Math.round(4*SCALE);
+  const rx=W-RIGHT-BUFFER*HW-Math.round(6*SCALE);
+
+  function measureLabel(str){
+    const words=str.split(' ');
+    return words.reduce((s,w)=>s+ctx.measureText(w).width,0)+wordGap*(words.length-1);
+  }
+  function drawLabels(items,yMid){
+    ctx.textAlign='left';
+    const totalW=items.reduce((s,l)=>s+l.w,0)+labelGap*(items.length-1);
+    let lx=rx-totalW;
+    for(let i=0;i<items.length;i++){
+      ctx.fillStyle=items[i].color;
+      const words=items[i].label.split(' ');
+      for(let wi=0;wi<words.length;wi++){
+        ctx.fillText(words[wi],lx,yMid);
+        lx+=ctx.measureText(words[wi]).width+(wi<words.length-1?wordGap:0);
+      }
+      if(i<items.length-1) lx+=labelGap;
+    }
+  }
+
   if(panel.type==='multi'){
-    let lx=LEFT+BUFFER*HW+Math.round(6*SCALE);
-    for(const line of panel.lines){
-      ctx.fillStyle=line.color||C.labelTxt;
-      ctx.fillText(line.label, lx, y0+LABEL_H/2);
-      lx+=ctx.measureText(line.label).width+Math.round(16*SCALE);
-    }
+    const items=panel.lines.map(l=>({label:l.label,color:l.color||C.labelTxt,w:measureLabel(l.label)}));
+    drawLabels(items,y0+LABEL_H/2);
   } else if(panel.type==='wind'){
-    let lx=LEFT+BUFFER*HW+Math.round(6*SCALE);
-    for(const [label,color] of [['Speed','#dd44aa'],['Gust','#6699ee']]){
-      ctx.fillStyle=color;ctx.fillText(label,lx,y0+LABEL_H/2);
-      lx+=ctx.measureText(label).width+Math.round(16*SCALE);
-    }
-    ctx.fillStyle=C.axisTxt;ctx.fillText('(mph)',lx,y0+LABEL_H/2);
+    const items=[['Speed','#dd44aa'],['Gust','#6699ee'],['(mph)',C.axisTxt]].map(([label,color])=>({label,color,w:measureLabel(label)}));
+    drawLabels(items,y0+LABEL_H/2);
   } else {
     ctx.fillStyle=panel.labelColor||C.labelTxt;
-    ctx.fillText(panel.label, LEFT+BUFFER*HW+Math.round(6*SCALE), y0+LABEL_H/2);
+    ctx.textAlign='right';
+    ctx.fillText(panel.label,rx,y0+LABEL_H/2);
+    ctx.textAlign='left';
   }
 
   const dataY=y0+LABEL_H;
@@ -569,31 +752,28 @@ function drawPrecip(panel,y0,h,n){
   for(let i=0;i<n;i++){
     const pv=popVals[i];
     if(pv==null||pv<20)continue;
-    ctx.fillStyle=panel.barColor+'99';
+    ctx.fillStyle=panel.barColor+'cc';
     ctx.fillRect(LEFT+BUFFER*HW+i*HW+boff,toY(pv),bw,barBase-toY(pv));
   }
 
   if(panel.precipKey){
-    const BAR_H=Math.round(0.75*(barBase-toY(20)));
-    const barY=barBase-BAR_H;
-
-    for(let i=0;i<n;i+=3){
-      const end=Math.min(i+3,n);
+    const BAR_H=Math.round(11*SCALE);
+    const barY=y0+h-BAR_H;
+    const d0hour=(D[0]?.time?.getHours()??0);
+    const off=(6-d0hour%6)%6;
+    for(let i=off;i<n;i+=6){
+      const end=Math.min(i+6,n);
       const total=D.slice(i,end).reduce((s,d)=>s+(d[panel.precipKey]||0),0);
-
-      const x1=LEFT+BUFFER*HW+i*HW, x2=LEFT+BUFFER*HW+end*HW;
-
-      if(total>0){
-        ctx.fillStyle=panel.barColor+'cc';
-        ctx.fillRect(x1,barY,x2-x1,BAR_H);
-        ctx.font=`${Math.round(7.5*SCALE)}px Arial`;ctx.fillStyle='#fff';
-        ctx.textAlign='center';ctx.textBaseline='middle';
-        const lbl=`${total.toFixed(2)}"`;
-        ctx.fillText(lbl,(x1+x2)/2,barY+BAR_H/2);
-      }
-      ctx.strokeStyle='rgba(50,50,50,0.85)';
+      if(total<0.005)continue;
+      const x1=LEFT+BUFFER*HW+i*HW,x2=LEFT+BUFFER*HW+end*HW;
+      ctx.fillStyle=panel.barColor+'f2';
+      ctx.fillRect(x1,barY,x2-x1,BAR_H);
+      ctx.strokeStyle='rgba(0,0,0,0.8)';
       ctx.lineWidth=1;
       ctx.strokeRect(x1+0.5,barY+0.5,x2-x1-1,BAR_H-1);
+      ctx.font=`${Math.round(7.5*SCALE)}px Arial`;ctx.fillStyle='#000';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(`${total.toFixed(2)}"`, (x1+x2)/2, y0+h-BAR_H/2);
     }
   }
 }
@@ -723,15 +903,15 @@ function bindHover(n,W){
       dewpoint:  ()=>`Dewpoint: ${f(d.dewpoint)}°F`,
       skyCover:  ()=>`Sky Cover: ${f(d.skyCover)}%`,
       rh:        ()=>`Rel Humidity: ${f(d.rh)}%`,
-      pop:       ()=>`PoP: ${f(d.pop)}%  ${popLabel(d.pop)||''}`,
+      pop:       ()=>`Precip. Potential: ${f(d.pop)}%  ${popLabel(d.pop)||''}`,
       windSpeed: ()=>`Wind Speed: ${f(d.windSpeed)} mph`,
       windGust:  ()=>`Wind Gust: ${d.windGust!=null?d.windGust+' mph':'N/A'}`,
       windDir:   ()=>d.windDir!=null?`Direction: ${card(d.windDir)} (${d.windDir}°)`:null,
       thunder:   ()=>d.thunder?`Thunder: ${d.thunder}%  ${popLabel(d.thunder)||''}`:null,
-      qpf:       ()=>d.qpf?`Rain: ${d.qpf}"`:null,
-      snow:      ()=>d.snow?`Snow: ${d.snow}"`:null,
-      snowfall:  ()=>d.snowfall?`Snowfall: ${d.snowfall}"`:null,
-      snowPop:   ()=>`Snow PoP: ${f(d.snowPop)}%  ${popLabel(d.snowPop)||''}`,
+      qpf:       ()=>d.qpf?`Rain: ${d.qpf.toFixed(3)}"`:null,
+      snow:      ()=>d.snow?`Snow: ${d.snow.toFixed(3)}"`:null,
+      snowfall:  ()=>d.snowfall?`Snowfall: ${d.snowfall.toFixed(3)}"`:null,
+      snowPop:   ()=>`Snow Precip. Potential: ${f(d.snowPop)}%  ${popLabel(d.snowPop)||''}`,
       uvIndex:   ()=>d.uvIndex!=null?`UV Index: ${Math.round(d.uvIndex)}`:null,
     };
 

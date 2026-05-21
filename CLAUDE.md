@@ -22,6 +22,7 @@ The app is split across three files:
 Supporting files:
 - **`vercel.json`** — Vercel deployment config (`outputDirectory: "."`)
 - **`package.json`** — defines `npm run dev` (uses `npx serve .`)
+- **`peaks.html` / `peaks.css` / `peaks.js`** — Summit Weather Rose view linked from the main dashboard. It samples NWS hourly forecast grids around Longs Peak at 1, 5, 10, and 20 miles in 16 compass directions, then renders temperature, wind, precip probability, sky cover, and thunderstorm roses with shared legends and explainer samples.
 
 ## Key things to know
 

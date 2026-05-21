@@ -8,6 +8,7 @@ A single-page weather dashboard that pulls hourly forecast data from the [NOAA/N
 - Panels: Temperature / Wind Chill / Dewpoint, Sky Cover / Humidity / PoP, Wind Speed & Gusts, Rain, Thunderstorm, and Snow probability
 - Dark theme with a hover tooltip showing values at each hour
 - Scrollable 60-hour window across a 7-day forecast
+- Summit Weather Rose view for Longs Peak, sampling NWS forecast grids 1, 5, 10, and 20 miles from the summit in 16 directions for temperature, wind, precipitation, sky cover, and thunderstorm signal
 
 ## How to use
 
@@ -24,6 +25,9 @@ A single-page weather dashboard that pulls hourly forecast data from the [NOAA/N
 index.html     # App shell — HTML layout and script/style links
 style.css      # All styles (dark theme)
 app.js         # All JavaScript — data fetching, chart rendering
+peaks.html     # Summit Weather Rose view
+peaks.css      # Summit Weather Rose styling
+peaks.js       # Summit rose sampling, NWS fetches, legends, and canvas rendering
 vercel.json    # Vercel deployment config
 package.json   # Dev script: npm run dev (uses npx serve)
 ```

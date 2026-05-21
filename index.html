@@ -7,11 +7,17 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="header">NWS Hourly Weather Forecast Graph</div>
+<div id="header">
+  <span>NWS Hourly Weather Forecast Graph</span>
+  <a href="peaks.html" id="nav-link">Summit Weather Rose →</a>
+</div>
 
 <div id="controls">
+  <label>City, State:</label>
+  <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
+  <button onclick="lookupCity()">Go</button>
   <label>Coordinates:</label>
-  <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon">
+  <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
   <button onclick="loadForecast()">Load</button>
   <label>Start:</label>
   <select id="startSel"></select>
@@ -19,10 +25,11 @@
   <div id="loc"></div>
 </div>
 
+<div id="city-suggestions"></div>
 <div id="status">Loading…</div>
 <div id="chart-wrap"><canvas id="c"></canvas></div>
 <div id="tip"></div>
-<div id="footer">Data: NOAA/NWS api.weather.gov — times shown in local browser timezone</div>
+<div id="footer">Data: NOAA/NWS api.weather.gov — times shown in local browser timezone<span id="grid-ref"></span></div>
 
 <script src="app.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
