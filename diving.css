@@ -27,6 +27,25 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 #tide-station { width: 120px; }
 #controls button { background: #277b8e; color: #f4fbfd; border: none; padding: 5px 13px; font-size: 12px; cursor: pointer; border-radius: 3px; }
 #controls button:hover { background: #3294aa; }
+#controls .share-location-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid #52656b;
+  border-radius: 4px;
+  background: #273033;
+  color: #d9eaee;
+  cursor: pointer;
+  line-height: 1.2;
+}
+#controls .share-location-toggle input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: #3294aa;
+}
 #site-info { font-size: 12px; color: #98a5a9; margin-left: auto; }
 .sug-item { padding: 9px 14px; cursor: pointer; font-size: 13px; color: #e2e6e8; white-space: nowrap; }
 .sug-item:hover, .sug-item.active { background: #1e4a7a; }
@@ -120,5 +139,8 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
   #controls select,
   #city,
   #coords,
-  #tide-station { width: 100%; }
+  #tide-station,
+  #controls .share-location-toggle { width: 100%; }
+  #controls .share-location-toggle { min-height: 40px; }
+  #controls button { min-height: 34px; }
 }

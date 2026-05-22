@@ -24,6 +24,10 @@
   <label>Coordinates:</label>
   <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
   <button onclick="loadForecast()">Load</button>
+  <label class="share-location-toggle">
+    <input id="share-location" type="checkbox">
+    <span>Use this location on all tabs</span>
+  </label>
   <label>Start:</label>
   <select id="startSel"></select>
   <button onclick="applyStart()">Go</button>
@@ -36,6 +40,7 @@
 <div id="tip"></div>
 <div id="footer">Data: NOAA/NWS api.weather.gov — times shown in local browser timezone<span id="grid-ref"></span></div>
 
+<script src="shared-location.js"></script>
 <script src="app.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>

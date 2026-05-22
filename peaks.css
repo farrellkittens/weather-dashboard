@@ -35,6 +35,25 @@ body.is-loading * {
 #controls input#city { width: 150px; }
 #controls input::placeholder { color: #666; }
 .controls-sep { color: #444; padding: 0 2px; }
+#controls .share-location-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid #4c5966;
+  border-radius: 4px;
+  background: #2b3036;
+  color: #d7e3ee;
+  cursor: pointer;
+  line-height: 1.2;
+}
+#controls .share-location-toggle input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: #5b9ed6;
+}
 .sug-item { padding: 6px 10px; font-size: 12px; color: #ddd; }
 
 
@@ -574,6 +593,25 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
 }
 
 @media (max-width: 760px) {
+  #controls {
+    align-items: stretch;
+  }
+  #controls select,
+  #controls input,
+  #controls input#city,
+  #controls .share-location-toggle {
+    width: 100%;
+  }
+  #controls .share-location-toggle {
+    min-height: 40px;
+  }
+  .controls-sep {
+    display: none;
+  }
+  #peak-info {
+    width: 100%;
+    margin-left: 0;
+  }
   .explainer-card,
   #sample-map-card {
     grid-template-columns: 1fr;

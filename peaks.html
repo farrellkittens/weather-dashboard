@@ -38,6 +38,11 @@
   <label>Lat, Lon:</label>
   <input id="coords" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadFromCoords()">
 
+  <label class="share-location-toggle">
+    <input id="share-location" type="checkbox">
+    <span>Use this location on all tabs</span>
+  </label>
+
   <div id="peak-info"></div>
 </div>
 
@@ -224,6 +229,7 @@
   Points sampled 1, 5, 10, and 20 miles from summit in 16 cardinal directions
 </div>
 
+<script src="shared-location.js"></script>
 <script src="peaks.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>

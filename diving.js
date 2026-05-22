@@ -51,6 +51,40 @@ function parseCoords() {
   if (parts.length !== 2 || parts.some(Number.isNaN)) throw new Error('Enter coordinates as lat, lon.');
   return { lat: parts[0], lon: parts[1] };
 }
+function selectedSite() {
+  return SITES[Number(byId('site-sel').value)];
+}
+function getCurrentDiveLocation() {
+  try {
+    const { lat, lon } = parseCoords();
+    const site = selectedSite();
+    const label = byId('city').value.trim() || site?.name || 'Shared location';
+    return {
+      lat,
+      lon,
+      label,
+      source: 'diving',
+      tideStation: byId('tide-station').value.trim(),
+      siteName: site?.name || '',
+    };
+  } catch (error) {
+    return null;
+  }
+}
+function applySharedDiveLocation() {
+  const shared = window.SharedLocation?.readLocation();
+  if (!window.SharedLocation?.isEnabled() || !shared) return false;
+  const customIdx = SITES.findIndex(site => site.name === 'Custom location');
+  if (customIdx >= 0) byId('site-sel').value = String(customIdx);
+  byId('coords').value = `${Number(shared.lat).toFixed(4)}, ${Number(shared.lon).toFixed(4)}`;
+  byId('city').value = shared.label || '';
+  byId('tide-station').value = shared.tideStation || '';
+  byId('site-info').textContent = shared.siteName
+    ? `Shared from ${shared.siteName}`
+    : 'Shared location; add a NOAA tide station if needed';
+  loadDiveConditions();
+  return true;
+}
 function isoDate(d) { return d.toISOString().slice(0, 10); }
 function localTime(s, timezone) {
   const value = s.endsWith('Z') ? s : `${s.replace(' ', 'T')}Z`;
@@ -67,13 +101,15 @@ function init() {
   sel.innerHTML = SITES.map((s, i) => `<option value="${i}">${s.name}</option>`).join('');
   sel.addEventListener('change', () => {
     const site = SITES[Number(sel.value)];
+    byId('city').value = '';
     byId('coords').value = `${site.lat.toFixed(4)}, ${site.lon.toFixed(4)}`;
     byId('tide-station').value = site.tide;
     byId('site-info').textContent = site.note;
     loadDiveConditions();
   });
   sel.value = '0';
-  sel.dispatchEvent(new Event('change'));
+  window.SharedLocation?.initCheckbox({ getLocation: getCurrentDiveLocation });
+  if (!applySharedDiveLocation()) sel.dispatchEvent(new Event('change'));
 
   byId('city')?.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeDiveSuggestions(); return; }
@@ -229,6 +265,7 @@ async function loadDiveConditions() {
     byId('status').textContent = 'Loading marine, weather, air quality, and tide data...';
     const { lat, lon } = parseCoords();
     const tideStation = byId('tide-station').value.trim();
+    window.SharedLocation?.saveLocation(getCurrentDiveLocation());
     const [marine, weather, air, tides] = await Promise.all([
       fetchMarine(lat, lon),
       fetchWeather(lat, lon),
@@ -243,6 +280,7 @@ async function loadDiveConditions() {
 }
 
 async function fetchJson(url) {
+  if (window.SharedLocation) return SharedLocation.fetchJson(url);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   return res.json();

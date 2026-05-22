@@ -326,6 +326,12 @@ function writeCachedJson(url, data) {
 }
 
 async function fetchJsonWithCache(url, ttlMs) {
+  if (window.SharedLocation) {
+    return SharedLocation.fetchJson(url, {
+      ttlMs,
+      fetchOptions: { headers: { Accept: 'application/geo+json, application/json' } },
+    });
+  }
   const cached = readCachedJson(url, ttlMs);
   if (cached) return cached;
 
@@ -352,7 +358,7 @@ async function mapWithConcurrency(items, limit, mapper) {
 }
 
 async function fetchPointUrls(lat, lon) {
-  const data = await fetchJsonWithCache(`https://api.weather.gov/points/${lat},${lon}`, POINT_CACHE_TTL_MS);
+  const data = await fetchJsonWithCache(`https://api.weather.gov/points/${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`, POINT_CACHE_TTL_MS);
   const props = data.properties;
   return {
     hourlyUrl: props.forecastHourly,
@@ -490,6 +496,14 @@ async function loadData(peak) {
   roseData = null;
   roseSelections.clear();
   setStatus('Calculating offset coordinates...');
+  window.SharedLocation?.saveLocation({
+    lat: peak.lat,
+    lon: peak.lon,
+    label: peak.name,
+    source: 'summit',
+    elev: peak.elev || 0,
+    tier: peak.tier || 0,
+  });
 
   try {
     const data = await buildRoseDataForPeak(peak, setStatus);
@@ -1663,6 +1677,37 @@ function loadFromCoords() {
   loadData(currentPeak);
 }
 
+function getCurrentPeakLocation() {
+  if (!currentPeak) return null;
+  return {
+    lat: currentPeak.lat,
+    lon: currentPeak.lon,
+    label: currentPeak.name || document.getElementById('city').value.trim() || 'Shared location',
+    source: 'summit',
+    elev: currentPeak.elev || 0,
+    tier: currentPeak.tier || 0,
+  };
+}
+
+function applySharedPeakLocation() {
+  const shared = window.SharedLocation?.readLocation();
+  if (!window.SharedLocation?.isEnabled() || !shared) return false;
+  currentPeak = {
+    name: shared.label || 'Shared Location',
+    state: 'CO',
+    elev: shared.elev || 0,
+    lat: Number(shared.lat),
+    lon: Number(shared.lon),
+    tier: shared.tier || 0,
+  };
+  document.getElementById('peak-sel').value = '';
+  document.getElementById('city').value = shared.label || '';
+  document.getElementById('coords').value = `${currentPeak.lat.toFixed(4)}, ${currentPeak.lon.toFixed(4)}`;
+  updatePeakInfo();
+  loadData(currentPeak);
+  return true;
+}
+
 function updatePeakInfo() {
   const p = currentPeak;
   if (!p) {
@@ -1777,6 +1822,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('peak-sel').value = '';
   document.getElementById('coords').value = '';
   updatePeakInfo();
+  window.SharedLocation?.initCheckbox({ getLocation: getCurrentPeakLocation });
 
   // City input keyboard nav
   document.getElementById('city')?.addEventListener('keydown', e => {
@@ -1879,4 +1925,5 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
   drawNoLocationState();
+  applySharedPeakLocation();
 });

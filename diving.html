@@ -28,6 +28,10 @@
   <label for="tide-station">Tide station:</label>
   <input id="tide-station" placeholder="NOAA station id">
   <button type="button" onclick="loadDiveConditions()">Load</button>
+  <label class="share-location-toggle">
+    <input id="share-location" type="checkbox">
+    <span>Use this location on all tabs</span>
+  </label>
   <div id="site-info"></div>
 </div>
 
@@ -80,6 +84,7 @@
   Data: Open-Meteo marine, weather, and air quality APIs; NOAA CO-OPS tide predictions where a station is set.
 </div>
 
+<script src="shared-location.js"></script>
 <script src="diving.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>

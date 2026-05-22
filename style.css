@@ -23,6 +23,25 @@
   #controls select#startSel { width: 190px; }
   #controls button { background: #2d5a8e; color: #eee; border: none; padding: 4px 13px; font-size: 12px; cursor: pointer; border-radius: 3px; }
   #controls button:hover { background: #3a70aa; }
+  #controls .share-location-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 4px 8px;
+    border: 1px solid #4c5966;
+    border-radius: 4px;
+    background: #2b3036;
+    color: #d7e3ee;
+    cursor: pointer;
+    line-height: 1.2;
+  }
+  #controls .share-location-toggle input {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    accent-color: #5b9ed6;
+  }
   #loc { font-size: 12px; color: #999; flex: 1; text-align: right; }
 
   #status { padding: 4px 14px; font-size: 12px; color: #888; min-height: 20px; text-align: center; }
@@ -37,3 +56,27 @@
          display: none; z-index: 999; white-space: nowrap; line-height: 1.75; }
 
   #footer { padding: 5px 14px; font-size: 11px; color: #555; border-top: 1px solid #333; background: #1e1e1e; text-align: center; }
+
+  @media (max-width: 560px) {
+    #controls {
+      align-items: stretch;
+    }
+    #controls input#city,
+    #controls input#coords,
+    #controls select#startSel {
+      width: 100%;
+    }
+    #controls button {
+      min-height: 34px;
+    }
+    #controls .share-location-toggle {
+      width: 100%;
+      min-height: 40px;
+      justify-content: flex-start;
+    }
+    #loc {
+      width: 100%;
+      flex: 0 0 100%;
+      text-align: left;
+    }
+  }
