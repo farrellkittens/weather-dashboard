@@ -594,23 +594,34 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
 
 @media (max-width: 760px) {
   #controls {
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 10px;
   }
   #controls select,
   #controls input,
-  #controls input#city,
-  #controls .share-location-toggle {
+  #controls input#city {
     width: 100%;
   }
+  #controls label:not(.share-location-toggle) {
+    justify-self: end;
+    white-space: nowrap;
+    text-align: right;
+  }
   #controls .share-location-toggle {
+    grid-column: 1 / -1;
+    width: 100%;
     min-height: 40px;
   }
   .controls-sep {
     display: none;
   }
   #peak-info {
+    grid-column: 1 / -1;
     width: 100%;
     margin-left: 0;
+    text-align: left;
   }
   .explainer-card,
   #sample-map-card {
