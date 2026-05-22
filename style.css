@@ -4,8 +4,12 @@
 
   /* ── Top bar ── */
   #header { background: #1a1a2e; color: #a8c4e8; padding: 9px 14px; font-size: 15px; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
-  #nav-link { color: #7ab3e0; font-size: 12px; font-weight: normal; text-decoration: none; }
-  #nav-link:hover { color: #a8c4e8; text-decoration: underline; }
+
+  /* ── Page tabs ── */
+  #page-tabs { background: #0e1520; border-bottom: 2px solid #2e5a8a; display: flex; justify-content: flex-start; align-items: flex-end; overflow-x: auto; }
+  .tab, .tab:visited { flex: 0 0 auto; display: inline-block; padding: 9px 14px; font-size: 13px; font-weight: bold; color: #8eb4d8; text-decoration: none; text-align: center; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; transition: color 0.15s, background 0.15s; }
+  .tab:hover { color: #d4e8fc; background: rgba(255,255,255,0.05); text-decoration: none; }
+  .tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(91,158,214,0.1); }
 
   /* ── Controls row ── */
   #controls { padding: 9px 14px; background: #222; border-bottom: 1px solid #444; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

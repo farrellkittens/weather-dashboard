@@ -10,19 +10,53 @@
 
 <div id="header">
   <span>Summit Weather Rose</span>
-  <a href="index.html" id="nav-link">← Hourly Forecast</a>
+</div>
+
+<div id="page-tabs">
+  <a href="index.html" class="tab">Weather Dashboard</a>
+  <a href="peaks.html" class="tab active">Summit Weather Rose</a>
+  <a href="diving.html" class="tab">Diving Conditions</a>
 </div>
 
 <div id="controls">
+  <label>Category:</label>
+  <select id="tier-sel" onchange="onTierChange()">
+    <option value="all">All</option>
+    <option value="12">12ers</option>
+    <option value="13">13ers</option>
+    <option value="14">14ers</option>
+  </select>
+
   <label>Peak:</label>
   <select id="peak-sel" onchange="onPeakChange()"></select>
+
+  <span class="controls-sep">|</span>
+
+  <label>City, State:</label>
+  <input id="city" placeholder="Aspen, CO" autocomplete="off" oninput="peakDebounceSuggest()">
+
+  <label>Lat, Lon:</label>
+  <input id="coords" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadFromCoords()">
 
   <div id="peak-info"></div>
 </div>
 
-<div id="status">Loading…</div>
+<div id="city-suggestions"></div>
+
+<div id="status"></div>
+
+<div id="loading-overlay" aria-hidden="true" aria-live="polite">
+  <div class="loading-panel">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <div id="loading-message">Refreshing forecast data...</div>
+  </div>
+</div>
 
 <section id="rose-explainer" aria-label="How to read the Summit Weather Rose">
+  <div id="explainer-example-note">
+    No location data selected. Example shown with generic sample colors only; select a peak, city, or coordinates to load live forecast data.
+  </div>
+
   <div class="explainer-card">
     <div class="explainer-rose-wrap">
       <canvas id="explainer-temp"></canvas>

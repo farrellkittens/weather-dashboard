@@ -9,13 +9,15 @@ A single-page weather dashboard that pulls hourly forecast data from the [NOAA/N
 - Dark theme with a hover tooltip showing values at each hour
 - Scrollable 60-hour window across a 7-day forecast
 - Summit Weather Rose view for Longs Peak, sampling NWS forecast grids 1, 5, 10, and 20 miles from the summit in 16 directions for temperature, wind, precipitation, sky cover, and thunderstorm signal
+- Diving Conditions view with Oahu dive-site presets, marine/weather/air-quality data, and NOAA tide predictions
 
 ## How to use
 
 1. Open `index.html` in any modern web browser (Chrome, Firefox, Safari, Edge), or run `npm run dev` to serve locally.
-2. Enter coordinates in the **Coordinates** field (default is Denver, CO).
-3. Click **Load** to fetch the forecast.
-4. Use the **Start** dropdown + **Go** to jump to a different starting hour.
+2. Use the page tabs to switch between hourly forecast, summit weather rose, and diving conditions.
+3. Enter coordinates or choose a preset/location for the page you are using.
+4. Click **Load** to fetch the forecast.
+5. On the hourly page, use the **Start** dropdown + **Go** to jump to a different starting hour.
 
 > **Note:** The NWS API only covers US locations.
 
@@ -28,6 +30,9 @@ app.js         # All JavaScript — data fetching, chart rendering
 peaks.html     # Summit Weather Rose view
 peaks.css      # Summit Weather Rose styling
 peaks.js       # Summit rose sampling, NWS fetches, legends, and canvas rendering
+diving.html    # Diving Conditions view
+diving.css     # Diving Conditions styling
+diving.js      # Oahu dive presets, marine/weather/air/tide fetching, and condition summaries
 vercel.json    # Vercel deployment config
 package.json   # Dev script: npm run dev (uses npx serve)
 ```
@@ -40,6 +45,6 @@ npm run dev    # Starts a local server via npx serve
 
 Then open `http://localhost:3000` (or whatever port `serve` reports).
 
-## Data source
+## Data sources
 
-All forecast data comes from [api.weather.gov](https://api.weather.gov), the free public API provided by NOAA's National Weather Service. No account or API key is required.
+Hourly and summit forecast data comes from [api.weather.gov](https://api.weather.gov), the free public API provided by NOAA's National Weather Service. Diving conditions use Open-Meteo marine, weather, and air-quality APIs plus NOAA CO-OPS tide predictions. No account or API key is required.

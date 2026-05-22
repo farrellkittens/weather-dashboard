@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diving Conditions</title>
+<link rel="stylesheet" href="diving.css">
+</head>
+<body>
+<div id="header">
+  <span>Diving Conditions</span>
+</div>
+
+<div id="page-tabs">
+  <a href="index.html" class="tab">Weather Dashboard</a>
+  <a href="peaks.html" class="tab">Summit Weather Rose</a>
+  <a href="diving.html" class="tab active">Diving Conditions</a>
+</div>
+
+<div id="controls">
+  <label for="site-sel">Site:</label>
+  <select id="site-sel"></select>
+  <label for="city">City, State:</label>
+  <input id="city" placeholder="Miami, FL" autocomplete="off" oninput="diveDebounceSuggest()">
+  <button type="button" onclick="lookupDiveCity()">Go</button>
+  <label for="coords">Lat, Lon:</label>
+  <input id="coords" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadDiveConditions()">
+  <label for="tide-station">Tide station:</label>
+  <input id="tide-station" placeholder="NOAA station id">
+  <button type="button" onclick="loadDiveConditions()">Load</button>
+  <div id="site-info"></div>
+</div>
+
+<div id="city-suggestions"></div>
+
+<main id="dive-page">
+  <div id="status">Loading...</div>
+
+  <section class="section-block" aria-labelledby="summary-title">
+    <div class="section-heading">
+      <h1 id="summary-title">Marine Forecast Summary</h1>
+      <span id="summary-window">Next usable window</span>
+    </div>
+    <div class="metric-grid" id="summary-grid"></div>
+  </section>
+
+  <section class="section-block" aria-labelledby="visibility-title">
+    <div class="section-heading">
+      <h2 id="visibility-title">Visibility Signals</h2>
+      <span>Conditions that usually move viz up or down</span>
+    </div>
+    <div class="signal-grid" id="visibility-grid"></div>
+  </section>
+
+  <section class="section-block" aria-labelledby="risk-title">
+    <div class="section-heading">
+      <h2 id="risk-title">Risks</h2>
+      <span>Weather and surface hazards to check before gearing up</span>
+    </div>
+    <div class="signal-grid" id="risk-grid"></div>
+  </section>
+
+  <section class="section-block" aria-labelledby="extras-title">
+    <div class="section-heading">
+      <h2 id="extras-title">Useful Additions</h2>
+      <span>Worth adding once the core page is settled</span>
+    </div>
+    <div class="suggestion-list">
+      <div><strong>Dive-window score:</strong> combine tide stage, swell, wind, daylight, and lightning into a quick go/no-go trend.</div>
+      <div><strong>Slack-water timing:</strong> especially useful for channels, bridges, jetties, and high-current shore dives.</div>
+      <div><strong>Surf zone note:</strong> wave height plus wind-wave chop can matter more than offshore swell at entries and exits.</div>
+      <div><strong>Recent buoy trend:</strong> actual buoy readings can catch bad viz or wind faster than a model forecast.</div>
+      <div><strong>Sunrise, sunset, and moon:</strong> helpful for night dives and early-morning entries.</div>
+      <div><strong>Manual local report:</strong> a small editable note field for shop/club reports when no public feed exists.</div>
+    </div>
+  </section>
+</main>
+
+<div id="footer">
+  Data: Open-Meteo marine, weather, and air quality APIs; NOAA CO-OPS tide predictions where a station is set.
+</div>
+
+<script src="diving.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

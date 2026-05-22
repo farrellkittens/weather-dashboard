@@ -1,8 +1,130 @@
 // ════════════════════════════════════════════════════════════
-// PEAKS DATABASE
+// PEAKS DATABASE  (tier: 14 = 14er, 13 = 13er, 12 = 12er)
 // ════════════════════════════════════════════════════════════
 const PEAKS = [
-  { name: 'Longs Peak',   state: 'CO', elev: 14259, lat: 40.2553, lon: -105.6152 },
+  // ── 14ers (alphabetical) ────────────────────────────────
+  { name: 'Antero, Mount',            state: 'CO', elev: 14269, lat: 38.6742, lon: -106.2464, tier: 14 },
+  { name: 'Belford, Mount',           state: 'CO', elev: 14197, lat: 38.9606, lon: -106.3608, tier: 14 },
+  { name: 'Bierstadt, Mount',         state: 'CO', elev: 14060, lat: 39.5828, lon: -105.7086, tier: 14 },
+  { name: 'Bross, Mount',             state: 'CO', elev: 14172, lat: 39.3342, lon: -106.1075, tier: 14 },
+  { name: 'Capitol, Peak',            state: 'CO', elev: 14130, lat: 39.1508, lon: -107.0822, tier: 14 },
+  { name: 'Castle, Peak',             state: 'CO', elev: 14265, lat: 38.9472, lon: -106.8614, tier: 14 },
+  { name: 'Challenger, Point',        state: 'CO', elev: 14081, lat: 37.9800, lon: -105.6067, tier: 14 },
+  { name: 'Columbia, Mount',          state: 'CO', elev: 14073, lat: 38.9039, lon: -106.2981, tier: 14 },
+  { name: 'Crestone, Needle',         state: 'CO', elev: 14197, lat: 37.9644, lon: -105.5767, tier: 14 },
+  { name: 'Crestone, Peak',           state: 'CO', elev: 14294, lat: 37.9667, lon: -105.5853, tier: 14 },
+  { name: 'Culebra, Peak',            state: 'CO', elev: 14047, lat: 37.1225, lon: -105.1856, tier: 14 },
+  { name: 'Democrat, Mount',          state: 'CO', elev: 14148, lat: 39.3397, lon: -106.1400, tier: 14 },
+  { name: 'El Diente, Peak',          state: 'CO', elev: 14159, lat: 37.8350, lon: -107.9806, tier: 14 },
+  { name: 'Elbert, Mount',            state: 'CO', elev: 14440, lat: 39.1178, lon: -106.4453, tier: 14 },
+  { name: 'Ellingwood, Point',        state: 'CO', elev: 14042, lat: 37.9847, lon: -105.4933, tier: 14 },
+  { name: 'Eolus, Mount',             state: 'CO', elev: 14083, lat: 37.6217, lon: -107.6228, tier: 14 },
+  { name: 'Evans, Mount',             state: 'CO', elev: 14264, lat: 39.5883, lon: -105.6436, tier: 14 },
+  { name: 'Grays, Peak',              state: 'CO', elev: 14270, lat: 39.6337, lon: -105.8176, tier: 14 },
+  { name: 'Handies, Peak',            state: 'CO', elev: 14048, lat: 37.9131, lon: -107.5047, tier: 14 },
+  { name: 'Harvard, Mount',           state: 'CO', elev: 14421, lat: 38.9244, lon: -106.3208, tier: 14 },
+  { name: 'Holy Cross, Mount of the', state: 'CO', elev: 14009, lat: 39.4672, lon: -106.4819, tier: 14 },
+  { name: 'Humboldt, Peak',           state: 'CO', elev: 14064, lat: 37.9761, lon: -105.5544, tier: 14 },
+  { name: 'Huron, Peak',              state: 'CO', elev: 14005, lat: 38.9456, lon: -106.4347, tier: 14 },
+  { name: 'Kit Carson, Peak',         state: 'CO', elev: 14165, lat: 37.9797, lon: -105.6022, tier: 14 },
+  { name: 'Lincoln, Mount',           state: 'CO', elev: 14286, lat: 39.3514, lon: -106.1114, tier: 14 },
+  { name: 'Lindsey, Mount',           state: 'CO', elev: 14042, lat: 37.5836, lon: -105.4436, tier: 14 },
+  { name: 'Little Bear, Peak',        state: 'CO', elev: 14037, lat: 37.5669, lon: -105.4972, tier: 14 },
+  { name: 'Longs, Peak',              state: 'CO', elev: 14259, lat: 40.2553, lon: -105.6152, tier: 14 },
+  { name: 'Maroon, Peak',             state: 'CO', elev: 14156, lat: 39.0706, lon: -106.9889, tier: 14 },
+  { name: 'Massive, Mount',           state: 'CO', elev: 14428, lat: 39.1875, lon: -106.4753, tier: 14 },
+  { name: 'Missouri, Mountain',       state: 'CO', elev: 14067, lat: 38.9472, lon: -106.3783, tier: 14 },
+  { name: 'North Maroon, Peak',       state: 'CO', elev: 14014, lat: 39.0786, lon: -106.9914, tier: 14 },
+  { name: 'Oxford, Mount',            state: 'CO', elev: 14153, lat: 38.9644, lon: -106.3383, tier: 14 },
+  { name: 'Pikes, Peak',              state: 'CO', elev: 14115, lat: 38.8409, lon: -105.0442, tier: 14 },
+  { name: 'Pyramid, Peak',            state: 'CO', elev: 14018, lat: 39.0717, lon: -106.9503, tier: 14 },
+  { name: 'Quandary, Peak',           state: 'CO', elev: 14265, lat: 39.3972, lon: -106.1064, tier: 14 },
+  { name: 'Redcloud, Peak',           state: 'CO', elev: 14034, lat: 37.9406, lon: -107.5378, tier: 14 },
+  { name: 'San Luis, Peak',           state: 'CO', elev: 14014, lat: 38.2131, lon: -106.9317, tier: 14 },
+  { name: 'Shavano, Mount',           state: 'CO', elev: 14229, lat: 38.6192, lon: -106.2392, tier: 14 },
+  { name: 'Sherman, Mount',           state: 'CO', elev: 14036, lat: 39.2247, lon: -106.1694, tier: 14 },
+  { name: 'Sneffels, Mount',          state: 'CO', elev: 14150, lat: 38.0039, lon: -107.7922, tier: 14 },
+  { name: 'Snowmass, Mountain',       state: 'CO', elev: 14092, lat: 39.1189, lon: -107.0664, tier: 14 },
+  { name: 'Sunlight, Peak',           state: 'CO', elev: 14059, lat: 37.6272, lon: -107.5961, tier: 14 },
+  { name: 'Sunshine, Peak',           state: 'CO', elev: 14001, lat: 37.9222, lon: -107.5772, tier: 14 },
+  { name: 'Tabeguache, Peak',         state: 'CO', elev: 14155, lat: 38.6258, lon: -106.2506, tier: 14 },
+  { name: 'Torreys, Peak',            state: 'CO', elev: 14267, lat: 39.6431, lon: -105.8212, tier: 14 },
+  { name: 'Wetterhorn, Peak',         state: 'CO', elev: 14015, lat: 38.0608, lon: -107.5106, tier: 14 },
+  { name: 'Wilson, Mount',            state: 'CO', elev: 14246, lat: 37.8392, lon: -107.9914, tier: 14 },
+  { name: 'Wilson, Peak',             state: 'CO', elev: 14017, lat: 37.8597, lon: -107.9847, tier: 14 },
+  { name: 'Windom, Peak',             state: 'CO', elev: 14082, lat: 37.6214, lon: -107.5917, tier: 14 },
+  { name: 'Yale, Mount',              state: 'CO', elev: 14196, lat: 38.8442, lon: -106.3139, tier: 14 },
+
+  // ── 13ers (alphabetical) ────────────────────────────────
+  { name: 'Adams, Mount (Crestone)',  state: 'CO', elev: 13931, lat: 37.9553, lon: -105.6181, tier: 13 },
+  { name: 'Apache, Peak',             state: 'CO', elev: 13441, lat: 40.0414, lon: -105.6494, tier: 13 },
+  { name: 'Argentine, Peak',          state: 'CO', elev: 13738, lat: 39.6400, lon: -105.7867, tier: 13 },
+  { name: 'Arikaree, Peak',           state: 'CO', elev: 13150, lat: 40.0356, lon: -105.6408, tier: 13 },
+  { name: 'Arrow, Peak',              state: 'CO', elev: 13803, lat: 37.6333, lon: -107.6167, tier: 13 },
+  { name: 'Audubon, Mount',           state: 'CO', elev: 13223, lat: 40.0994, lon: -105.6128, tier: 13 },
+  { name: 'Cirque, Mountain',         state: 'CO', elev: 13686, lat: 37.9914, lon: -107.5264, tier: 13 },
+  { name: 'Crystal, Peak',            state: 'CO', elev: 13852, lat: 39.3961, lon: -106.0867, tier: 13 },
+  { name: 'Dallas, Peak',             state: 'CO', elev: 13809, lat: 38.0114, lon: -107.7797, tier: 13 },
+  { name: 'Dolores, Peak',            state: 'CO', elev: 13290, lat: 37.8597, lon: -108.0528, tier: 13 },
+  { name: 'Drift, Peak',              state: 'CO', elev: 13900, lat: 39.3719, lon: -106.1283, tier: 13 },
+  { name: 'Emerald, Peak',            state: 'CO', elev: 13904, lat: 38.6142, lon: -106.2747, tier: 13 },
+  { name: 'Engelmann, Peak',          state: 'CO', elev: 13362, lat: 39.7094, lon: -105.9733, tier: 13 },
+  { name: 'Epaulet, Mountain',        state: 'CO', elev: 13523, lat: 39.5703, lon: -105.6181, tier: 13 },
+  { name: 'Fairchild, Mountain',      state: 'CO', elev: 13502, lat: 40.4800, lon: -105.6658, tier: 13 },
+  { name: 'Fletcher, Mountain',       state: 'CO', elev: 13951, lat: 39.3850, lon: -106.0994, tier: 13 },
+  { name: 'Grizzly, Peak (Needles)',  state: 'CO', elev: 13738, lat: 37.6356, lon: -107.5689, tier: 13 },
+  { name: 'Grizzly, Peak (Sawatch)',  state: 'CO', elev: 13988, lat: 39.0503, lon: -106.5917, tier: 13 },
+  { name: "Hague's, Peak",            state: 'CO', elev: 13560, lat: 40.5131, lon: -105.6494, tier: 13 },
+  { name: 'Hesperus, Mountain',       state: 'CO', elev: 13232, lat: 37.4464, lon: -108.0983, tier: 13 },
+  { name: 'Horseshoe, Mountain',      state: 'CO', elev: 13898, lat: 39.2367, lon: -106.1708, tier: 13 },
+  { name: 'Iowa, Peak',               state: 'CO', elev: 13831, lat: 38.9522, lon: -106.4061, tier: 13 },
+  { name: 'Jones, Mountain',          state: 'CO', elev: 13860, lat: 38.0036, lon: -107.5681, tier: 13 },
+  { name: 'Kelso, Mountain',          state: 'CO', elev: 13164, lat: 39.6367, lon: -105.8147, tier: 13 },
+  { name: 'Matterhorn, Peak',         state: 'CO', elev: 13590, lat: 38.0664, lon: -107.5289, tier: 13 },
+  { name: 'Milwaukee, Peak',          state: 'CO', elev: 13522, lat: 37.9825, lon: -105.5575, tier: 13 },
+  { name: 'Mummy, Mountain',          state: 'CO', elev: 13425, lat: 40.4861, lon: -105.6422, tier: 13 },
+  { name: 'North Star, Mountain',     state: 'CO', elev: 13614, lat: 39.2903, lon: -106.1044, tier: 13 },
+  { name: 'North Twilight, Peak',     state: 'CO', elev: 13075, lat: 37.5969, lon: -107.6456, tier: 13 },
+  { name: 'Ogalalla, Peak',           state: 'CO', elev: 13138, lat: 40.0222, lon: -105.6189, tier: 13 },
+  { name: 'Oso, Mount',               state: 'CO', elev: 13684, lat: 38.0092, lon: -107.4997, tier: 13 },
+  { name: 'Ouray, Mount',             state: 'CO', elev: 13971, lat: 38.4231, lon: -106.2236, tier: 13 },
+  { name: 'Pacific, Peak',            state: 'CO', elev: 13950, lat: 39.3792, lon: -106.1058, tier: 13 },
+  { name: 'Paiute, Peak',             state: 'CO', elev: 13088, lat: 40.0964, lon: -105.6381, tier: 13 },
+  { name: 'Pettingell, Peak',         state: 'CO', elev: 13553, lat: 39.7208, lon: -105.9539, tier: 13 },
+  { name: 'Potosi, Peak',             state: 'CO', elev: 13786, lat: 38.0331, lon: -107.7661, tier: 13 },
+  { name: 'Powell, Mount (Gore)',      state: 'CO', elev: 13534, lat: 39.7689, lon: -106.2758, tier: 13 },
+  { name: 'Ptarmigan, Peak',          state: 'CO', elev: 13739, lat: 39.3636, lon: -106.0736, tier: 13 },
+  { name: 'Rogers, Peak',             state: 'CO', elev: 13391, lat: 39.5867, lon: -105.6489, tier: 13 },
+  { name: 'Rosalie, Peak',            state: 'CO', elev: 13575, lat: 39.5022, lon: -105.6589, tier: 13 },
+  { name: 'Sniktau, Mount',           state: 'CO', elev: 13234, lat: 39.6772, lon: -105.7622, tier: 13 },
+  { name: 'Spread Eagle, Peak',       state: 'CO', elev: 13523, lat: 37.9969, lon: -105.5478, tier: 13 },
+  { name: 'Square Top, Mountain',     state: 'CO', elev: 13794, lat: 39.5683, lon: -105.7189, tier: 13 },
+  { name: 'Storm King, Peak',         state: 'CO', elev: 13752, lat: 37.6228, lon: -107.5994, tier: 13 },
+  { name: 'Teakettle, Mountain',      state: 'CO', elev: 13819, lat: 38.0156, lon: -107.7519, tier: 13 },
+  { name: 'Teocalli, Mountain',       state: 'CO', elev: 13208, lat: 38.9833, lon: -107.0167, tier: 13 },
+  { name: 'Trinchera, Peak',          state: 'CO', elev: 13517, lat: 37.2289, lon: -105.3456, tier: 13 },
+  { name: 'Trinity, Peak',            state: 'CO', elev: 13805, lat: 37.6264, lon: -107.6142, tier: 13 },
+  { name: 'Twilight, Peak',           state: 'CO', elev: 13158, lat: 37.5967, lon: -107.6408, tier: 13 },
+  { name: 'Vestal, Peak',             state: 'CO', elev: 13864, lat: 37.6494, lon: -107.6139, tier: 13 },
+  { name: 'Ypsilon, Mountain',        state: 'CO', elev: 13514, lat: 40.4661, lon: -105.6717, tier: 13 },
+
+  // ── 12ers (alphabetical) ────────────────────────────────
+  { name: 'Andrews, Peak',            state: 'CO', elev: 12565, lat: 40.2756, lon: -105.7222, tier: 12 },
+  { name: 'Bethel, Mount',            state: 'CO', elev: 12705, lat: 39.5917, lon: -105.9561, tier: 12 },
+  { name: 'Breckenridge, Peak 8',     state: 'CO', elev: 12987, lat: 39.4742, lon: -106.0439, tier: 12 },
+  { name: 'Buffalo, Mountain',        state: 'CO', elev: 12777, lat: 39.5172, lon: -106.0439, tier: 12 },
+  { name: 'Engineer, Mountain (SJ)',   state: 'CO', elev: 12972, lat: 37.6611, lon: -107.7458, tier: 12 },
+  { name: 'Flattop, Mountain (RMNP)', state: 'CO', elev: 12324, lat: 40.3253, lon: -105.7183, tier: 12 },
+  { name: 'Ida, Mount',               state: 'CO', elev: 12880, lat: 40.3847, lon: -105.7294, tier: 12 },
+  { name: 'Julian, Mount',            state: 'CO', elev: 12928, lat: 40.4028, lon: -105.8250, tier: 12 },
+  { name: 'Otis, Peak',               state: 'CO', elev: 12486, lat: 40.2897, lon: -105.6603, tier: 12 },
+  { name: 'Porphyry, Peak',           state: 'CO', elev: 12756, lat: 39.2222, lon: -106.1614, tier: 12 },
+  { name: 'Richthofen, Mount',        state: 'CO', elev: 12940, lat: 40.5172, lon: -105.9450, tier: 12 },
+  { name: 'Stanley, Mountain',        state: 'CO', elev: 12521, lat: 39.7928, lon: -105.7667, tier: 12 },
+  { name: 'Thatchtop, Mountain',      state: 'CO', elev: 12668, lat: 40.2736, lon: -105.6656, tier: 12 },
+  { name: 'Vasquez, Peak',            state: 'CO', elev: 12947, lat: 39.7789, lon: -105.8797, tier: 12 },
+  { name: 'Wuh, Mount',               state: 'CO', elev: 12402, lat: 40.3839, lon: -105.8286, tier: 12 },
+  { name: 'Zirkel, Mount',            state: 'CO', elev: 12180, lat: 40.7839, lon: -106.6306, tier: 12 },
 ];
 
 // ════════════════════════════════════════════════════════════
@@ -55,11 +177,36 @@ const PANEL_VARS = ['temp', 'wind', 'precip', 'sky', 'thunder'];
 // ════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════
-let currentPeak = PEAKS[0];
+let currentPeak = null;
 let roseData    = null;  // { summit, directions: [{name, bearing, bands: [{label, periods}]}] }
 const roseCanvasMeta = new Map();
 const samplePreviewMeta = new Map();
 const roseSelections = new Map();
+let loadSequence = 0;
+let isLoading = false;
+
+const NWS_CACHE_PREFIX = 'summit-weather-rose:nws:';
+const POINT_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const FORECAST_CACHE_TTL_MS = 10 * 60 * 1000;
+const MAX_NWS_CONCURRENT_REQUESTS = 6;
+
+// City autocomplete state
+const STATE_ABBR = {
+  'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+  'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+  'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA',
+  'Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD',
+  'Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO',
+  'Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ',
+  'New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH',
+  'Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+  'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+  'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+  'District of Columbia':'DC','Puerto Rico':'PR',
+};
+let _suggestTimer = null;
+let _suggestions  = [];
+let _activeIdx    = -1;
 
 // ════════════════════════════════════════════════════════════
 // COLOR FUNCTIONS
@@ -151,10 +298,62 @@ function offsetCoords(lat, lon, bearingDeg, distKm) {
 // ════════════════════════════════════════════════════════════
 // NWS API HELPERS
 // ════════════════════════════════════════════════════════════
-async function fetchPointUrls(lat, lon) {
-  const r = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
+function nwsCacheKey(url) {
+  return NWS_CACHE_PREFIX + url;
+}
+
+function readCachedJson(url, ttlMs) {
+  try {
+    const raw = localStorage.getItem(nwsCacheKey(url));
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (!cached?.storedAt || Date.now() - cached.storedAt > ttlMs) return null;
+    return cached.data ?? null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeCachedJson(url, data) {
+  try {
+    localStorage.setItem(nwsCacheKey(url), JSON.stringify({
+      storedAt: Date.now(),
+      data,
+    }));
+  } catch (error) {
+    // localStorage can fill up or be disabled; the app can still fetch live data.
+  }
+}
+
+async function fetchJsonWithCache(url, ttlMs) {
+  const cached = readCachedJson(url, ttlMs);
+  if (cached) return cached;
+
+  const r = await fetch(url, {
+    headers: { Accept: 'application/geo+json, application/json' },
+  });
   if (!r.ok) throw new Error(r.status);
-  const props = (await r.json()).properties;
+  const data = await r.json();
+  writeCachedJson(url, data);
+  return data;
+}
+
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = new Array(items.length);
+  let next = 0;
+  const workerCount = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await mapper(items[index], index);
+    }
+  }));
+  return results;
+}
+
+async function fetchPointUrls(lat, lon) {
+  const data = await fetchJsonWithCache(`https://api.weather.gov/points/${lat},${lon}`, POINT_CACHE_TTL_MS);
+  const props = data.properties;
   return {
     hourlyUrl: props.forecastHourly,
     gridUrl: props.forecastGridData,
@@ -162,15 +361,11 @@ async function fetchPointUrls(lat, lon) {
 }
 
 async function fetchPeriods(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(r.status);
-  return (await r.json()).properties.periods;
+  return (await fetchJsonWithCache(url, FORECAST_CACHE_TTL_MS)).properties.periods;
 }
 
 async function fetchGridProperties(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(r.status);
-  return (await r.json()).properties;
+  return (await fetchJsonWithCache(url, FORECAST_CACHE_TTL_MS)).properties;
 }
 
 function parseWind(s) {
@@ -220,11 +415,7 @@ function thunderValue(period) {
 // ════════════════════════════════════════════════════════════
 // DATA LOADING
 // ════════════════════════════════════════════════════════════
-async function loadData(peak) {
-  roseData = null;
-  roseSelections.clear();
-  setStatus('Calculating offset coordinates…');
-
+async function buildRoseDataForPeak(peak, onStatus = () => {}) {
   const samplePoints = DIRECTIONS.flatMap((dir, dirIdx) =>
     DISTANCE_BANDS.map((band, bandIdx) => ({
       ...dir,
@@ -235,18 +426,17 @@ async function loadData(peak) {
     }))
   );
 
-  setStatus(`Fetching NWS grid assignments for summit plus ${samplePoints.length} direction/distance samples…`);
+  onStatus(`Fetching NWS grid assignments for summit plus ${samplePoints.length} direction/distance samples...`);
   const [summitResult, pointResults] = await Promise.all([
-    fetchPointUrls(peak.lat, peak.lon)
-      .catch(() => ({ hourlyUrl: null, gridUrl: null })),
-    Promise.all(samplePoints.map(d =>
-      fetchPointUrls(d.coords.lat, d.coords.lon)
-        .then(urls => ({ ...d, ...urls }))
-        .catch(() => ({ ...d, hourlyUrl: null, gridUrl: null }))
-    )),
-  ]);
+      fetchPointUrls(peak.lat, peak.lon)
+        .catch(() => ({ hourlyUrl: null, gridUrl: null })),
+      mapWithConcurrency(samplePoints, MAX_NWS_CONCURRENT_REQUESTS, d =>
+        fetchPointUrls(d.coords.lat, d.coords.lon)
+          .then(urls => ({ ...d, ...urls }))
+          .catch(() => ({ ...d, hourlyUrl: null, gridUrl: null }))
+      ),
+    ]);
 
-  // Deduplicate forecast/grid URLs — adjacent directions often share a grid cell
   const hourlyUrlSet = new Set([
     summitResult.hourlyUrl,
     ...pointResults.map(r => r.hourlyUrl),
@@ -255,24 +445,24 @@ async function loadData(peak) {
     summitResult.gridUrl,
     ...pointResults.map(r => r.gridUrl),
   ].filter(Boolean));
-  setStatus(`Fetching ${hourlyUrlSet.size} unique NWS hourly forecasts and ${gridUrlSet.size} grid datasets…`);
+  onStatus(`Fetching ${hourlyUrlSet.size} unique NWS hourly forecasts and ${gridUrlSet.size} grid datasets...`);
 
   const hourlyMap = new Map();
   const gridMap = new Map();
   await Promise.all([
-    ...Array.from(hourlyUrlSet).map(url =>
+    mapWithConcurrency(Array.from(hourlyUrlSet), MAX_NWS_CONCURRENT_REQUESTS, url =>
       fetchPeriods(url)
         .then(p => hourlyMap.set(url, p))
         .catch(() => hourlyMap.set(url, null))
     ),
-    ...Array.from(gridUrlSet).map(url =>
+    mapWithConcurrency(Array.from(gridUrlSet), MAX_NWS_CONCURRENT_REQUESTS, url =>
       fetchGridProperties(url)
         .then(p => gridMap.set(url, p))
         .catch(() => gridMap.set(url, null))
     ),
   ]);
 
-  roseData = {
+  return {
     summit: {
       coords: { lat: peak.lat, lon: peak.lon },
       periods: summitResult.hourlyUrl ? hourlyMap.get(summitResult.hourlyUrl) : null,
@@ -292,9 +482,30 @@ async function loadData(peak) {
     })),
     loadTime: new Date(),
   };
+}
 
-  setStatus('');
-  drawAll();
+async function loadData(peak) {
+  const loadId = ++loadSequence;
+  setLoading(true, `Refreshing forecast data for ${peak.name}...`);
+  roseData = null;
+  roseSelections.clear();
+  setStatus('Calculating offset coordinates...');
+
+  try {
+    const data = await buildRoseDataForPeak(peak, setStatus);
+    if (loadId !== loadSequence) return;
+
+    roseData = data;
+
+    setStatus('');
+    drawAll();
+  } catch (error) {
+    if (loadId === loadSequence) {
+      setStatus(`Unable to refresh forecast data for ${peak.name}.`);
+    }
+  } finally {
+    if (loadId === loadSequence) setLoading(false);
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -579,6 +790,22 @@ function updateColumnHeaders() {
   });
 }
 
+function updatePlaceholderColumnHeaders() {
+  TIME_OFFSETS.forEach((offset, i) => {
+    const label = offset === 0 ? 'Now' : `+${offset} hrs`;
+    const el = document.getElementById(`col-hdr-${i}`);
+    if (el) {
+      el.innerHTML = `<span class="col-hdr-main">${label}</span><span class="col-hdr-time">No data</span>`;
+    }
+    document.querySelectorAll(`.rose-row .rose-cell:nth-child(${i + 2})`).forEach(cell => {
+      cell.dataset.offsetLabel = label;
+      cell.dataset.offsetTime = 'No data';
+      cell.dataset.offsetDate = '';
+      cell.dataset.offsetClock = '';
+    });
+  });
+}
+
 function forecastTimeLabel(offset) {
   const t = new Date(Date.now() + offset * 3_600_000);
   return t.toLocaleString(undefined, {
@@ -644,12 +871,13 @@ function updateLegend(variable, timeIdx, min, max) {
   `;
 }
 
-function collectValues(varKey) {
+function collectValuesFromData(data, varKey, offsets = TIME_OFFSETS) {
   const values = [];
-  for (const offset of TIME_OFFSETS) {
-    const summitValue = extractValue(getPeriodAt(roseData.summit?.periods, offset), varKey, roseData.summit?.grid, offset);
+  if (!data) return values;
+  for (const offset of offsets) {
+    const summitValue = extractValue(getPeriodAt(data.summit?.periods, offset), varKey, data.summit?.grid, offset);
     if (summitValue !== null) values.push(summitValue);
-    for (const dir of roseData.directions) {
+    for (const dir of data.directions) {
       for (const band of dir.bands) {
         const v = extractValue(getPeriodAt(band.periods, offset), varKey, band.grid, offset);
         if (v !== null) values.push(v);
@@ -659,8 +887,12 @@ function collectValues(varKey) {
   return values;
 }
 
-function valuesForOffset(varKey, offset) {
-  return roseData.directions.map(dir =>
+function collectValues(varKey) {
+  return collectValuesFromData(roseData, varKey);
+}
+
+function valuesForOffsetFromData(data, varKey, offset) {
+  return data.directions.map(dir =>
     dir.bands.map(band => {
       const period = getPeriodAt(band.periods, offset);
       const value = extractValue(period, varKey, band.grid, offset);
@@ -669,10 +901,18 @@ function valuesForOffset(varKey, offset) {
   );
 }
 
-function summitValueForOffset(varKey, offset) {
-  const period = getPeriodAt(roseData.summit?.periods, offset);
-  const value = extractValue(period, varKey, roseData.summit?.grid, offset);
+function valuesForOffset(varKey, offset) {
+  return valuesForOffsetFromData(roseData, varKey, offset);
+}
+
+function summitValueForOffsetFromData(data, varKey, offset) {
+  const period = getPeriodAt(data.summit?.periods, offset);
+  const value = extractValue(period, varKey, data.summit?.grid, offset);
   return { value, missing: value === null };
+}
+
+function summitValueForOffset(varKey, offset) {
+  return summitValueForOffsetFromData(roseData, varKey, offset);
 }
 
 function timeLabel(offset) {
@@ -817,8 +1057,8 @@ function projectSamplePoint(lat, lon, centerLat, centerLon, scale, cx, cy) {
   };
 }
 
-function drawSampleMap(id = 'sample-map', statusId = 'sample-map-status') {
-  if (!roseData) return;
+function drawSampleMap(id = 'sample-map', statusId = 'sample-map-status', data = roseData, peak = currentPeak, isExample = false) {
+  if (!data || !peak) return;
   const setup = setupResponsiveCanvas(id);
   if (!setup) return;
 
@@ -827,8 +1067,8 @@ function drawSampleMap(id = 'sample-map', statusId = 'sample-map-status') {
   const cy = height / 2;
   const maxMiles = Math.max(...DISTANCE_BANDS.map(b => b.miles));
   const scale = Math.min(width, height) * 0.40 / maxMiles;
-  const centerLat = currentPeak.lat;
-  const centerLon = currentPeak.lon;
+  const centerLat = peak.lat;
+  const centerLon = peak.lon;
 
   ctx.fillStyle = '#171724';
   ctx.fillRect(0, 0, width, height);
@@ -859,7 +1099,7 @@ function drawSampleMap(id = 'sample-map', statusId = 'sample-map-status') {
 
   let returned = 0;
   let total = 0;
-  roseData.directions.forEach(dir => {
+  data.directions.forEach(dir => {
     dir.bands.forEach(band => {
       total++;
       const pt = band.coords
@@ -899,15 +1139,122 @@ function drawSampleMap(id = 'sample-map', statusId = 'sample-map-status') {
 
   const status = document.getElementById(statusId);
   if (status) {
-    status.textContent = `${returned} of ${total} sample points returned forecast data. Green dots are active sample coordinates; gray dots did not return a forecast grid.`;
+    const prefix = isExample ? 'Generic example sample: ' : '';
+    status.textContent = `${prefix}${returned} of ${total} sample points returned forecast data. Green dots are active sample coordinates; gray dots did not return a forecast grid.`;
   }
+}
+
+function drawGenericSampleMap(id = 'sample-map', statusId = 'sample-map-status') {
+  const setup = setupResponsiveCanvas(id);
+  if (!setup) return;
+  const { ctx, width, height } = setup;
+  const cx = width / 2;
+  const cy = height / 2;
+  const maxMiles = Math.max(...DISTANCE_BANDS.map(b => b.miles));
+  const scale = Math.min(width, height) * 0.40 / maxMiles;
+
+  ctx.fillStyle = '#171724';
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.lineWidth = 1;
+  DIRECTIONS.forEach(dir => {
+    const a = (dir.bearing - 90) * Math.PI / 180;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * maxMiles * scale, cy + Math.sin(a) * maxMiles * scale);
+    ctx.stroke();
+  });
+
+  DISTANCE_BANDS.forEach(band => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, band.miles * scale, 0, 2 * Math.PI);
+    ctx.strokeStyle = band.miles === maxMiles ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.14)';
+    ctx.lineWidth = band.miles === maxMiles ? 1.4 : 1;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(226,233,243,0.72)';
+    ctx.font = `${Math.round(width * 0.033)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(band.label, cx + width * 0.08, cy - band.miles * scale - width * 0.025);
+  });
+
+  DIRECTIONS.forEach(dir => {
+    const a = (dir.bearing - 90) * Math.PI / 180;
+    DISTANCE_BANDS.forEach(band => {
+      const x = cx + Math.cos(a) * band.miles * scale;
+      const y = cy + Math.sin(a) * band.miles * scale;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.1, 0, 2 * Math.PI);
+      ctx.fillStyle = '#6e7480';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  });
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3.2, 0, 2 * Math.PI);
+  ctx.fillStyle = '#171724';
+  ctx.fill();
+
+  const labelRadius = maxMiles * scale + 18;
+  RING_LABELS.forEach(({ name, b }) => {
+    const a = (b - 90) * Math.PI / 180;
+    ctx.fillStyle = '#858b97';
+    ctx.font = `bold ${Math.round(EXPLAINER_ROSE_PX * 0.033)}px Arial`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name, cx + Math.cos(a) * labelRadius, cy + Math.sin(a) * labelRadius);
+  });
+
+  const status = document.getElementById(statusId);
+  if (status) {
+    status.textContent = 'Generic sample layout. Location-specific sample points appear after a peak, city, or coordinates are loaded.';
+  }
+}
+
+function drawPlaceholderRoseGrid() {
+  updatePlaceholderColumnHeaders();
+  roseCanvasMeta.clear();
+  roseSelections.clear();
+
+  for (const varKey of PANEL_VARS) {
+    const meta = fallbackExplainerValues(varKey);
+    TIME_OFFSETS.forEach((offset, timeIdx) => {
+      const roseCtx = setupCanvas(`rose-${varKey}-${timeIdx}`);
+      if (!roseCtx) return;
+      drawRose(roseCtx, ROSE_PX, meta.values, meta.min, meta.max, varKey, {
+        showDistanceLabels: true,
+        fullDirectionLabels: false,
+        summitValue: meta.summit.value,
+      });
+      updateLegend(varKey, timeIdx, meta.min, meta.max);
+    });
+  }
+}
+
+function drawNoLocationState() {
+  roseData = null;
+  drawExplainers(null, null, false);
+  drawGenericSampleMap();
+  samplePreviewMeta.delete('sample-map');
+  drawPlaceholderRoseGrid();
+  updateExplainerNote(true, null, 'No location data selected. Example shown with generic sample colors only; select a peak, city, or coordinates to load live forecast data.');
+  setStatus('No location data selected. Generic sample roses are shown until you load a location.');
 }
 
 function drawAll() {
   if (!roseData) return;
   updateColumnHeaders();
-  drawExplainers();
-  drawSampleMap();
+  drawExplainers(roseData, currentPeak, false);
+  drawSampleMap('sample-map', 'sample-map-status', roseData, currentPeak, false);
+  updateExplainerNote(false, currentPeak);
   roseCanvasMeta.clear();
 
   for (const varKey of PANEL_VARS) {
@@ -932,58 +1279,98 @@ function drawAll() {
   }
 }
 
-function drawExplainers() {
-  samplePreviewMeta.clear();
-  const tempCtx = setupSizedCanvas('explainer-temp', EXPLAINER_ROSE_PX, EXPLAINER_ROSE_PX);
-  const windCtx = setupSizedCanvas('explainer-wind', EXPLAINER_ROSE_PX, EXPLAINER_ROSE_PX);
-  const precipCtx = setupSizedCanvas('explainer-precip', EXPLAINER_ROSE_PX, EXPLAINER_ROSE_PX);
-  const skyCtx = setupSizedCanvas('explainer-sky', EXPLAINER_ROSE_PX, EXPLAINER_ROSE_PX);
-  const thunderCtx = setupSizedCanvas('explainer-thunder', EXPLAINER_ROSE_PX, EXPLAINER_ROSE_PX);
-  const tempValues = DIRECTIONS.map((_, dirIdx) =>
-    DISTANCE_BANDS.map((__, bandIdx) => ({ value: 35 + dirIdx * 2 + bandIdx * 7, missing: false }))
-  );
-  const windValues = DIRECTIONS.map((_, dirIdx) =>
-    DISTANCE_BANDS.map((__, bandIdx) => ({ value: 8 + ((dirIdx + bandIdx * 3) % 12) * 4, missing: false }))
-  );
-  const precipValues = DIRECTIONS.map((_, dirIdx) =>
-    DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 7 + bandIdx * 18) % 100), missing: false }))
-  );
-  const skyValues = DIRECTIONS.map((_, dirIdx) =>
-    DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 5 + bandIdx * 22) % 100), missing: false }))
-  );
-  const thunderValues = DIRECTIONS.map((_, dirIdx) =>
-    DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 3 + bandIdx * 15) % 100), missing: false }))
-  );
+function updateExplainerNote(isExample, peak, fallbackText = '') {
+  const note = document.getElementById('explainer-example-note');
+  if (!note) return;
+  if (fallbackText) {
+    note.textContent = fallbackText;
+    return;
+  }
+  if (isExample) {
+    note.textContent = `Example shown with generic sample colors. Select a peak, city, or coordinates to load current data for your location.`;
+    return;
+  }
+  note.textContent = `Current location loaded: ${peak.name}. The explainer panels and rose grid now reflect this location.`;
+}
 
-  drawRose(tempCtx, EXPLAINER_ROSE_PX, tempValues, 35, 88, 'temp', {
-    showDistanceLabels: true,
-    fullDirectionLabels: true,
-    showScaleNote: false,
-    summitValue: 62,
-  });
-  drawRose(windCtx, EXPLAINER_ROSE_PX, windValues, 0, 60, 'wind', {
-    showDistanceLabels: true,
-    fullDirectionLabels: true,
-    showScaleNote: false,
-    summitValue: 18,
-  });
-  drawRose(precipCtx, EXPLAINER_ROSE_PX, precipValues, 0, 100, 'precip', {
-    showDistanceLabels: true,
-    fullDirectionLabels: true,
-    showScaleNote: false,
-    summitValue: 35,
-  });
-  drawRose(skyCtx, EXPLAINER_ROSE_PX, skyValues, 0, 100, 'sky', {
-    showDistanceLabels: true,
-    fullDirectionLabels: true,
-    showScaleNote: false,
-    summitValue: 60,
-  });
-  drawRose(thunderCtx, EXPLAINER_ROSE_PX, thunderValues, 0, 100, 'thunder', {
-    showDistanceLabels: true,
-    fullDirectionLabels: true,
-    showScaleNote: false,
-    summitValue: 45,
+function fallbackExplainerValues(variable) {
+  if (variable === 'temp') {
+    return {
+      values: DIRECTIONS.map((_, dirIdx) =>
+        DISTANCE_BANDS.map((__, bandIdx) => ({ value: 35 + dirIdx * 2 + bandIdx * 7, missing: false }))
+      ),
+      min: 35, max: 88, summit: { value: 62, missing: false },
+    };
+  }
+  if (variable === 'wind') {
+    return {
+      values: DIRECTIONS.map((_, dirIdx) =>
+        DISTANCE_BANDS.map((__, bandIdx) => ({ value: 8 + ((dirIdx + bandIdx * 3) % 12) * 4, missing: false }))
+      ),
+      min: 0, max: 50, summit: { value: 18, missing: false },
+    };
+  }
+  if (variable === 'precip') {
+    return {
+      values: DIRECTIONS.map((_, dirIdx) =>
+        DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 7 + bandIdx * 18) % 100), missing: false }))
+      ),
+      min: 0, max: 100, summit: { value: 35, missing: false },
+    };
+  }
+  if (variable === 'sky') {
+    return {
+      values: DIRECTIONS.map((_, dirIdx) =>
+        DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 5 + bandIdx * 22) % 100), missing: false }))
+      ),
+      min: 0, max: 100, summit: { value: 60, missing: false },
+    };
+  }
+  return {
+    values: DIRECTIONS.map((_, dirIdx) =>
+      DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 3 + bandIdx * 15) % 100), missing: false }))
+    ),
+    min: 0, max: 100, summit: { value: 45, missing: false },
+  };
+}
+
+function explainerDataForVariable(data, variable) {
+  if (!data) return fallbackExplainerValues(variable);
+  const values = valuesForOffsetFromData(data, variable, 0);
+  const summit = summitValueForOffsetFromData(data, variable, 0);
+  const flat = collectValuesFromData(data, variable, [0]);
+  const cfg = VAR_CONFIG[variable];
+  const min = cfg.fixedMin ?? (flat.length ? Math.min(...flat) : 0);
+  const max = cfg.fixedMax ?? (flat.length ? Math.max(...flat) : 1);
+  if (!flat.length) return fallbackExplainerValues(variable);
+  return { values, min, max, summit };
+}
+
+function drawExplainers(data = roseData, peak = currentPeak, isExample = false) {
+  samplePreviewMeta.clear();
+  const examples = {
+    temp: explainerDataForVariable(data, 'temp'),
+    wind: explainerDataForVariable(data, 'wind'),
+    precip: explainerDataForVariable(data, 'precip'),
+    sky: explainerDataForVariable(data, 'sky'),
+    thunder: explainerDataForVariable(data, 'thunder'),
+  };
+
+  Object.entries({
+    temp: 'explainer-temp',
+    wind: 'explainer-wind',
+    precip: 'explainer-precip',
+    sky: 'explainer-sky',
+    thunder: 'explainer-thunder',
+  }).forEach(([variable, canvasId]) => {
+    const ctx = setupSizedCanvas(canvasId, EXPLAINER_ROSE_PX, EXPLAINER_ROSE_PX);
+    const meta = examples[variable];
+    drawRose(ctx, EXPLAINER_ROSE_PX, meta.values, meta.min, meta.max, variable, {
+      showDistanceLabels: true,
+      fullDirectionLabels: true,
+      showScaleNote: false,
+      summitValue: meta.summit.value,
+    });
   });
 
   function cardDescription(canvasId) {
@@ -996,28 +1383,29 @@ function drawExplainers() {
     return clone.innerHTML;
   }
 
+  const titlePrefix = isExample ? 'Generic Example · ' : '';
   samplePreviewMeta.set('explainer-temp', {
-    type: 'rose', title: 'Temperature', variable: 'temp', values: tempValues, min: 35, max: 88, summitValue: 62,
+    type: 'rose', title: `${titlePrefix}Temperature`, variable: 'temp', values: examples.temp.values, min: examples.temp.min, max: examples.temp.max, summitValue: examples.temp.summit.value,
     description: cardDescription('explainer-temp'),
   });
   samplePreviewMeta.set('explainer-precip', {
-    type: 'rose', title: 'Precipitation', variable: 'precip', values: precipValues, min: 0, max: 100, summitValue: 35,
+    type: 'rose', title: `${titlePrefix}Precipitation`, variable: 'precip', values: examples.precip.values, min: examples.precip.min, max: examples.precip.max, summitValue: examples.precip.summit.value,
     description: cardDescription('explainer-precip'),
   });
   samplePreviewMeta.set('explainer-wind', {
-    type: 'rose', title: 'Wind', variable: 'wind', values: windValues, min: 0, max: 50, summitValue: 18,
+    type: 'rose', title: `${titlePrefix}Wind`, variable: 'wind', values: examples.wind.values, min: examples.wind.min, max: examples.wind.max, summitValue: examples.wind.summit.value,
     description: cardDescription('explainer-wind'),
   });
   samplePreviewMeta.set('explainer-sky', {
-    type: 'rose', title: 'Sky Cover', variable: 'sky', values: skyValues, min: 0, max: 100, summitValue: 60,
+    type: 'rose', title: `${titlePrefix}Sky Cover`, variable: 'sky', values: examples.sky.values, min: examples.sky.min, max: examples.sky.max, summitValue: examples.sky.summit.value,
     description: cardDescription('explainer-sky'),
   });
   samplePreviewMeta.set('explainer-thunder', {
-    type: 'rose', title: 'Thunderstorm', variable: 'thunder', values: thunderValues, min: 0, max: 100, summitValue: 45,
+    type: 'rose', title: `${titlePrefix}Thunderstorm`, variable: 'thunder', values: examples.thunder.values, min: examples.thunder.min, max: examples.thunder.max, summitValue: examples.thunder.summit.value,
     description: cardDescription('explainer-thunder'),
   });
   samplePreviewMeta.set('sample-map', {
-    type: 'map', title: 'Sample Point Map',
+    type: 'map', title: `${titlePrefix}Sample Point Map`, data, peak, isExample,
     description: cardDescription('sample-map'),
   });
 }
@@ -1034,7 +1422,7 @@ function redrawSampleModal(meta) {
   const setup = setupResponsiveCanvas('sample-modal-canvas');
   if (!setup) return;
   if (meta.type === 'map') {
-    drawSampleMap('sample-modal-canvas', null);
+    drawSampleMap('sample-modal-canvas', null, meta.data || roseData, meta.peak || currentPeak, meta.isExample);
     return;
   }
   drawRose(setup.ctx, setup.width, meta.values, meta.min, meta.max, meta.variable, {
@@ -1211,35 +1599,214 @@ function hideLegendHoverBox() {
 // ════════════════════════════════════════════════════════════
 function setStatus(msg) {
   document.getElementById('status').textContent = msg;
+  if (isLoading && msg) {
+    const loadingMessage = document.getElementById('loading-message');
+    if (loadingMessage) loadingMessage.textContent = msg;
+  }
 }
 
+function setLoading(loading, message = 'Refreshing forecast data...') {
+  isLoading = loading;
+  document.body.classList.toggle('is-loading', loading);
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) {
+    overlay.classList.toggle('open', loading);
+    overlay.setAttribute('aria-hidden', loading ? 'false' : 'true');
+  }
+  const loadingMessage = document.getElementById('loading-message');
+  if (loadingMessage) loadingMessage.textContent = message;
+}
+
+function getFilteredPeaks() {
+  const tier = document.getElementById('tier-sel')?.value || 'all';
+  if (tier === 'all') return PEAKS;
+  return PEAKS.filter(p => p.tier === +tier);
+}
+
+function onTierChange() {
+  buildPeakSelector();
+  currentPeak = null;
+  document.getElementById('peak-sel').value = '';
+  document.getElementById('coords').value = '';
+  document.getElementById('city').value = '';
+  updatePeakInfo();
+  drawNoLocationState();
+}
 
 function onPeakChange() {
-  const idx  = +document.getElementById('peak-sel').value;
-  currentPeak = PEAKS[idx];
+  const value = document.getElementById('peak-sel').value;
+  if (value === '') {
+    currentPeak = null;
+    document.getElementById('coords').value = '';
+    document.getElementById('city').value = '';
+    updatePeakInfo();
+    drawNoLocationState();
+    return;
+  }
+  const idx = +value;
+  const filtered = getFilteredPeaks();
+  currentPeak = filtered[idx];
+  document.getElementById('coords').value = `${currentPeak.lat}, ${currentPeak.lon}`;
+  document.getElementById('city').value = '';
+  updatePeakInfo();
+  loadData(currentPeak);
+}
+
+function loadFromCoords() {
+  const raw = document.getElementById('coords').value.trim().replace(/[()]/g, '');
+  const parts = raw.split(/[\s,]+/);
+  const lat = parseFloat(parts[0]);
+  const lon = parseFloat(parts[1]);
+  if (isNaN(lat) || isNaN(lon)) { setStatus('Invalid coordinates'); return; }
+  currentPeak = { name: 'Custom Location', state: 'CO', elev: 0, lat, lon, tier: 0 };
   updatePeakInfo();
   loadData(currentPeak);
 }
 
 function updatePeakInfo() {
   const p = currentPeak;
+  if (!p) {
+    document.getElementById('peak-info').textContent = 'No location data selected';
+    return;
+  }
+  const elevStr = p.elev ? ` · ${p.elev.toLocaleString()} ft` : '';
   document.getElementById('peak-info').textContent =
-    `${p.lat.toFixed(4)}°N, ${Math.abs(p.lon).toFixed(4)}°W · ${p.elev.toLocaleString()} ft`;
+    `${p.lat.toFixed(4)}°N, ${Math.abs(p.lon).toFixed(4)}°W${elevStr}`;
 }
 
 function buildPeakSelector() {
   const sel = document.getElementById('peak-sel');
-  sel.innerHTML = PEAKS.map((p, i) =>
-    `<option value="${i}">${p.name}, ${p.state} — ${p.elev.toLocaleString()} ft</option>`
+  const filtered = getFilteredPeaks();
+  sel.innerHTML = '<option value="">Select a peak...</option>' + filtered.map((p, i) =>
+    `<option value="${i}">${p.name} — ${p.elev.toLocaleString()} ft</option>`
   ).join('');
+}
+
+// ── City autocomplete ──────────────────────────────────────
+function cityLabel(r) {
+  const p = r.properties;
+  const name = /^\d{5}/.test(p.name) ? (p.city || p.town || p.name) : p.name;
+  const st = STATE_ABBR[p.state] || '';
+  return st ? `${name}, ${st}` : name;
+}
+
+function peakDebounceSuggest() {
+  clearTimeout(_suggestTimer);
+  _suggestTimer = setTimeout(peakFetchSuggestions, 320);
+}
+
+async function peakFetchSuggestions() {
+  const q = document.getElementById('city').value.trim();
+  if (q.length < 2) { closePeakSuggestions(); return; }
+  try {
+    const res = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=15&lang=en`,
+      { headers: { 'User-Agent': 'NWS-Weather-Dashboard/1.0' } }
+    );
+    const data = await res.json();
+    const us = data.features
+      .filter(f => f.properties.countrycode === 'US' && f.properties.name)
+      .slice(0, 7);
+    renderPeakSuggestions(us);
+  } catch(e) { closePeakSuggestions(); }
+}
+
+function setPeakActiveItem(idx) {
+  _activeIdx = idx;
+  document.querySelectorAll('#city-suggestions .sug-item').forEach((el, i) => {
+    el.style.background = i === idx ? '#1e4a7a' : '';
+  });
+}
+
+function renderPeakSuggestions(results) {
+  _activeIdx = -1;
+  _suggestions = results;
+  const box = document.getElementById('city-suggestions');
+  if (!results.length) { closePeakSuggestions(); return; }
+  box.innerHTML = '';
+  for (const r of results) {
+    const label = cityLabel(r);
+    const el = document.createElement('div');
+    el.className = 'sug-item';
+    el.textContent = label;
+    el.style.cursor = 'pointer';
+    el.addEventListener('mouseover', () => { _activeIdx = -1; el.style.background = '#1e4a7a'; });
+    el.addEventListener('mouseout',  () => { el.style.background = ''; });
+    el.onmousedown = e => {
+      e.preventDefault();
+      peakSelectSuggestion(r.geometry.coordinates[1], r.geometry.coordinates[0], label);
+    };
+    box.appendChild(el);
+  }
+  const rect = document.getElementById('city').getBoundingClientRect();
+  box.style.position   = 'fixed';
+  box.style.zIndex     = '9999';
+  box.style.top        = (rect.bottom + 3) + 'px';
+  box.style.left       = rect.left + 'px';
+  box.style.background = '#1e1e2a';
+  box.style.border     = '1px solid #556';
+  box.style.borderRadius = '4px';
+  box.style.boxShadow  = '0 6px 20px rgba(0,0,0,0.75)';
+  box.style.minWidth   = '220px';
+  box.style.overflow   = 'hidden';
+  box.style.display    = 'block';
+}
+
+function peakSelectSuggestion(lat, lon, label) {
+  document.getElementById('city').value = label;
+  document.getElementById('coords').value = `${parseFloat(lat).toFixed(4)}, ${parseFloat(lon).toFixed(4)}`;
+  closePeakSuggestions();
+  currentPeak = { name: label, state: 'CO', elev: 0, lat: parseFloat(lat), lon: parseFloat(lon), tier: 0 };
+  updatePeakInfo();
+  loadData(currentPeak);
+}
+
+function closePeakSuggestions() {
+  _activeIdx = -1;
+  _suggestions = [];
+  const box = document.getElementById('city-suggestions');
+  if (box) box.style.display = 'none';
 }
 
 // ════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('tier-sel').value = '14';
   buildPeakSelector();
+  document.getElementById('peak-sel').value = '';
+  document.getElementById('coords').value = '';
   updatePeakInfo();
+
+  // City input keyboard nav
+  document.getElementById('city')?.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closePeakSuggestions(); return; }
+    const box = document.getElementById('city-suggestions');
+    const open = box?.style.display !== 'none' && _suggestions.length;
+    if (e.key === 'ArrowDown') {
+      if (!open) return;
+      e.preventDefault();
+      setPeakActiveItem(Math.min(_activeIdx + 1, _suggestions.length - 1));
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      if (!open) return;
+      e.preventDefault();
+      setPeakActiveItem(Math.max(_activeIdx - 1, -1));
+      return;
+    }
+    if (e.key === 'Enter') {
+      if (open && _suggestions.length) {
+        const idx = _activeIdx >= 0 ? _activeIdx : 0;
+        const r = _suggestions[idx];
+        peakSelectSuggestion(r.geometry.coordinates[1], r.geometry.coordinates[0], cityLabel(r));
+      }
+    }
+  });
+  document.addEventListener('click', e => {
+    if (e.target !== document.getElementById('city')) closePeakSuggestions();
+  });
+
   document.addEventListener('mousemove', event => {
     if (event.target?.matches?.('canvas[data-rose-canvas="true"]')) {
       const meta = roseCanvasMeta.get(event.target.id);
@@ -1298,7 +1865,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (event.key === 'Escape') closeSampleModal();
   });
   window.addEventListener('resize', () => {
-    if (roseData) drawSampleMap();
+    if (roseData) drawSampleMap('sample-map', 'sample-map-status', roseData, currentPeak, false);
+    else drawGenericSampleMap('sample-map', 'sample-map-status');
     const modal = document.getElementById('sample-modal');
     const roseSourceId = modal?.dataset.roseSourceId;
     if (modal?.classList.contains('open') && roseSourceId) {
@@ -1310,5 +1878,5 @@ window.addEventListener('DOMContentLoaded', () => {
       redrawSampleModal(samplePreviewMeta.get(sampleId));
     }
   });
-  loadData(currentPeak);
+  drawNoLocationState();
 });
