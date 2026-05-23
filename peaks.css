@@ -54,8 +54,9 @@ body.is-loading * {
 #controls button:disabled { cursor: wait; opacity: 0.7; }
 #controls .use-location-button {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -69,21 +70,21 @@ body.is-loading * {
 #controls .use-location-button::before {
   content: "";
   position: absolute;
-  inset: 6px;
-  border: 3px solid currentColor;
+  inset: 5px;
+  border: 2px solid currentColor;
   border-radius: 50%;
 }
 #controls .use-location-button::after {
   content: "";
   position: absolute;
-  inset: 2px;
+  inset: 3px;
   background:
-    linear-gradient(currentColor, currentColor) center / 3px 7px no-repeat,
-    linear-gradient(currentColor, currentColor) center / 7px 3px no-repeat,
-    linear-gradient(currentColor, currentColor) top center / 3px 6px no-repeat,
-    linear-gradient(currentColor, currentColor) bottom center / 3px 6px no-repeat,
-    linear-gradient(currentColor, currentColor) left center / 6px 3px no-repeat,
-    linear-gradient(currentColor, currentColor) right center / 6px 3px no-repeat;
+    linear-gradient(currentColor, currentColor) center / 2px 5px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 5px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) top center / 2px 3px no-repeat,
+    linear-gradient(currentColor, currentColor) bottom center / 2px 3px no-repeat,
+    linear-gradient(currentColor, currentColor) left center / 3px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) right center / 3px 2px no-repeat;
 }
 #controls .use-location-button.is-locating::after {
   animation: locate-spin 0.9s linear infinite;
@@ -798,7 +799,9 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
     min-height: 34px;
   }
   #controls .use-location-button {
-    width: 34px;
+    width: 22px;
+    height: 22px;
+    min-height: 22px;
     justify-self: start;
   }
   #controls .share-location-toggle {
