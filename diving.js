@@ -281,7 +281,7 @@ async function useDiveBrowserLocation() {
     if (button) {
       button.disabled = false;
       button.classList.remove('is-locating');
-      button.setAttribute('aria-label', 'Use my location');
+      button.setAttribute('aria-label', 'Get my location');
     }
   }
 }

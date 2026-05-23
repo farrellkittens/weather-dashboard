@@ -1913,7 +1913,7 @@ async function usePeakBrowserLocation() {
     if (button) {
       button.disabled = false;
       button.classList.remove('is-locating');
-      button.setAttribute('aria-label', 'Use my location');
+      button.setAttribute('aria-label', 'Get my location');
     }
   }
 }
@@ -1971,7 +1971,7 @@ function scrollToSummitMobileSection(id) {
   if (!target) return;
   const nav = document.getElementById('summit-mobile-nav');
   const navH = nav?.offsetHeight || 0;
-  window.scrollTo({ top: Math.max(0, target.top - navH - 6), behavior: 'smooth' });
+  window.scrollTo({ top: Math.max(0, target.top - navH - 6), behavior: 'auto' });
 }
 
 function queueSummitMobileNavUpdate() {

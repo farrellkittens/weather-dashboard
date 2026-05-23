@@ -327,7 +327,7 @@ async function useDashboardBrowserLocation() {
     if (button) {
       button.disabled = false;
       button.classList.remove('is-locating');
-      button.setAttribute('aria-label', 'Use my location');
+      button.setAttribute('aria-label', 'Get my location');
     }
   }
 }
@@ -1234,7 +1234,7 @@ function scrollToMobileSection(id) {
   const nav=document.getElementById('mobile-section-nav');
   const navH=nav?.offsetHeight||0;
   const pad=6;
-  window.scrollTo({ top:Math.max(0,target.top-navH-pad), behavior:'smooth' });
+  window.scrollTo({ top:Math.max(0,target.top-navH-pad), behavior:'auto' });
 }
 
 function queueMobileNavUpdate() {

@@ -40,6 +40,14 @@ body.is-loading * {
 }
 #controls input { width: 130px; }
 #controls input#city { width: 150px; }
+#controls .city-input-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+#controls .city-input-wrap input#city {
+  padding-right: 30px;
+}
 #controls input::placeholder { color: #666; }
 #controls button {
   background: #2d5a8e;
@@ -61,6 +69,13 @@ body.is-loading * {
   border: 0;
   background: transparent;
   color: #dce8f5;
+}
+#controls .city-input-wrap .use-location-button {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
 }
 #controls .use-location-button:hover,
 #controls .use-location-button:focus-visible {
@@ -138,15 +153,15 @@ body.is-loading * {
 #summit-mobile-nav button {
   flex: 1 1 0;
   min-width: 0;
-  min-height: 32px;
+  min-height: 34px;
   padding: 0 3px;
   border: 1px solid transparent;
   border-radius: 3px;
   background: #202c38;
   color: #aac4dd;
-  font-size: 10px;
+  font-size: clamp(16px, 1.6vw, 20px);
   font-weight: bold;
-  line-height: 1;
+  line-height: 0.95;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -786,6 +801,7 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
   }
   #controls select,
   #controls input,
+  #controls .city-input-wrap,
   #controls input#city {
     width: 100%;
   }
@@ -802,7 +818,6 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
     width: 22px;
     height: 22px;
     min-height: 22px;
-    justify-self: start;
   }
   #controls .share-location-toggle {
     grid-column: 1 / -1;

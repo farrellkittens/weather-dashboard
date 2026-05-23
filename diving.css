@@ -30,6 +30,14 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
   padding: 4px 8px; font-size: 12px; border-radius: 3px;
 }
 #city { width: 140px; }
+#controls .city-input-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+#controls .city-input-wrap input#city {
+  padding-right: 30px;
+}
 #coords { width: 190px; }
 #tide-station { width: 120px; }
 #controls button { background: #277b8e; color: #f4fbfd; border: none; padding: 5px 13px; font-size: 12px; cursor: pointer; border-radius: 3px; }
@@ -44,6 +52,13 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
   border: 0;
   background: transparent;
   color: #dce8f5;
+}
+#controls .city-input-wrap .use-location-button {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
 }
 #controls .use-location-button:hover,
 #controls .use-location-button:focus-visible {
@@ -186,6 +201,7 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
   .section-heading span { display: block; text-align: left; margin-top: 3px; }
   #controls .control-group { display: contents; }
   #controls select,
+  #controls .city-input-wrap,
   #city,
   #coords,
   #tide-station,
@@ -199,6 +215,5 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
     width: 22px;
     height: 22px;
     min-height: 22px;
-    justify-self: start;
   }
 }

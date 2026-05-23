@@ -20,8 +20,10 @@
 <div id="controls">
   <span class="control-group">
     <label>City, State:</label>
-    <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
-    <button id="use-location" class="use-location-button" type="button" onclick="useDashboardBrowserLocation()" aria-label="Use my location" title="Use my location"></button>
+    <span class="city-input-wrap">
+      <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
+      <button id="use-location" class="use-location-button" type="button" onclick="useDashboardBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+    </span>
   </span>
   <span class="control-group">
     <label>Lat, Lon:</label>

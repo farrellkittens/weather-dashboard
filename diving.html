@@ -24,8 +24,10 @@
   </span>
   <span class="control-group">
     <label for="city">City, State:</label>
-    <input id="city" placeholder="Miami, FL" autocomplete="off" oninput="diveDebounceSuggest()">
-    <button id="use-location" class="use-location-button" type="button" onclick="useDiveBrowserLocation()" aria-label="Use my location" title="Use my location"></button>
+    <span class="city-input-wrap">
+      <input id="city" placeholder="Miami, FL" autocomplete="off" oninput="diveDebounceSuggest()">
+      <button id="use-location" class="use-location-button" type="button" onclick="useDiveBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+    </span>
     <button type="button" onclick="lookupDiveCity()">Go</button>
   </span>
   <span class="control-group">

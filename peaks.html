@@ -38,8 +38,10 @@
 
   <span class="control-group">
     <label>City, State:</label>
-    <input id="city" placeholder="Aspen, CO" autocomplete="off" oninput="peakDebounceSuggest()">
-    <button id="use-location" class="use-location-button" type="button" onclick="usePeakBrowserLocation()" aria-label="Use my location" title="Use my location"></button>
+    <span class="city-input-wrap">
+      <input id="city" placeholder="Aspen, CO" autocomplete="off" oninput="peakDebounceSuggest()">
+      <button id="use-location" class="use-location-button" type="button" onclick="usePeakBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+    </span>
   </span>
 
   <span class="control-group">
