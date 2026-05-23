@@ -18,16 +18,25 @@
 </div>
 
 <div id="controls">
-  <label for="site-sel">Site:</label>
-  <select id="site-sel"></select>
-  <label for="city">City, State:</label>
-  <input id="city" placeholder="Miami, FL" autocomplete="off" oninput="diveDebounceSuggest()">
-  <button type="button" onclick="lookupDiveCity()">Go</button>
-  <label for="coords">Lat, Lon:</label>
-  <input id="coords" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadDiveConditions()">
-  <label for="tide-station">Tide station:</label>
-  <input id="tide-station" placeholder="NOAA station id">
-  <button type="button" onclick="loadDiveConditions()">Load</button>
+  <span class="control-group">
+    <label for="site-sel">Site:</label>
+    <select id="site-sel"></select>
+  </span>
+  <span class="control-group">
+    <label for="city">City, State:</label>
+    <input id="city" placeholder="Miami, FL" autocomplete="off" oninput="diveDebounceSuggest()">
+    <button id="use-location" class="use-location-button" type="button" onclick="useDiveBrowserLocation()" aria-label="Use my location" title="Use my location"></button>
+    <button type="button" onclick="lookupDiveCity()">Go</button>
+  </span>
+  <span class="control-group">
+    <label for="coords">Lat, Lon:</label>
+    <input id="coords" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadDiveConditions()">
+  </span>
+  <span class="control-group">
+    <label for="tide-station">Tide station:</label>
+    <input id="tide-station" placeholder="NOAA station id">
+    <button type="button" onclick="loadDiveConditions()">Load</button>
+  </span>
   <label class="share-location-toggle">
     <input id="share-location" type="checkbox">
     <span>Use this location on all tabs</span>

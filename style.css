@@ -12,17 +12,58 @@
   .tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(91,158,214,0.1); }
 
   /* ── Controls row ── */
-  #controls { padding: 9px 14px; background: #222; border-bottom: 1px solid #444; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #controls { padding: 9px 14px; background: #222; border-bottom: 1px solid #444; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  #controls .control-group { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; white-space: nowrap; }
   #controls label { font-weight: bold; color: #bbb; font-size: 12px; }
   #controls input, #controls select { background: #333; border: 1px solid #555; color: #eee; padding: 3px 7px; font-size: 12px; border-radius: 3px; }
-  #controls input#city { width: 140px; }
+  #controls input#city { width: 150px; }
   .sug-item { padding: 9px 14px; cursor: pointer; font-size: 13px; color: #ddd; white-space: nowrap; }
   .sug-item:hover, .sug-item.active { background: #1e4a7a; }
   .sug-item + .sug-item { border-top: 1px solid #333; }
-  #controls input#coords { width: 230px; }
+  #controls input#coords { width: 150px; }
   #controls select#startSel { width: 190px; }
   #controls button { background: #2d5a8e; color: #eee; border: none; padding: 4px 13px; font-size: 12px; cursor: pointer; border-radius: 3px; }
   #controls button:hover { background: #3a70aa; }
+  #controls button:disabled { cursor: wait; opacity: 0.7; }
+  #controls .use-location-button {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #dce8f5;
+  }
+  #controls .use-location-button:hover,
+  #controls .use-location-button:focus-visible {
+    background: transparent;
+    color: #fff;
+  }
+  #controls .use-location-button::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 3px solid currentColor;
+    border-radius: 50%;
+  }
+  #controls .use-location-button::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    background:
+      linear-gradient(currentColor, currentColor) center / 3px 7px no-repeat,
+      linear-gradient(currentColor, currentColor) center / 7px 3px no-repeat,
+      linear-gradient(currentColor, currentColor) top center / 3px 6px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom center / 3px 6px no-repeat,
+      linear-gradient(currentColor, currentColor) left center / 6px 3px no-repeat,
+      linear-gradient(currentColor, currentColor) right center / 6px 3px no-repeat;
+  }
+  #controls .use-location-button.is-locating::after {
+    animation: locate-spin 0.9s linear infinite;
+  }
+  @keyframes locate-spin {
+    to { transform: rotate(360deg); }
+  }
   #controls .share-location-toggle {
     display: inline-flex;
     align-items: center;
@@ -44,11 +85,17 @@
   }
   #loc { font-size: 12px; color: #999; flex: 1; text-align: right; }
 
+  #mobile-section-nav { display: none; }
+
   #status { padding: 4px 14px; font-size: 12px; color: #888; min-height: 20px; text-align: center; }
 
-  /* ── Canvas wrapper — centers fixed-width canvas ── */
-  #chart-wrap { overflow-x: auto; display: flex; justify-content: center; padding: 6px 0 10px; }
-  canvas { display: block; cursor: crosshair; }
+  /* ── Canvas wrapper — centers when it fits, scrolls cleanly when it doesn't ── */
+  #chart-shell { position: relative; }
+  #chart-wrap { overflow-x: auto; padding: 6px 0 10px; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+  #chart-stage { display: grid; margin: 0 auto; }
+  #chart-stage > canvas { grid-area: 1 / 1; display: block; margin: 0; }
+  #c { cursor: crosshair; }
+  #axis-c { position: sticky; left: 0; z-index: 2; pointer-events: none; cursor: default; justify-self: start; align-self: start; }
 
   /* ── Tooltip ── */
   #tip { position: fixed; background: rgba(10,10,22,0.96); color: #e8e8e8; padding: 7px 12px;
@@ -57,26 +104,89 @@
 
   #footer { padding: 5px 14px; font-size: 11px; color: #555; border-top: 1px solid #333; background: #1e1e1e; text-align: center; }
 
-  @media (max-width: 560px) {
+  @media (max-width: 760px) {
     #controls {
-      align-items: stretch;
+      display: grid;
+      grid-template-columns: 82px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px 10px;
+    }
+    #controls .control-group {
+      display: contents;
     }
     #controls input#city,
     #controls input#coords,
     #controls select#startSel {
       width: 100%;
     }
+    #controls label:not(.share-location-toggle) {
+      justify-self: end;
+      white-space: nowrap;
+      text-align: right;
+    }
     #controls button {
+      grid-column: 2;
       min-height: 34px;
     }
+    #controls .use-location-button {
+      width: 34px;
+      justify-self: start;
+    }
     #controls .share-location-toggle {
+      grid-column: 1 / -1;
       width: 100%;
       min-height: 40px;
       justify-content: flex-start;
     }
     #loc {
+      grid-column: 1 / -1;
       width: 100%;
-      flex: 0 0 100%;
       text-align: left;
+    }
+  }
+
+  @media (max-width: 560px) {
+    #mobile-section-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 900;
+      display: flex;
+      align-items: stretch;
+      gap: 1px;
+      min-height: 40px;
+      padding: 4px;
+      background: rgba(14, 21, 32, 0.96);
+      border-bottom: 1px solid #3c668f;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+      transform: translateY(-110%);
+      transition: transform 0.18s ease;
+    }
+
+    #mobile-section-nav.is-visible {
+      transform: translateY(0);
+    }
+
+    #mobile-section-nav button {
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 32px;
+      padding: 0 2px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      background: #202c38;
+      color: #aac4dd;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 1;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    #mobile-section-nav button.is-active {
+      border-color: #8cc7ff;
+      background: #2f6ca1;
+      color: #fff;
     }
   }

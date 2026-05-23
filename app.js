@@ -11,7 +11,7 @@ const BUFFER  = 1;
 
 const DATE_H  = Math.round(20 * SCALE);
 const TIME_H  = Math.round(22 * SCALE);
-const LABEL_H = Math.round(22 * SCALE);
+const LABEL_H = Math.round(25 * SCALE);
 
 // ════════════════════════════════════════════════════════════
 // THEME
@@ -81,13 +81,21 @@ const PANELS = [
   },
 ];
 
+const MOBILE_SECTION_NAV = [
+  { id:'location', label:'Loc' },
+  ...PANELS.map(p => ({ id:p.id, label:({ temp:'Temp', sky:'Sky', wind:'Wind', rain:'Rain', thunder:'Storm', snow:'Snow', uv:'UV' })[p.id] || p.id })),
+];
+
 // ════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════
 let ALL_DATA  = [];
 let D         = [];
 let startIdx  = 0;
-let canvas, ctx, dpr;
+let canvas, ctx, dpr, axisCanvas, axisCtx, chartStage;
+let mobileNavReady = false;
+let mobileSectionTargets = [];
+let mobileNavRaf = null;
 
 // ════════════════════════════════════════════════════════════
 // HELPERS
@@ -299,6 +307,31 @@ async function lookupCity() {
   }
 }
 
+async function useDashboardBrowserLocation() {
+  closeSuggestions();
+  const button = document.getElementById('use-location');
+  if (button) {
+    button.disabled = true;
+    button.classList.add('is-locating');
+    button.setAttribute('aria-label', 'Locating...');
+  }
+  setStatus('Requesting location permission...');
+  try {
+    const location = await window.SharedLocation.getBrowserLocation();
+    document.getElementById('city').value = location.label;
+    document.getElementById('coords').value = `${location.lat.toFixed(6)}, ${location.lon.toFixed(6)}`;
+    loadForecast();
+  } catch (error) {
+    setStatus(error.message || 'Could not use your location.');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.classList.remove('is-locating');
+      button.setAttribute('aria-label', 'Use my location');
+    }
+  }
+}
+
 function parseDashboardCoords() {
   const raw = document.getElementById('coords').value.trim().replace(/[()]/g,'');
   const parts = raw.split(/[\s,]+/).filter(Boolean);
@@ -470,7 +503,17 @@ function setDropdownToIdx(idx) {
 
 function sliceAndDraw() {
   D=ALL_DATA.slice(startIdx, startIdx+HOURS);
+  resetChartScroll();
   if(D.length) draw();
+  setTimeout(()=>{ if(resetChartScroll()&&D.length)draw(); },0);
+  setTimeout(()=>{ if(resetChartScroll()&&D.length)draw(); },150);
+}
+
+function resetChartScroll() {
+  const chartWrap=document.getElementById('chart-wrap');
+  if(!chartWrap||chartWrap.scrollLeft===0)return false;
+  chartWrap.scrollLeft=0;
+  return true;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -479,10 +522,17 @@ function sliceAndDraw() {
 function draw() {
   const n=D.length; if(!n)return;
   canvas=document.getElementById('c');
+  axisCanvas=document.getElementById('axis-c');
+  chartStage=document.getElementById('chart-stage');
   dpr=window.devicePixelRatio||1;
 
   const W=LEFT+BUFFER*HW+n*HW+RIGHT;
   const H=PANELS.reduce((s,p)=>s+DATE_H+TIME_H+p.h,0);
+
+  if(chartStage){
+    chartStage.style.width=W+'px';
+    chartStage.style.height=H+'px';
+  }
 
   canvas.width =Math.round(W*dpr);
   canvas.height=Math.round(H*dpr);
@@ -536,6 +586,8 @@ function draw() {
   }
 
   bindHover(n,W);
+  drawAxisOverlay(n,H);
+  setupMobileSectionNav();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -590,62 +642,64 @@ function drawTimeStrip(y0,n,W){
 // ════════════════════════════════════════════════════════════
 // PANEL ROUTER
 // ════════════════════════════════════════════════════════════
-function drawPanel(panel,y0,n,W){
+function drawPanel(panel,y0,n,W,stickyX=0){
   ctx.fillStyle=C.axisBg;
-  ctx.fillRect(0,y0,LEFT,panel.h);
+  ctx.fillRect(stickyX,y0,LEFT,panel.h);
 
   ctx.font=`bold ${Math.round(10*SCALE)}px Arial`;ctx.textBaseline='middle';
-  const labelGap=Math.round(16*SCALE);
-  const wordGap=Math.round(4*SCALE);
-  const rx=W-RIGHT-BUFFER*HW-Math.round(6*SCALE);
-
-  function measureLabel(str){
-    const words=str.split(' ');
-    return words.reduce((s,w)=>s+ctx.measureText(w).width,0)+wordGap*(words.length-1);
-  }
-  function drawLabels(items,yMid){
-    ctx.textAlign='left';
-    const totalW=items.reduce((s,l)=>s+l.w,0)+labelGap*(items.length-1);
-    let lx=rx-totalW;
-    for(let i=0;i<items.length;i++){
-      ctx.fillStyle=items[i].color;
-      const words=items[i].label.split(' ');
-      for(let wi=0;wi<words.length;wi++){
-        ctx.fillText(words[wi],lx,yMid);
-        lx+=ctx.measureText(words[wi]).width+(wi<words.length-1?wordGap:0);
-      }
-      if(i<items.length-1) lx+=labelGap;
-    }
-  }
-
-  if(panel.type==='multi'){
-    const items=panel.lines.map(l=>({label:l.label,color:l.color||C.labelTxt,w:measureLabel(l.label)}));
-    drawLabels(items,y0+LABEL_H/2);
-  } else if(panel.type==='wind'){
-    const items=[['Speed','#dd44aa'],['Gust','#6699ee'],['(mph)',C.axisTxt]].map(([label,color])=>({label,color,w:measureLabel(label)}));
-    drawLabels(items,y0+LABEL_H/2);
-  } else {
-    ctx.fillStyle=panel.labelColor||C.labelTxt;
-    ctx.textAlign='right';
-    ctx.fillText(panel.label,rx,y0+LABEL_H/2);
-    ctx.textAlign='left';
-  }
 
   const dataY=y0+LABEL_H;
   const dataH=panel.h-LABEL_H;
 
-  if     (panel.type==='multi')  drawMulti(panel,dataY,dataH,n);
-  else if(panel.type==='wind')   drawWind(dataY,dataH,n);
-  else if(panel.type==='precip') drawPrecip(panel,dataY,dataH,n);
-  else if(panel.type==='uv')     drawUV(dataY,dataH,n);
+  if     (panel.type==='multi')  drawMulti(panel,dataY,dataH,n,stickyX);
+  else if(panel.type==='wind')   drawWind(dataY,dataH,n,stickyX);
+  else if(panel.type==='precip') drawPrecip(panel,dataY,dataH,n,stickyX);
+  else if(panel.type==='uv')     drawUV(dataY,dataH,n,stickyX);
+}
+
+function getPanelLabelItems(panel){
+  if(panel.type==='multi')return panel.lines.map(l=>({label:l.label,color:l.color||C.labelTxt}));
+  if(panel.type==='wind')return [
+    {label:'Speed',color:'#dd44aa'},
+    {label:'Gust',color:'#6699ee'},
+    {label:'(mph)',color:C.axisTxt},
+  ];
+  return [{label:panel.label,color:panel.labelColor||C.labelTxt}];
+}
+
+function measurePanelLabels(renderCtx,items,labelGap,wordGap){
+  let w=0;
+  for(let i=0;i<items.length;i++){
+    const words=items[i].label.split(' ');
+    w+=words.reduce((s,word)=>s+renderCtx.measureText(word).width,0)+wordGap*(words.length-1);
+    if(i<items.length-1)w+=labelGap;
+  }
+  return w;
+}
+
+function drawPanelLabels(renderCtx,items,x,yMid,labelGap,wordGap){
+  renderCtx.textAlign='left';
+  renderCtx.textBaseline='middle';
+  let lx=x;
+  for(let i=0;i<items.length;i++){
+    renderCtx.fillStyle=items[i].color;
+    const words=items[i].label.split(' ');
+    for(let wi=0;wi<words.length;wi++){
+      renderCtx.fillText(words[wi],lx,yMid);
+      lx+=renderCtx.measureText(words[wi]).width+(wi<words.length-1?wordGap:0);
+    }
+    if(i<items.length-1)lx+=labelGap;
+  }
 }
 
 // ════════════════════════════════════════════════════════════
 // MULTI-LINE PANEL
 // ════════════════════════════════════════════════════════════
-function drawMulti(panel,y0,h,n){
+function drawMulti(panel,y0,h,n,stickyX=0){
   const allVals=panel.lines.flatMap(l=>D.map(d=>d[l.key])).filter(v=>v!=null);
   if(!allVals.length)return;
+  const axisX=stickyX+LEFT;
+  const plotEnd=LEFT+BUFFER*HW+n*HW;
   const mn=panel.fixedRange?panel.fixedRange[0]:Math.min(...allVals);
   const mx=panel.fixedRange?panel.fixedRange[1]:Math.max(...allVals);
   const pad=6, iH=h-pad*2;
@@ -658,10 +712,15 @@ function drawMulti(panel,y0,h,n){
   for(let v=Math.ceil(mn/step)*step;v<=mx+step*0.01;v+=step){
     const y=toY(v);
     if(y<y0||y>y0+h)continue;
-    ctx.fillText(v, LEFT-Math.round(5*SCALE), y);
+    ctx.fillText(v, stickyX+LEFT-Math.round(5*SCALE), y);
     ctx.strokeStyle=C.gridH;ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(LEFT,y);ctx.lineTo(LEFT+BUFFER*HW+n*HW,y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(axisX,y);ctx.lineTo(plotEnd,y);ctx.stroke();
   }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(axisX,-10000,Math.max(0,plotEnd-axisX),20000);
+  ctx.clip();
 
   for(const [li, line] of panel.lines.entries()){
     const vals=D.map(d=>d[line.key]);
@@ -695,15 +754,18 @@ function drawMulti(panel,y0,h,n){
       col.push({top,bot});colPlaced.set(i,col);
     }
   }
+  ctx.restore();
 }
 
 // ════════════════════════════════════════════════════════════
 // WIND PANEL
 // ════════════════════════════════════════════════════════════
-function drawWind(y0,h,n){
+function drawWind(y0,h,n,stickyX=0){
   const wsV=D.map(d=>d.windSpeed), wgV=D.map(d=>d.windGust);
   const all=[...wsV,...wgV].filter(v=>v!=null);
   if(!all.length)return;
+  const axisX=stickyX+LEFT;
+  const plotEnd=LEFT+BUFFER*HW+n*HW;
 
   const arrowH=Math.round(22*SCALE);
   const lineY0=y0+arrowH, lineH=h-arrowH;
@@ -716,10 +778,15 @@ function drawWind(y0,h,n){
   ctx.fillStyle=C.axisTxt;ctx.textAlign='right';ctx.textBaseline='middle';
   for(let v=step;v<=mx*1.05;v+=step){
     const y=toY(v);if(y<lineY0)break;
-    ctx.fillText(v,LEFT-Math.round(5*SCALE),y);
+    ctx.fillText(v,stickyX+LEFT-Math.round(5*SCALE),y);
     ctx.strokeStyle=C.gridH;ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(LEFT,y);ctx.lineTo(LEFT+BUFFER*HW+n*HW,y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(axisX,y);ctx.lineTo(plotEnd,y);ctx.stroke();
   }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(axisX,-10000,Math.max(0,plotEnd-axisX),20000);
+  ctx.clip();
 
   drawLine2(wsV,'#dd44aa',1.7,null,toY,n);
   drawLine2(wgV,'#6699ee',1.4,null,toY,n);
@@ -743,6 +810,7 @@ function drawWind(y0,h,n){
     const deg=D[i].windDir;if(deg==null)continue;
     drawArrow(LEFT+BUFFER*HW+i*HW+HW/2,cy,deg,Math.round(9*SCALE));
   }
+  ctx.restore();
 }
 
 function drawLine2(vals,color,width,dash,toY,n){
@@ -768,7 +836,9 @@ function drawArrow(cx,cy,deg,len){
 // ════════════════════════════════════════════════════════════
 // PRECIP PANEL
 // ════════════════════════════════════════════════════════════
-function drawPrecip(panel,y0,h,n){
+function drawPrecip(panel,y0,h,n,stickyX=0){
+  const axisX=stickyX+LEFT;
+  const plotEnd=LEFT+BUFFER*HW+n*HW;
   const pad=4, iH=h-pad*2;
   const toY=pct=>y0+pad+iH-(pct/100)*iH;
   const barBase=y0+h-1;
@@ -778,10 +848,15 @@ function drawPrecip(panel,y0,h,n){
   ctx.textAlign='right';ctx.textBaseline='middle';
   for(const t of thresholds){
     const y=toY(t.v);
-    ctx.fillText(t.lbl,LEFT-Math.round(3*SCALE),y);
+    ctx.fillText(t.lbl,stickyX+LEFT-Math.round(3*SCALE),y);
     ctx.strokeStyle=C.gridH;ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(LEFT,y);ctx.lineTo(LEFT+BUFFER*HW+n*HW,y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(axisX,y);ctx.lineTo(plotEnd,y);ctx.stroke();
   }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(axisX,-10000,Math.max(0,plotEnd-axisX),20000);
+  ctx.clip();
 
   const popVals=D.map(d=>d[panel.popKey]);
   const bw=HW*0.5, boff=HW*0.25;
@@ -812,14 +887,17 @@ function drawPrecip(panel,y0,h,n){
       ctx.fillText(`${total.toFixed(2)}"`, (x1+x2)/2, y0+h-BAR_H/2);
     }
   }
+  ctx.restore();
 }
 
 // ════════════════════════════════════════════════════════════
 // UV INDEX PANEL
 // ════════════════════════════════════════════════════════════
-function drawUV(y0,h,n){
+function drawUV(y0,h,n,stickyX=0){
   const vals=D.map(d=>d.uvIndex);
   if(!vals.some(v=>v!=null))return;
+  const axisX=stickyX+LEFT;
+  const plotEnd=LEFT+BUFFER*HW+n*HW;
 
   const maxUV=11, pad=Math.round(4*SCALE);
   const bH=h-pad*2;
@@ -842,9 +920,9 @@ function drawUV(y0,h,n){
     const ty=toY(b.v);
     if(ty<y0||ty>y0+h) continue;
     ctx.strokeStyle=C.gridH; ctx.lineWidth=1; ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(LEFT,ty); ctx.lineTo(LEFT+BUFFER*HW+n*HW,ty); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(axisX,ty); ctx.lineTo(plotEnd,ty); ctx.stroke();
     ctx.fillStyle=b.color;
-    ctx.fillText(b.label, LEFT-Math.round(4*SCALE), ty);
+    ctx.fillText(b.label, stickyX+LEFT-Math.round(4*SCALE), ty);
   }
 
   // build point list
@@ -854,6 +932,11 @@ function drawUV(y0,h,n){
     if(v!=null) pts.push({x:toX(i), y:toY(v)});
   }
   if(pts.length<2) return;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(axisX,-10000,Math.max(0,plotEnd-axisX),20000);
+  ctx.clip();
 
   // vertical gradient with hard band transitions
   const grad=ctx.createLinearGradient(0, toY(maxUV), 0, baseY);
@@ -902,6 +985,129 @@ function drawUV(y0,h,n){
     ctx.fillStyle=uvCat(curr);
     ctx.fillText(Math.round(curr), toX(i), toY(curr)-4);
   }
+  ctx.restore();
+}
+
+function drawAxisOverlay(n,H) {
+  if(!axisCanvas)return;
+
+  axisCtx=axisCanvas.getContext('2d');
+  const chartW=LEFT+BUFFER*HW+n*HW+RIGHT;
+  const labelGap=Math.round(16*SCALE);
+  const wordGap=Math.round(4*SCALE);
+  const labelPad=Math.round(8*SCALE);
+  const labelFont=`bold ${Math.round(10*SCALE)}px Arial`;
+  axisCtx.font=labelFont;
+  const labelW=Math.max(...PANELS.map(panel=>measurePanelLabels(axisCtx,getPanelLabelItems(panel),labelGap,wordGap)));
+  const overlayW=Math.min(chartW,LEFT+labelPad+Math.ceil(labelW)+labelPad);
+  axisCanvas.width=Math.round(overlayW*dpr);
+  axisCanvas.height=Math.round(H*dpr);
+  axisCanvas.style.width=overlayW+'px';
+  axisCanvas.style.height=H+'px';
+
+  axisCtx.setTransform(dpr,0,0,dpr,0,0);
+  axisCtx.clearRect(0,0,overlayW,H);
+
+  function drawStickyPanelLabel(panel,y0){
+    axisCtx.save();
+    axisCtx.beginPath();
+    axisCtx.rect(LEFT,y0,Math.max(0,overlayW-LEFT),LABEL_H);
+    axisCtx.clip();
+    axisCtx.font=labelFont;
+    drawPanelLabels(axisCtx,getPanelLabelItems(panel),LEFT+labelPad,y0+LABEL_H/2,labelGap,wordGap);
+    axisCtx.restore();
+  }
+
+  function drawMultiAxis(panel,y0,h){
+    const allVals=panel.lines.flatMap(l=>D.map(d=>d[l.key])).filter(v=>v!=null);
+    if(!allVals.length)return;
+    const mn=panel.fixedRange?panel.fixedRange[0]:Math.min(...allVals);
+    const mx=panel.fixedRange?panel.fixedRange[1]:Math.max(...allVals);
+    const pad=6, iH=h-pad*2;
+    const toY=v=>y0+pad+iH-((v-mn)/(mx-mn||1))*iH;
+    const step=panel.fixedRange?25:niceStep(mn,mx,4);
+    axisCtx.font=`${Math.round(9*SCALE)}px Arial`;
+    axisCtx.fillStyle=C.axisTxt;
+    axisCtx.textAlign='right';
+    axisCtx.textBaseline='middle';
+    for(let v=Math.ceil(mn/step)*step;v<=mx+step*0.01;v+=step){
+      const y=toY(v);
+      if(y<y0||y>y0+h)continue;
+      axisCtx.fillText(v,LEFT-Math.round(5*SCALE),y);
+    }
+  }
+
+  function drawWindAxis(y0,h){
+    const all=[...D.map(d=>d.windSpeed),...D.map(d=>d.windGust)].filter(v=>v!=null);
+    if(!all.length)return;
+    const arrowH=Math.round(22*SCALE);
+    const lineY0=y0+arrowH, lineH=h-arrowH;
+    const mx=Math.max(...all);
+    const pad=6, iH=lineH-pad*2;
+    const toY=v=>lineY0+pad+iH-(v/(mx||1))*iH;
+    const step=niceStep(0,mx,3);
+    axisCtx.font=`${Math.round(9*SCALE)}px Arial`;
+    axisCtx.fillStyle=C.axisTxt;
+    axisCtx.textAlign='right';
+    axisCtx.textBaseline='middle';
+    for(let v=step;v<=mx*1.05;v+=step){
+      const y=toY(v);if(y<lineY0)break;
+      axisCtx.fillText(v,LEFT-Math.round(5*SCALE),y);
+    }
+  }
+
+  function drawPrecipAxis(panel,y0,h){
+    const pad=4, iH=h-pad*2;
+    const toY=pct=>y0+pad+iH-(pct/100)*iH;
+    const thresholds=[{v:20,lbl:'SChc'},{v:40,lbl:'Chc'},{v:55,lbl:'Lkly'},{v:70,lbl:'Ocnl'}];
+    axisCtx.font=`${Math.round(8.5*SCALE)}px Arial`;
+    axisCtx.fillStyle=C.axisTxt;
+    axisCtx.textAlign='right';
+    axisCtx.textBaseline='middle';
+    for(const t of thresholds)axisCtx.fillText(t.lbl,LEFT-Math.round(3*SCALE),toY(t.v));
+  }
+
+  function drawUVAxis(y0,h){
+    const maxUV=11, pad=Math.round(4*SCALE);
+    const bH=h-pad*2;
+    const toY=v=>y0+pad+bH-Math.min(v/maxUV,1)*bH;
+    const bands=[
+      {v:3,  label:'Moderate', color:'#3aab52'},
+      {v:6,  label:'High',     color:'#b89a28'},
+      {v:8,  label:'V. High',  color:'#bf7828'},
+      {v:maxUV, label:'Extreme', color:'#c84030'},
+    ];
+    axisCtx.font=`${Math.round(8.5*SCALE)}px Arial`;
+    axisCtx.textAlign='right';
+    axisCtx.textBaseline='middle';
+    for(const b of bands){
+      const ty=toY(b.v);
+      if(ty<y0||ty>y0+h)continue;
+      axisCtx.fillStyle=b.color;
+      axisCtx.fillText(b.label,LEFT-Math.round(4*SCALE),ty);
+    }
+  }
+
+  let y=0;
+  for(const panel of PANELS){
+    y+=DATE_H+TIME_H;
+    axisCtx.fillStyle=C.axisBg;
+    axisCtx.fillRect(0,y,LEFT,panel.h);
+    drawStickyPanelLabel(panel,y);
+    const dataY=y+LABEL_H;
+    const dataH=panel.h-LABEL_H;
+    if(panel.type==='multi')drawMultiAxis(panel,dataY,dataH);
+    else if(panel.type==='wind')drawWindAxis(dataY,dataH);
+    else if(panel.type==='precip')drawPrecipAxis(panel,dataY,dataH);
+    else if(panel.type==='uv')drawUVAxis(dataY,dataH);
+    axisCtx.strokeStyle=C.sep;
+    axisCtx.lineWidth=1;
+    axisCtx.beginPath();
+    axisCtx.moveTo(0,y+panel.h-0.5);
+    axisCtx.lineTo(overlayW,y+panel.h-0.5);
+    axisCtx.stroke();
+    y+=panel.h;
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -920,6 +1126,8 @@ function bindHover(n,W){
   canvas.onmousemove=e=>{
     const r=canvas.getBoundingClientRect();
     const mx=e.clientX-r.left, my=e.clientY-r.top;
+    const stickyEdge=getChartStickyX()+LEFT;
+    if(mx<stickyEdge){tip.style.display='none';return;}
     const idx=Math.floor((mx-LEFT-BUFFER*HW)/HW);
     if(idx<0||idx>=n){tip.style.display='none';return;}
     const d=D[idx]; if(!d){tip.style.display='none';return;}
@@ -962,6 +1170,107 @@ function bindHover(n,W){
   canvas.onmouseleave=()=>tip.style.display='none';
 }
 
+function getChartStickyX() {
+  const chartWrap=document.getElementById('chart-wrap');
+  return chartWrap?.scrollLeft||0;
+}
+
+// ════════════════════════════════════════════════════════════
+// MOBILE SECTION NAV
+// ════════════════════════════════════════════════════════════
+function setupMobileSectionNav() {
+  const nav=document.getElementById('mobile-section-nav');
+  if(!nav)return;
+
+  if(!mobileNavReady){
+    nav.innerHTML='';
+    for(const item of MOBILE_SECTION_NAV){
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.textContent=item.label;
+      btn.dataset.target=item.id;
+      btn.setAttribute('aria-label', item.id==='location' ? 'Jump to location entry' : `Jump to ${item.label} section`);
+      btn.addEventListener('click',()=>scrollToMobileSection(item.id));
+      nav.appendChild(btn);
+    }
+    window.addEventListener('scroll',queueMobileNavUpdate,{passive:true});
+    mobileNavReady=true;
+  }
+
+  updateMobileSectionTargets();
+  updateMobileSectionNav();
+}
+
+function getPanelOffsets() {
+  const offsets=new Map();
+  let y=0;
+  for(const panel of PANELS){
+    offsets.set(panel.id,y);
+    y+=DATE_H+TIME_H+panel.h;
+  }
+  return offsets;
+}
+
+function updateMobileSectionTargets() {
+  const controls=document.getElementById('controls');
+  const c=document.getElementById('c');
+  if(!controls||!c)return;
+
+  const scrollY=window.scrollY||window.pageYOffset;
+  const controlsTop=controls.getBoundingClientRect().top+scrollY;
+  const canvasTop=c.getBoundingClientRect().top+scrollY;
+  const offsets=getPanelOffsets();
+
+  mobileSectionTargets = MOBILE_SECTION_NAV.map(item => ({
+    id:item.id,
+    top:item.id==='location' ? controlsTop : canvasTop+(offsets.get(item.id)||0),
+  }));
+}
+
+function scrollToMobileSection(id) {
+  updateMobileSectionTargets();
+  const target=mobileSectionTargets.find(t=>t.id===id);
+  if(!target)return;
+  const nav=document.getElementById('mobile-section-nav');
+  const navH=nav?.offsetHeight||0;
+  const pad=6;
+  window.scrollTo({ top:Math.max(0,target.top-navH-pad), behavior:'smooth' });
+}
+
+function queueMobileNavUpdate() {
+  if(mobileNavRaf)return;
+  mobileNavRaf=requestAnimationFrame(()=>{
+    mobileNavRaf=null;
+    updateMobileSectionNav();
+  });
+}
+
+function updateMobileSectionNav() {
+  const nav=document.getElementById('mobile-section-nav');
+  if(!nav||!mobileSectionTargets.length)return;
+
+  const isMobile=window.matchMedia('(max-width: 560px)').matches;
+  const scrollY=window.scrollY||window.pageYOffset;
+  const controls=document.getElementById('controls');
+  const showAfter=controls ? controls.getBoundingClientRect().bottom+scrollY-8 : 0;
+  nav.classList.toggle('is-visible',isMobile&&scrollY>showAfter);
+
+  const navH=nav.offsetHeight||0;
+  const probe=scrollY+navH+12;
+  let active=mobileSectionTargets[0].id;
+  for(const target of mobileSectionTargets){
+    if(probe>=target.top)active=target.id;
+    else break;
+  }
+
+  nav.querySelectorAll('button').forEach(btn=>{
+    const isActive=btn.dataset.target===active;
+    btn.classList.toggle('is-active',isActive);
+    if(isActive)btn.setAttribute('aria-current','true');
+    else btn.removeAttribute('aria-current');
+  });
+}
+
 // ════════════════════════════════════════════════════════════
 // RESIZE
 // ════════════════════════════════════════════════════════════
@@ -969,6 +1278,7 @@ let rsz;
 window.addEventListener('resize',()=>{clearTimeout(rsz);rsz=setTimeout(()=>{if(D.length)draw();},150);});
 
 // Boot
+if('scrollRestoration' in history)history.scrollRestoration='manual';
 window.SharedLocation?.initCheckbox({ getLocation: getCurrentDashboardLocation });
 applySharedDashboardLocation();
 loadForecast();

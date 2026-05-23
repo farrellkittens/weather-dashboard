@@ -71,6 +71,49 @@
     return data;
   }
 
+  function geolocationErrorMessage(error) {
+    if (error?.code === 1) return 'Location permission was denied.';
+    if (error?.code === 2) return 'Could not determine your location.';
+    if (error?.code === 3) return 'Location request timed out.';
+    return 'Location is not available in this browser.';
+  }
+
+  function currentPosition(options = {}) {
+    if (!navigator.geolocation) {
+      return Promise.reject(new Error('Location is not available in this browser.'));
+    }
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, error => {
+        reject(new Error(geolocationErrorMessage(error)));
+      }, {
+        enableHighAccuracy: false,
+        timeout: 12000,
+        maximumAge: 5 * 60 * 1000,
+        ...options,
+      });
+    });
+  }
+
+  async function getBrowserLocation(options = {}) {
+    const position = await currentPosition(options.positionOptions);
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+    let label = 'Current location';
+
+    try {
+      const pointUrl = `https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`;
+      const point = await fetchJson(pointUrl, { ttlMs: 14 * 24 * 60 * 60 * 1000 });
+      const props = point?.properties?.relativeLocation?.properties;
+      const city = props?.city || '';
+      const state = props?.state || '';
+      label = `${city}${city && state ? ', ' : ''}${state}` || label;
+    } catch (error) {
+      if (options.requireNwsLabel) throw error;
+    }
+
+    return { lat, lon, label, accuracy: position.coords.accuracy };
+  }
+
   function initCheckbox(options = {}) {
     const checkbox = document.getElementById('share-location');
     if (!checkbox) return;
@@ -89,6 +132,7 @@
     readLocation,
     saveLocation,
     fetchJson,
+    getBrowserLocation,
     initCheckbox,
   };
 })();

@@ -16,6 +16,13 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
   padding: 9px 14px; background: #202426; border-bottom: 1px solid #3d4d52;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
+#controls .control-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 #controls label { font-weight: bold; color: #c5cbce; font-size: 12px; }
 #controls select,
 #controls input {
@@ -27,6 +34,46 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 #tide-station { width: 120px; }
 #controls button { background: #277b8e; color: #f4fbfd; border: none; padding: 5px 13px; font-size: 12px; cursor: pointer; border-radius: 3px; }
 #controls button:hover { background: #3294aa; }
+#controls button:disabled { cursor: wait; opacity: 0.7; }
+#controls .use-location-button {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #dce8f5;
+}
+#controls .use-location-button:hover,
+#controls .use-location-button:focus-visible {
+  background: transparent;
+  color: #fff;
+}
+#controls .use-location-button::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+}
+#controls .use-location-button::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background:
+    linear-gradient(currentColor, currentColor) center / 3px 7px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 7px 3px no-repeat,
+    linear-gradient(currentColor, currentColor) top center / 3px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) bottom center / 3px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) left center / 6px 3px no-repeat,
+    linear-gradient(currentColor, currentColor) right center / 6px 3px no-repeat;
+}
+#controls .use-location-button.is-locating::after {
+  animation: locate-spin 0.9s linear infinite;
+}
+@keyframes locate-spin {
+  to { transform: rotate(360deg); }
+}
 #controls .share-location-toggle {
   display: inline-flex;
   align-items: center;
@@ -136,11 +183,19 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
   .suggestion-list { grid-template-columns: 1fr; }
   .section-heading { display: block; }
   .section-heading span { display: block; text-align: left; margin-top: 3px; }
+  #controls .control-group { display: contents; }
   #controls select,
   #city,
   #coords,
   #tide-station,
   #controls .share-location-toggle { width: 100%; }
   #controls .share-location-toggle { min-height: 40px; }
-  #controls button { min-height: 34px; }
+  #controls button {
+    grid-column: 2;
+    min-height: 34px;
+  }
+  #controls .use-location-button {
+    width: 34px;
+    justify-self: start;
+  }
 }

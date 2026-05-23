@@ -18,25 +18,39 @@
 </div>
 
 <div id="controls">
-  <label>City, State:</label>
-  <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
-  <button onclick="lookupCity()">Go</button>
-  <label>Coordinates:</label>
-  <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
-  <button onclick="loadForecast()">Load</button>
+  <span class="control-group">
+    <label>City, State:</label>
+    <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
+    <button id="use-location" class="use-location-button" type="button" onclick="useDashboardBrowserLocation()" aria-label="Use my location" title="Use my location"></button>
+  </span>
+  <span class="control-group">
+    <label>Lat, Lon:</label>
+    <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
+  </span>
   <label class="share-location-toggle">
     <input id="share-location" type="checkbox">
     <span>Use this location on all tabs</span>
   </label>
-  <label>Start:</label>
-  <select id="startSel"></select>
-  <button onclick="applyStart()">Go</button>
+  <span class="control-group">
+    <label>Start:</label>
+    <select id="startSel"></select>
+    <button onclick="applyStart()">Go</button>
+  </span>
   <div id="loc"></div>
 </div>
 
+<nav id="mobile-section-nav" aria-label="Weather section jumps"></nav>
+
 <div id="city-suggestions"></div>
 <div id="status">Loading…</div>
-<div id="chart-wrap"><canvas id="c"></canvas></div>
+<div id="chart-shell">
+  <div id="chart-wrap">
+    <div id="chart-stage">
+      <canvas id="c"></canvas>
+      <canvas id="axis-c" aria-hidden="true"></canvas>
+    </div>
+  </div>
+</div>
 <div id="tip"></div>
 <div id="footer">Data: NOAA/NWS api.weather.gov — times shown in local browser timezone<span id="grid-ref"></span></div>
 

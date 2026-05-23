@@ -173,6 +173,16 @@ const VAR_CONFIG = {
 
 // Ordered list of variables shown as panel rows
 const PANEL_VARS = ['temp', 'wind', 'precip', 'sky', 'thunder'];
+const SUMMIT_MOBILE_NAV_ITEMS = [
+  { id: 'location', label: 'Loc', target: '#controls' },
+  { id: 'info', label: 'Info', target: '#rose-explainer' },
+  { id: 'map', label: 'Map', target: '#sample-map-card' },
+  { id: 'temp', label: 'Temp', target: '#rose-row-temp' },
+  { id: 'wind', label: 'Wind', target: '#rose-row-wind' },
+  { id: 'precip', label: 'Pcp', target: '#rose-row-precip' },
+  { id: 'sky', label: 'Sky', target: '#rose-row-sky' },
+  { id: 'thunder', label: 'Storm', target: '#rose-row-thunder' },
+];
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -184,6 +194,9 @@ const samplePreviewMeta = new Map();
 const roseSelections = new Map();
 let loadSequence = 0;
 let isLoading = false;
+let summitMobileNavReady = false;
+let summitMobileNavTargets = [];
+let summitMobileNavRaf = null;
 
 const NWS_CACHE_PREFIX = 'summit-weather-rose:nws:';
 const POINT_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -694,30 +707,35 @@ function drawSummitDot(ctx, W, cx, cy, color = '#ffffff') {
   ctx.stroke();
 }
 
-function selectedCellPoint(cell, W, cx, cy, R) {
-  if (!cell) return null;
-  if (cell.summit) return { x: cx, y: cy };
+function traceRoseCellPath(ctx, cx, cy, R, cell) {
+  if (!cell) return false;
+  if (cell.summit) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * SUMMIT_HIT_FRAC / 0.40, 0, 2 * Math.PI);
+    return true;
+  }
 
   const { inner, outer } = ringBounds(cell.bandIdx, R);
-  const radius = (inner + outer) / 2;
-  const angle = (cell.dirIdx * 22.5 - 90) * Math.PI / 180;
-  return {
-    x: cx + Math.cos(angle) * radius,
-    y: cy + Math.sin(angle) * radius,
-  };
+  const startA = (cell.dirIdx * 22.5 - 11.25 - 90) * Math.PI / 180;
+  const endA = (cell.dirIdx * 22.5 + 11.25 - 90) * Math.PI / 180;
+  ctx.beginPath();
+  ctx.arc(cx, cy, outer, startA, endA);
+  if (inner > 0) ctx.arc(cx, cy, inner, endA, startA, true);
+  else ctx.lineTo(cx, cy);
+  ctx.closePath();
+  return true;
 }
 
-function drawSelectionDot(ctx, W, cx, cy, R, cell) {
-  const point = selectedCellPoint(cell, W, cx, cy, R);
-  if (!point) return;
+function drawSelectionOutline(ctx, W, cx, cy, R, cell) {
+  if (!traceRoseCellPath(ctx, cx, cy, R, cell)) return;
 
-  ctx.beginPath();
-  ctx.arc(point.x, point.y, Math.max(4, W * 0.018), 0, 2 * Math.PI);
-  ctx.fillStyle = '#050505';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.86)';
-  ctx.lineWidth = Math.max(1.5, W * 0.006);
+  ctx.save();
+  ctx.strokeStyle = '#fbfdff';
+  ctx.lineWidth = Math.max(2.5, W * 0.010);
+  ctx.shadowColor = 'rgba(0,0,0,0.72)';
+  ctx.shadowBlur = Math.max(3, W * 0.012);
   ctx.stroke();
+  ctx.restore();
 }
 
 function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options = {}) {
@@ -772,7 +790,7 @@ function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options
   const summitColor = summitValue == null ? '#ffffff' : cfg.colorFn(summitValue, useMin, useMax);
   drawSummitDot(ctx, W, cx, cy, summitColor);
   drawDirectionLabels(ctx, W, cx, cy, R, options.fullDirectionLabels);
-  drawSelectionDot(ctx, W, cx, cy, R, options.selectedCell);
+  drawSelectionOutline(ctx, W, cx, cy, R, options.selectedCell);
 
   // ── Scale note ──
   if (options.showScaleNote !== false) {
@@ -1024,9 +1042,61 @@ function hideRoseTooltip() {
   if (tooltip) tooltip.style.display = 'none';
 }
 
+function selectedRoseSummary(meta, cell) {
+  if (!validRoseCell(meta, cell)) return null;
+  const point = cell.summit ? meta.summit : meta.values[cell.dirIdx]?.[cell.bandIdx];
+  const cfg = VAR_CONFIG[meta.variable];
+  return {
+    label: cfg.label,
+    value: formattedValue(meta.variable, point.value),
+    direction: cell.summit ? 'Summit' : DIRECTIONS[cell.dirIdx].name,
+    distance: cell.summit ? '' : DISTANCE_BANDS[cell.bandIdx].label,
+    time: timeLabel(meta.offset),
+  };
+}
+
+function updateRoseCellReadout(canvas, meta, cell) {
+  const roseCell = canvas?.closest?.('.rose-cell');
+  if (!roseCell) return;
+
+  document.querySelectorAll('#roses-wrap .rose-readout').forEach(el => {
+    if (!roseCell.contains(el)) el.remove();
+  });
+
+  if (!isMobileRoseLayout()) {
+    roseCell.querySelector('.rose-readout')?.remove();
+    return;
+  }
+
+  const summary = selectedRoseSummary(meta, cell);
+  if (!summary) {
+    roseCell.querySelector('.rose-readout')?.remove();
+    return;
+  }
+
+  let readout = roseCell.querySelector('.rose-readout');
+  if (!readout) {
+    readout = document.createElement('div');
+    readout.className = 'rose-readout';
+    roseCell.appendChild(readout);
+  }
+  const timeParts = summary.time.split(' · ');
+  const locationClass = summary.distance ? 'rose-readout-location' : 'rose-readout-location is-summit';
+  readout.innerHTML = `
+    <div class="rose-readout-label">${summary.label}</div>
+    <div class="rose-readout-value">${summary.value}</div>
+    <div class="${locationClass}">
+      <span>${summary.direction}</span>
+      <span>${summary.distance}</span>
+    </div>
+    ${timeParts.map(part => `<div>${part}</div>`).join('')}
+  `;
+}
+
 function drawRoseCanvasById(canvasId) {
   const meta = roseCanvasMeta.get(canvasId);
   if (!meta) return;
+  const selectedCell = roseSelections.get(canvasId) || roseSelections.get(meta.sourceId);
 
   if (canvasId === 'sample-modal-canvas') {
     const setup = setupResponsiveCanvas(canvasId);
@@ -1036,7 +1106,7 @@ function drawRoseCanvasById(canvasId) {
       fullDirectionLabels: true,
       showScaleNote: false,
       summitValue: meta.summit.value,
-      selectedCell: roseSelections.get(canvasId) || roseSelections.get(meta.sourceId),
+      selectedCell,
     });
     return;
   }
@@ -1046,7 +1116,7 @@ function drawRoseCanvasById(canvasId) {
     showDistanceLabels: true,
     fullDirectionLabels: false,
     summitValue: meta.summit.value,
-    selectedCell: roseSelections.get(canvasId),
+    selectedCell,
   });
 }
 
@@ -1058,7 +1128,13 @@ function selectRoseCell(canvas, event) {
   roseSelections.set(canvas.id, cell);
   if (meta.sourceId) roseSelections.set(meta.sourceId, cell);
   drawRoseCanvasById(canvas.id);
-  showRoseTooltip(canvas, event);
+  if (isMobileRoseLayout()) {
+    hideRoseTooltip();
+    updateRoseCellReadout(canvas, meta, cell);
+  } else {
+    updateRoseCellReadout(canvas, meta, null);
+    showRoseTooltip(canvas, event);
+  }
   return true;
 }
 
@@ -1460,12 +1536,13 @@ function redrawRoseModal(sourceId) {
 
   const setup = setupResponsiveCanvas('sample-modal-canvas');
   if (!setup) return;
+  const selectedCell = roseSelections.get(sourceId);
   drawRose(setup.ctx, setup.width, sourceMeta.values, sourceMeta.min, sourceMeta.max, sourceMeta.variable, {
     showDistanceLabels: true,
     fullDirectionLabels: true,
     showScaleNote: false,
     summitValue: sourceMeta.summit.value,
-    selectedCell: roseSelections.get(sourceId),
+    selectedCell,
   });
 
   roseCanvasMeta.set('sample-modal-canvas', {
@@ -1806,11 +1883,124 @@ function peakSelectSuggestion(lat, lon, label) {
   loadData(currentPeak);
 }
 
+async function usePeakBrowserLocation() {
+  closePeakSuggestions();
+  const button = document.getElementById('use-location');
+  if (button) {
+    button.disabled = true;
+    button.classList.add('is-locating');
+    button.setAttribute('aria-label', 'Locating...');
+  }
+  setStatus('Requesting location permission...');
+  try {
+    const location = await window.SharedLocation.getBrowserLocation();
+    document.getElementById('city').value = location.label;
+    document.getElementById('coords').value = `${location.lat.toFixed(4)}, ${location.lon.toFixed(4)}`;
+    document.getElementById('peak-sel').value = '';
+    currentPeak = {
+      name: location.label,
+      state: '',
+      elev: 0,
+      lat: location.lat,
+      lon: location.lon,
+      tier: 0,
+    };
+    updatePeakInfo();
+    loadData(currentPeak);
+  } catch (error) {
+    setStatus(error.message || 'Could not use your location.');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.classList.remove('is-locating');
+      button.setAttribute('aria-label', 'Use my location');
+    }
+  }
+}
+
 function closePeakSuggestions() {
   _activeIdx = -1;
   _suggestions = [];
   const box = document.getElementById('city-suggestions');
   if (box) box.style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════════
+// MOBILE SECTION NAV
+// ════════════════════════════════════════════════════════════
+function setupSummitMobileNav() {
+  const nav = document.getElementById('summit-mobile-nav');
+  if (!nav) return;
+
+  if (!summitMobileNavReady) {
+    nav.innerHTML = '';
+    for (const item of SUMMIT_MOBILE_NAV_ITEMS) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = item.label;
+      btn.dataset.target = item.id;
+      btn.setAttribute('aria-label', `Jump to ${item.label === 'Loc' ? 'location entry' : item.label}`);
+      btn.addEventListener('click', () => scrollToSummitMobileSection(item.id));
+      nav.appendChild(btn);
+    }
+    window.addEventListener('scroll', queueSummitMobileNavUpdate, { passive: true });
+    summitMobileNavReady = true;
+  }
+
+  updateSummitMobileNavTargets();
+  updateSummitMobileNav();
+}
+
+function updateSummitMobileNavTargets() {
+  const scrollY = window.scrollY || window.pageYOffset;
+  summitMobileNavTargets = SUMMIT_MOBILE_NAV_ITEMS
+    .map(item => {
+      const el = document.querySelector(item.target);
+      if (!el) return null;
+      return {
+        id: item.id,
+        top: el.getBoundingClientRect().top + scrollY,
+      };
+    })
+    .filter(Boolean);
+}
+
+function scrollToSummitMobileSection(id) {
+  updateSummitMobileNavTargets();
+  const target = summitMobileNavTargets.find(t => t.id === id);
+  if (!target) return;
+  const nav = document.getElementById('summit-mobile-nav');
+  const navH = nav?.offsetHeight || 0;
+  window.scrollTo({ top: Math.max(0, target.top - navH - 6), behavior: 'smooth' });
+}
+
+function queueSummitMobileNavUpdate() {
+  if (summitMobileNavRaf) return;
+  summitMobileNavRaf = requestAnimationFrame(() => {
+    summitMobileNavRaf = null;
+    updateSummitMobileNav();
+  });
+}
+
+function updateSummitMobileNav() {
+  const nav = document.getElementById('summit-mobile-nav');
+  if (!nav || !summitMobileNavTargets.length) return;
+
+  const scrollY = window.scrollY || window.pageYOffset;
+
+  const probe = scrollY + (nav.offsetHeight || 0) + 12;
+  let active = summitMobileNavTargets[0].id;
+  for (const target of summitMobileNavTargets) {
+    if (probe >= target.top) active = target.id;
+    else break;
+  }
+
+  nav.querySelectorAll('button').forEach(btn => {
+    const isActive = btn.dataset.target === active;
+    btn.classList.toggle('is-active', isActive);
+    if (isActive) btn.setAttribute('aria-current', 'true');
+    else btn.removeAttribute('aria-current');
+  });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1855,6 +2045,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('mousemove', event => {
     if (event.target?.matches?.('canvas[data-rose-canvas="true"]')) {
+      if (isMobileRoseLayout()) {
+        hideRoseTooltip();
+        return;
+      }
       const meta = roseCanvasMeta.get(event.target.id);
       const cell = cellFromPoint(event.target, event.clientX, event.clientY);
       event.target.style.cursor = validRoseCell(meta, cell) ? 'crosshair' : 'pointer';
@@ -1863,18 +2057,41 @@ window.addEventListener('DOMContentLoaded', () => {
       hideRoseTooltip();
     }
   });
+  let mobileRosePointer = null;
   document.addEventListener('pointerdown', event => {
     if (!event.target?.matches?.('canvas[data-rose-canvas="true"]')) return;
     if (event.target.closest?.('.rose-cell') && isMobileRoseLayout()) {
       hideRoseTooltip();
-      event.preventDefault();
-      event.stopPropagation();
+      mobileRosePointer = {
+        id: event.pointerId,
+        canvas: event.target,
+        x: event.clientX,
+        y: event.clientY,
+      };
       return;
     }
     if (selectRoseCell(event.target, event)) {
       event.preventDefault();
       event.stopPropagation();
     }
+  });
+  document.addEventListener('pointerup', event => {
+    const started = mobileRosePointer;
+    mobileRosePointer = null;
+    if (!started || started.id !== event.pointerId) return;
+    if (!isMobileRoseLayout()) return;
+
+    const moved = Math.hypot(event.clientX - started.x, event.clientY - started.y);
+    const canvas = started.canvas;
+    if (moved > 10 || !canvas?.matches?.('canvas[data-rose-canvas="true"]')) return;
+
+    if (selectRoseCell(canvas, event)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  });
+  document.addEventListener('pointercancel', event => {
+    if (mobileRosePointer?.id === event.pointerId) mobileRosePointer = null;
   });
   document.addEventListener('click', event => {
     const roseCell = event.target?.closest?.('.rose-cell');
@@ -1913,6 +2130,8 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     if (roseData) drawSampleMap('sample-map', 'sample-map-status', roseData, currentPeak, false);
     else drawGenericSampleMap('sample-map', 'sample-map-status');
+    updateSummitMobileNavTargets();
+    updateSummitMobileNav();
     const modal = document.getElementById('sample-modal');
     const roseSourceId = modal?.dataset.roseSourceId;
     if (modal?.classList.contains('open') && roseSourceId) {
@@ -1926,4 +2145,5 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   drawNoLocationState();
   applySharedPeakLocation();
+  setupSummitMobileNav();
 });

@@ -260,6 +260,32 @@ async function lookupDiveCity() {
   }
 }
 
+async function useDiveBrowserLocation() {
+  closeDiveSuggestions();
+  const button = byId('use-location');
+  if (button) {
+    button.disabled = true;
+    button.classList.add('is-locating');
+    button.setAttribute('aria-label', 'Locating...');
+  }
+  byId('status').textContent = 'Requesting location permission...';
+  try {
+    const location = await window.SharedLocation.getBrowserLocation();
+    byId('city').value = location.label;
+    byId('coords').value = `${location.lat.toFixed(6)}, ${location.lon.toFixed(6)}`;
+    setDiveCustomLocation();
+    loadDiveConditions();
+  } catch (error) {
+    byId('status').textContent = error.message || 'Could not use your location.';
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.classList.remove('is-locating');
+      button.setAttribute('aria-label', 'Use my location');
+    }
+  }
+}
+
 async function loadDiveConditions() {
   try {
     byId('status').textContent = 'Loading marine, weather, air quality, and tide data...';
