@@ -148,6 +148,7 @@ function init() {
   sel.addEventListener('change', () => {
     const site = SITES[Number(sel.value)];
     byId('city').value = '';
+    byId('city').placeholder = site.name;
     byId('coords').value = `${site.lat.toFixed(4)}, ${site.lon.toFixed(4)}`;
     byId('tide-station').value = site.tide;
     byId('site-info').textContent = site.note;
@@ -164,6 +165,7 @@ function init() {
       sel.value = '0';
       const site = SITES[0];
       byId('city').value = '';
+      byId('city').placeholder = site.name;
       byId('coords').value = `${site.lat.toFixed(4)}, ${site.lon.toFixed(4)}`;
       byId('tide-station').value = site.tide;
       byId('site-info').textContent = site.note;
@@ -173,6 +175,7 @@ function init() {
   if (!applyUrlDiveLocation() && !applySharedDiveLocation()) {
     const site = SITES[Number(sel.value)] || SITES[0];
     byId('city').value = '';
+    byId('city').placeholder = site.name;
     byId('coords').value = `${site.lat.toFixed(4)}, ${site.lon.toFixed(4)}`;
     byId('tide-station').value = site.tide;
     byId('site-info').textContent = site.note;
