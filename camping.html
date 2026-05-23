@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camping</title>
+<link rel="stylesheet" href="camping.css">
+</head>
+<body>
+<div id="header">
+  <span>Camping Conditions</span>
+</div>
+
+<div id="page-tabs">
+  <a href="camping.html" class="tab active">Camping</a>
+  <a href="peaks.html" class="tab">Forecast: Directional</a>
+  <a href="index.html" class="tab">Forecast: Graph</a>
+  <a href="diving.html" class="tab">Surf Report</a>
+</div>
+
+<div id="controls">
+  <span class="control-group">
+    <label for="city">City, State:</label>
+    <span class="city-input-wrap">
+      <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="campDebounceSuggest()">
+      <button id="use-location" class="use-location-button" type="button" onclick="useCampBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+    </span>
+    <button type="button" onclick="lookupCampCity()">Go</button>
+  </span>
+  <span class="control-group">
+    <label for="coords">Lat, Lon:</label>
+    <input id="coords" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadCampingConditions()">
+    <button type="button" onclick="loadCampingConditions()">Go</button>
+  </span>
+  <label class="share-location-toggle">
+    <input id="share-location" type="checkbox">
+    <span>Use this location on all tabs</span>
+  </label>
+</div>
+
+<div id="city-suggestions"></div>
+
+<main id="camp-page">
+  <div id="status">Enter a location to load camping conditions.</div>
+
+  <section class="section-block" id="weather-section" aria-labelledby="weather-title" hidden>
+    <div class="section-heading">
+      <h2 id="weather-title">Temperature Forecast</h2>
+    </div>
+    <div class="day-grid" id="weather-grid"></div>
+    <div id="weather-fetched-at" class="weather-fetched-at"></div>
+  </section>
+
+  <section class="section-block" id="fire-section" aria-labelledby="fire-title" hidden>
+    <div class="section-heading">
+      <h1 id="fire-title">Fire Restrictions</h1>
+      <span id="fire-unit-name"></span>
+    </div>
+    <div id="fire-location-summary" class="fire-location-summary"></div>
+    <div id="fire-cards"></div>
+    <div id="colorado-map-snapshot" class="colorado-map-snapshot" hidden></div>
+    <div id="fire-resources" class="fire-resources"></div>
+  </section>
+</main>
+
+<div id="footer">
+  Fire restrictions: official county/state/federal resource links plus USDA Forest Service fire restriction data where available. Weather: Open-Meteo.
+</div>
+
+<script src="shared-location.js"></script>
+<script src="camping.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

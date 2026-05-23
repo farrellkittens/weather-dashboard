@@ -37,6 +37,62 @@
     return CACHE_PREFIX + url;
   }
 
+  function coordForRequest(value) {
+    return Number(value).toFixed(3);
+  }
+
+  function parseCoordinateText(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    const normalized = raw
+      .replace(/[()]/g, ' ')
+      .replace(/[−–—]/g, '-')
+      .replace(/[′’]/g, "'")
+      .replace(/[″”]/g, '"');
+
+    const decimalParts = normalized.split(/[\s,]+/).filter(Boolean).map(Number);
+    if (decimalParts.length >= 2 && decimalParts.every(Number.isFinite)) {
+      return normalizeCoordinatePair(decimalParts[0], decimalParts[1]);
+    }
+
+    const dmsMatches = [...normalized.matchAll(/([NS])?\s*(-?\d+(?:\.\d+)?)\s*(?:°|deg|d)?\s*(?:(\d+(?:\.\d+)?)\s*(?:'|min|m))?\s*(?:(\d+(?:\.\d+)?)\s*(?:"|sec|s))?\s*([NSEW])?/gi)];
+    const coords = dmsMatches
+      .map(match => dmsMatchToCoordinate(match))
+      .filter(Boolean);
+    if (coords.length >= 2) {
+      const latCoord = coords.find(coord => coord.axis === 'lat');
+      const lonCoord = coords.find(coord => coord.axis === 'lon');
+      if (latCoord && lonCoord) return normalizeCoordinatePair(latCoord.value, lonCoord.value);
+      return normalizeCoordinatePair(coords[0].value, coords[1].value);
+    }
+
+    return null;
+  }
+
+  function dmsMatchToCoordinate(match) {
+    const hemi = String(match[1] || match[5] || '').toUpperCase();
+    const deg = Number(match[2]);
+    const min = match[3] == null ? 0 : Number(match[3]);
+    const sec = match[4] == null ? 0 : Number(match[4]);
+    if (!Number.isFinite(deg) || !Number.isFinite(min) || !Number.isFinite(sec)) return null;
+    if (!hemi && match[0].trim().length < String(match[2]).length) return null;
+    let value = Math.abs(deg) + min / 60 + sec / 3600;
+    if (deg < 0 || hemi === 'S' || hemi === 'W') value *= -1;
+    return {
+      value,
+      axis: hemi === 'N' || hemi === 'S' ? 'lat' : hemi === 'E' || hemi === 'W' ? 'lon' : '',
+    };
+  }
+
+  function normalizeCoordinatePair(lat, lon) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    if (Math.abs(lat) > 90 && Math.abs(lon) <= 90) {
+      [lat, lon] = [lon, lat];
+    }
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    return { lat, lon };
+  }
+
   function readCachedJson(url, ttlMs = DEFAULT_TTL_MS) {
     try {
       const raw = localStorage.getItem(cacheKey(url));
@@ -101,7 +157,7 @@
     let label = 'Current location';
 
     try {
-      const pointUrl = `https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`;
+      const pointUrl = `https://api.weather.gov/points/${coordForRequest(lat)},${coordForRequest(lon)}`;
       const point = await fetchJson(pointUrl, { ttlMs: 14 * 24 * 60 * 60 * 1000 });
       const props = point?.properties?.relativeLocation?.properties;
       const city = props?.city || '';
@@ -131,6 +187,7 @@
     setEnabled,
     readLocation,
     saveLocation,
+    parseCoordinateText,
     fetchJson,
     getBrowserLocation,
     initCheckbox,

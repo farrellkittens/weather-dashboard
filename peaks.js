@@ -290,6 +290,10 @@ function thunderColor(pct) {
 // ════════════════════════════════════════════════════════════
 // COORDINATE MATH  (Vincenty-style great-circle offset)
 // ════════════════════════════════════════════════════════════
+function coordFixed(value, digits) {
+  return Number(value).toFixed(digits);
+}
+
 function offsetCoords(lat, lon, bearingDeg, distKm) {
   const R   = 6371;
   const br  = bearingDeg * Math.PI / 180;
@@ -303,8 +307,8 @@ function offsetCoords(lat, lon, bearingDeg, distKm) {
     Math.cos(d)  - Math.sin(lr) * Math.sin(nlr)
   );
   return {
-    lat: +(nlr * 180 / Math.PI).toFixed(4),
-    lon: +(nlo * 180 / Math.PI).toFixed(4),
+    lat: +(nlr * 180 / Math.PI).toFixed(2),
+    lon: +(nlo * 180 / Math.PI).toFixed(2),
   };
 }
 
@@ -370,8 +374,8 @@ async function mapWithConcurrency(items, limit, mapper) {
   return results;
 }
 
-async function fetchPointUrls(lat, lon) {
-  const data = await fetchJsonWithCache(`https://api.weather.gov/points/${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`, POINT_CACHE_TTL_MS);
+async function fetchPointUrls(lat, lon, precision = 3) {
+  const data = await fetchJsonWithCache(`https://api.weather.gov/points/${coordFixed(lat, precision)},${coordFixed(lon, precision)}`, POINT_CACHE_TTL_MS);
   const props = data.properties;
   return {
     hourlyUrl: props.forecastHourly,
@@ -447,10 +451,10 @@ async function buildRoseDataForPeak(peak, onStatus = () => {}) {
 
   onStatus(`Fetching NWS grid assignments for summit plus ${samplePoints.length} direction/distance samples...`);
   const [summitResult, pointResults] = await Promise.all([
-      fetchPointUrls(peak.lat, peak.lon)
+      fetchPointUrls(peak.lat, peak.lon, 3)
         .catch(() => ({ hourlyUrl: null, gridUrl: null })),
       mapWithConcurrency(samplePoints, MAX_NWS_CONCURRENT_REQUESTS, d =>
-        fetchPointUrls(d.coords.lat, d.coords.lon)
+        fetchPointUrls(d.coords.lat, d.coords.lon, 2)
           .then(urls => ({ ...d, ...urls }))
           .catch(() => ({ ...d, hourlyUrl: null, gridUrl: null }))
       ),
@@ -503,7 +507,8 @@ async function buildRoseDataForPeak(peak, onStatus = () => {}) {
   };
 }
 
-async function loadData(peak) {
+async function loadData(peak, options = {}) {
+  const { syncUrl = true, urlMode = 'push' } = options;
   const loadId = ++loadSequence;
   setLoading(true, `Refreshing forecast data for ${peak.name}...`);
   roseData = null;
@@ -517,6 +522,7 @@ async function loadData(peak) {
     elev: peak.elev || 0,
     tier: peak.tier || 0,
   });
+  if (syncUrl) syncPeakLocationToUrl(peak, urlMode);
 
   try {
     const data = await buildRoseDataForPeak(peak, setStatus);
@@ -1721,6 +1727,7 @@ function onTierChange() {
   document.getElementById('coords').value = '';
   document.getElementById('city').value = '';
   updatePeakInfo();
+  clearPeakUrl();
   drawNoLocationState();
 }
 
@@ -1731,6 +1738,7 @@ function onPeakChange() {
     document.getElementById('coords').value = '';
     document.getElementById('city').value = '';
     updatePeakInfo();
+    clearPeakUrl();
     drawNoLocationState();
     return;
   }
@@ -1744,11 +1752,9 @@ function onPeakChange() {
 }
 
 function loadFromCoords() {
-  const raw = document.getElementById('coords').value.trim().replace(/[()]/g, '');
-  const parts = raw.split(/[\s,]+/);
-  const lat = parseFloat(parts[0]);
-  const lon = parseFloat(parts[1]);
-  if (isNaN(lat) || isNaN(lon)) { setStatus('Invalid coordinates'); return; }
+  const coords = window.SharedLocation?.parseCoordinateText(document.getElementById('coords').value);
+  if (!coords) { setStatus('Invalid coordinates'); return; }
+  const { lat, lon } = coords;
   currentPeak = { name: 'Custom Location', state: 'CO', elev: 0, lat, lon, tier: 0 };
   updatePeakInfo();
   loadData(currentPeak);
@@ -1766,22 +1772,74 @@ function getCurrentPeakLocation() {
   };
 }
 
+function getPeakLocationFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('lat') && !params.has('lon')) return null;
+  const lat = Number(params.get('lat'));
+  const lon = Number(params.get('lon'));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return {
+    name: params.get('location') || 'Shared location',
+    state: '',
+    elev: Number(params.get('elev')) || 0,
+    lat,
+    lon,
+    tier: Number(params.get('tier')) || 0,
+  };
+}
+
+function applyPeakLocationToInputs(peak) {
+  currentPeak = peak;
+  document.getElementById('peak-sel').value = '';
+  document.getElementById('city').value = peak.name || '';
+  document.getElementById('coords').value = `${Number(peak.lat).toFixed(4)}, ${Number(peak.lon).toFixed(4)}`;
+  updatePeakInfo();
+}
+
+function syncPeakLocationToUrl(peak, mode = 'push') {
+  if (!peak || !Number.isFinite(peak.lat) || !Number.isFinite(peak.lon)) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('lat', Number(peak.lat).toFixed(6));
+  url.searchParams.set('lon', Number(peak.lon).toFixed(6));
+  const label = String(peak.name || document.getElementById('city').value || '').trim();
+  if (label) url.searchParams.set('location', label);
+  else url.searchParams.delete('location');
+  if (peak.elev) url.searchParams.set('elev', String(peak.elev));
+  else url.searchParams.delete('elev');
+  if (peak.tier) url.searchParams.set('tier', String(peak.tier));
+  else url.searchParams.delete('tier');
+  if (url.href === window.location.href) return;
+  history[mode === 'replace' ? 'replaceState' : 'pushState']({ peakLocation: peak }, '', url);
+}
+
+function clearPeakUrl(mode = 'push') {
+  const url = new URL(window.location.href);
+  for (const key of ['lat', 'lon', 'location', 'elev', 'tier']) url.searchParams.delete(key);
+  if (url.href === window.location.href) return;
+  history[mode === 'replace' ? 'replaceState' : 'pushState']({ peakLocation: null }, '', url);
+}
+
 function applySharedPeakLocation() {
   const shared = window.SharedLocation?.readLocation();
   if (!window.SharedLocation?.isEnabled() || !shared) return false;
-  currentPeak = {
+  applyPeakLocationToInputs({
     name: shared.label || 'Shared Location',
     state: 'CO',
     elev: shared.elev || 0,
     lat: Number(shared.lat),
     lon: Number(shared.lon),
     tier: shared.tier || 0,
-  };
-  document.getElementById('peak-sel').value = '';
-  document.getElementById('city').value = shared.label || '';
-  document.getElementById('coords').value = `${currentPeak.lat.toFixed(4)}, ${currentPeak.lon.toFixed(4)}`;
-  updatePeakInfo();
-  loadData(currentPeak);
+  });
+  loadData(currentPeak, { urlMode: 'replace' });
+  return true;
+}
+
+function applyUrlPeakLocation() {
+  const peak = getPeakLocationFromUrl();
+  if (!peak) return false;
+  applyPeakLocationToInputs(peak);
+  loadData(currentPeak, { syncUrl: false });
   return true;
 }
 
@@ -2013,6 +2071,20 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('coords').value = '';
   updatePeakInfo();
   window.SharedLocation?.initCheckbox({ getLocation: getCurrentPeakLocation });
+  window.addEventListener('popstate', () => {
+    const peak = getPeakLocationFromUrl();
+    if (peak) {
+      applyPeakLocationToInputs(peak);
+      loadData(currentPeak, { syncUrl: false });
+    } else {
+      currentPeak = null;
+      document.getElementById('peak-sel').value = '';
+      document.getElementById('coords').value = '';
+      document.getElementById('city').value = '';
+      updatePeakInfo();
+      drawNoLocationState();
+    }
+  });
 
   // City input keyboard nav
   document.getElementById('city')?.addEventListener('keydown', e => {
@@ -2144,6 +2216,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
   drawNoLocationState();
-  applySharedPeakLocation();
+  if (!applyUrlPeakLocation()) applySharedPeakLocation();
   setupSummitMobileNav();
 });

@@ -147,6 +147,7 @@ function expandThunder(vals, n) {
 const cToF   = c => c==null?null:Math.round(c*9/5+32);
 const kToMph = v => v==null?null:Math.round(v/1.60934);
 const mmToIn = v => v==null?null:+(v/25.4).toFixed(2);
+const coordForRequest = v => Number(v).toFixed(3);
 const card   = d => ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round((d??0)/22.5)%16];
 
 function niceStep(mn,mx,ticks){ const r=(mx-mn||1)/ticks,m=Math.pow(10,Math.floor(Math.log10(r))); for(const c of[1,2,5,10])if(c*m>=r)return c*m; return 10; }
@@ -333,12 +334,7 @@ async function useDashboardBrowserLocation() {
 }
 
 function parseDashboardCoords() {
-  const raw = document.getElementById('coords').value.trim().replace(/[()]/g,'');
-  const parts = raw.split(/[\s,]+/).filter(Boolean);
-  const lat = parseFloat(parts[0]);
-  const lon = parseFloat(parts[1]);
-  if (isNaN(lat) || isNaN(lon)) return null;
-  return { lat, lon };
+  return window.SharedLocation?.parseCoordinateText(document.getElementById('coords').value) || null;
 }
 
 function getCurrentDashboardLocation() {
@@ -350,17 +346,56 @@ function getCurrentDashboardLocation() {
   return { ...coords, label, source: 'dashboard' };
 }
 
+function getDashboardLocationFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('lat') && !params.has('lon')) return null;
+  const lat = Number(params.get('lat'));
+  const lon = Number(params.get('lon'));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return {
+    lat,
+    lon,
+    label: params.get('location') || 'Shared location',
+  };
+}
+
+function applyDashboardLocationToInputs(loc) {
+  document.getElementById('coords').value = `${Number(loc.lat).toFixed(6)}, ${Number(loc.lon).toFixed(6)}`;
+  document.getElementById('city').value = loc.label || '';
+}
+
+function syncDashboardLocationToUrl(loc, mode = 'push') {
+  if (!loc || !Number.isFinite(loc.lat) || !Number.isFinite(loc.lon)) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('lat', Number(loc.lat).toFixed(6));
+  url.searchParams.set('lon', Number(loc.lon).toFixed(6));
+  const label = String(loc.label || '').trim();
+  if (label) url.searchParams.set('location', label);
+  else url.searchParams.delete('location');
+  if (url.href === window.location.href) return;
+  history[mode === 'replace' ? 'replaceState' : 'pushState']({ dashboardLocation: loc }, '', url);
+}
+
 function applySharedDashboardLocation() {
   const shared = window.SharedLocation?.readLocation();
-  if (!window.SharedLocation?.isEnabled() || !shared) return;
-  document.getElementById('coords').value = `${shared.lat.toFixed(6)}, ${shared.lon.toFixed(6)}`;
-  if (shared.label) document.getElementById('city').value = shared.label;
+  if (!window.SharedLocation?.isEnabled() || !shared) return false;
+  applyDashboardLocationToInputs(shared);
+  return true;
+}
+
+function applyUrlDashboardLocation() {
+  const loc = getDashboardLocationFromUrl();
+  if (!loc) return false;
+  applyDashboardLocationToInputs(loc);
+  return true;
 }
 
 // ════════════════════════════════════════════════════════════
 // FETCH
 // ════════════════════════════════════════════════════════════
-async function loadForecast() {
+async function loadForecast(options = {}) {
+  const { syncUrl = true, urlMode = 'push' } = options;
   const coords = parseDashboardCoords();
   const lat = coords?.lat;
   const lon = coords?.lon;
@@ -368,7 +403,7 @@ async function loadForecast() {
 
   setStatus('Fetching grid info…');
   try {
-    const pointUrl = `https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`;
+    const pointUrl = `https://api.weather.gov/points/${coordForRequest(lat)},${coordForRequest(lon)}`;
     const pt = window.SharedLocation
       ? await SharedLocation.fetchJson(pointUrl, { ttlMs: 14 * 24 * 60 * 60 * 1000 })
       : await fetch(pointUrl).then(r=>r.json());
@@ -377,11 +412,12 @@ async function loadForecast() {
     const label = `${city}${city?', ':''}${state}` || document.getElementById('city').value.trim() || 'Shared location';
     document.getElementById('loc').textContent=`${label}  (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
     document.getElementById('grid-ref').textContent=`  ·  ${gridId} ${gridX},${gridY}`;
+    if (syncUrl) syncDashboardLocationToUrl({ lat, lon, label }, urlMode);
     window.SharedLocation?.saveLocation({ lat, lon, label, source: 'dashboard' });
 
     setStatus('Fetching forecast data…');
     const gridUrl = `https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}`;
-    const uvUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=uv_index&timezone=UTC&forecast_days=7`;
+    const uvUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coordForRequest(lat)}&longitude=${coordForRequest(lon)}&hourly=uv_index&timezone=UTC&forecast_days=7`;
     const [gd, uvRes] = await Promise.all([
       window.SharedLocation
         ? SharedLocation.fetchJson(gridUrl)
@@ -1280,5 +1316,21 @@ window.addEventListener('resize',()=>{clearTimeout(rsz);rsz=setTimeout(()=>{if(D
 // Boot
 if('scrollRestoration' in history)history.scrollRestoration='manual';
 window.SharedLocation?.initCheckbox({ getLocation: getCurrentDashboardLocation });
-applySharedDashboardLocation();
-loadForecast();
+window.addEventListener('popstate', () => {
+  const loc = getDashboardLocationFromUrl();
+  if (loc) {
+    applyDashboardLocationToInputs(loc);
+    loadForecast({ syncUrl: false });
+  } else {
+    document.getElementById('city').value = '';
+    document.getElementById('coords').value = '39.741678, -104.976111';
+    loadForecast({ syncUrl: false });
+  }
+});
+if (applyUrlDashboardLocation()) {
+  loadForecast({ syncUrl: false });
+} else if (applySharedDashboardLocation()) {
+  loadForecast({ urlMode: 'replace' });
+} else {
+  loadForecast({ syncUrl: false });
+}

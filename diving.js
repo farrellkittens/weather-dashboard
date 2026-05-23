@@ -42,14 +42,15 @@ let diveActiveIdx = -1;
 function byId(id) { return document.getElementById(id); }
 function fmt(v, unit = '', digits = 0) { return v == null || Number.isNaN(v) ? '—' : `${Number(v).toFixed(digits)}${unit}`; }
 function round(v, digits = 0) { return v == null || Number.isNaN(v) ? null : Number(Number(v).toFixed(digits)); }
+function coordForRequest(value) { return Number(value).toFixed(3); }
 function ft(m) { return m == null ? null : m * 3.28084; }
 function mph(kmh) { return kmh == null ? null : kmh / 1.60934; }
 function f(c) { return c == null ? null : c * 9 / 5 + 32; }
 function mphToKt(value) { return value == null ? null : value / 1.15078; }
 function parseCoords() {
-  const parts = byId('coords').value.split(',').map(v => Number(v.trim()));
-  if (parts.length !== 2 || parts.some(Number.isNaN)) throw new Error('Enter coordinates as lat, lon.');
-  return { lat: parts[0], lon: parts[1] };
+  const coords = window.SharedLocation?.parseCoordinateText(byId('coords').value);
+  if (!coords) throw new Error('Enter coordinates as lat, lon or paste coordinates like 39°52\'16.1"N 105°11\'03.9"W.');
+  return coords;
 }
 function selectedSite() {
   return SITES[Number(byId('site-sel').value)];
@@ -71,18 +72,63 @@ function getCurrentDiveLocation() {
     return null;
   }
 }
+
+function getDiveLocationFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('lat') && !params.has('lon')) return null;
+  const lat = Number(params.get('lat'));
+  const lon = Number(params.get('lon'));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return {
+    lat,
+    lon,
+    label: params.get('location') || 'Shared location',
+    tideStation: params.get('tideStation') || '',
+    siteName: params.get('site') || 'Custom location',
+  };
+}
+
+function applyDiveLocationToInputs(loc) {
+  const customIdx = SITES.findIndex(site => site.name === 'Custom location');
+  if (customIdx >= 0) byId('site-sel').value = String(customIdx);
+  byId('coords').value = `${Number(loc.lat).toFixed(4)}, ${Number(loc.lon).toFixed(4)}`;
+  byId('city').value = loc.label || '';
+  byId('tide-station').value = loc.tideStation || '';
+  byId('site-info').textContent = loc.siteName && loc.siteName !== 'Custom location'
+    ? `Shared from ${loc.siteName}`
+    : 'Shared location; add a NOAA tide station if needed';
+}
+
+function syncDiveLocationToUrl(loc, mode = 'push') {
+  if (!loc || !Number.isFinite(loc.lat) || !Number.isFinite(loc.lon)) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('lat', Number(loc.lat).toFixed(6));
+  url.searchParams.set('lon', Number(loc.lon).toFixed(6));
+  const label = String(loc.label || '').trim();
+  if (label) url.searchParams.set('location', label);
+  else url.searchParams.delete('location');
+  if (loc.tideStation) url.searchParams.set('tideStation', loc.tideStation);
+  else url.searchParams.delete('tideStation');
+  if (loc.siteName) url.searchParams.set('site', loc.siteName);
+  else url.searchParams.delete('site');
+  if (url.href === window.location.href) return;
+  history[mode === 'replace' ? 'replaceState' : 'pushState']({ diveLocation: loc }, '', url);
+}
+
 function applySharedDiveLocation() {
   const shared = window.SharedLocation?.readLocation();
   if (!window.SharedLocation?.isEnabled() || !shared) return false;
-  const customIdx = SITES.findIndex(site => site.name === 'Custom location');
-  if (customIdx >= 0) byId('site-sel').value = String(customIdx);
-  byId('coords').value = `${Number(shared.lat).toFixed(4)}, ${Number(shared.lon).toFixed(4)}`;
-  byId('city').value = shared.label || '';
-  byId('tide-station').value = shared.tideStation || '';
-  byId('site-info').textContent = shared.siteName
-    ? `Shared from ${shared.siteName}`
-    : 'Shared location; add a NOAA tide station if needed';
-  loadDiveConditions();
+  applyDiveLocationToInputs(shared);
+  loadDiveConditions({ urlMode: 'replace' });
+  return true;
+}
+
+function applyUrlDiveLocation() {
+  const loc = getDiveLocationFromUrl();
+  if (!loc) return false;
+  applyDiveLocationToInputs(loc);
+  loadDiveConditions({ syncUrl: false });
   return true;
 }
 function isoDate(d) { return d.toISOString().slice(0, 10); }
@@ -109,7 +155,29 @@ function init() {
   });
   sel.value = '0';
   window.SharedLocation?.initCheckbox({ getLocation: getCurrentDiveLocation });
-  if (!applySharedDiveLocation()) sel.dispatchEvent(new Event('change'));
+  window.addEventListener('popstate', () => {
+    const loc = getDiveLocationFromUrl();
+    if (loc) {
+      applyDiveLocationToInputs(loc);
+      loadDiveConditions({ syncUrl: false });
+    } else {
+      sel.value = '0';
+      const site = SITES[0];
+      byId('city').value = '';
+      byId('coords').value = `${site.lat.toFixed(4)}, ${site.lon.toFixed(4)}`;
+      byId('tide-station').value = site.tide;
+      byId('site-info').textContent = site.note;
+      loadDiveConditions({ syncUrl: false });
+    }
+  });
+  if (!applyUrlDiveLocation() && !applySharedDiveLocation()) {
+    const site = SITES[Number(sel.value)] || SITES[0];
+    byId('city').value = '';
+    byId('coords').value = `${site.lat.toFixed(4)}, ${site.lon.toFixed(4)}`;
+    byId('tide-station').value = site.tide;
+    byId('site-info').textContent = site.note;
+    loadDiveConditions({ syncUrl: false });
+  }
 
   byId('city')?.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeDiveSuggestions(); return; }
@@ -286,12 +354,15 @@ async function useDiveBrowserLocation() {
   }
 }
 
-async function loadDiveConditions() {
+async function loadDiveConditions(options = {}) {
+  const { syncUrl = true, urlMode = 'push' } = options;
   try {
     byId('status').textContent = 'Loading marine, weather, air quality, and tide data...';
     const { lat, lon } = parseCoords();
     const tideStation = byId('tide-station').value.trim();
-    window.SharedLocation?.saveLocation(getCurrentDiveLocation());
+    const loc = getCurrentDiveLocation();
+    if (syncUrl) syncDiveLocationToUrl(loc, urlMode);
+    window.SharedLocation?.saveLocation(loc);
     const [marine, weather, air, tides] = await Promise.all([
       fetchMarine(lat, lon),
       fetchWeather(lat, lon),
@@ -313,23 +384,29 @@ async function fetchJson(url) {
 }
 
 function fetchMarine(lat, lon) {
+  const reqLat = coordForRequest(lat);
+  const reqLon = coordForRequest(lon);
   const hourly = [
     'wave_height', 'wave_period', 'swell_wave_height', 'swell_wave_period',
     'wind_wave_height', 'wind_wave_period', 'ocean_current_velocity',
     'ocean_current_direction', 'sea_surface_temperature',
   ].join(',');
-  return fetchJson(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=${hourly}&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`);
+  return fetchJson(`https://marine-api.open-meteo.com/v1/marine?latitude=${reqLat}&longitude=${reqLon}&hourly=${hourly}&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`);
 }
 
 function fetchWeather(lat, lon) {
+  const reqLat = coordForRequest(lat);
+  const reqLon = coordForRequest(lon);
   const current = 'temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code';
   const hourly = 'wind_speed_10m,wind_gusts_10m,precipitation,rain,weather_code';
-  return fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${current}&hourly=${hourly}&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto&forecast_days=3`);
+  return fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${reqLat}&longitude=${reqLon}&current=${current}&hourly=${hourly}&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto&forecast_days=3`);
 }
 
 function fetchAirQuality(lat, lon) {
+  const reqLat = coordForRequest(lat);
+  const reqLon = coordForRequest(lon);
   const hourly = 'us_aqi,pm2_5';
-  return fetchJson(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=${hourly}&timezone=auto&forecast_days=3`);
+  return fetchJson(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${reqLat}&longitude=${reqLon}&hourly=${hourly}&timezone=auto&forecast_days=3`);
 }
 
 function fetchTides(station) {

@@ -2,7 +2,7 @@
 
 ## What this project is
 
-A weather dashboard with three static frontend views: an hourly NOAA/NWS forecast chart, a Summit Weather Rose page, and a Diving Conditions page for Oahu dive sites. Deployed on Vercel. No build tools, no dependencies beyond a local dev server for testing.
+A weather dashboard with four static frontend views: Camping Conditions, an hourly NOAA/NWS forecast chart, a Summit Weather Rose page, and a Diving Conditions page for Oahu dive sites. Deployed on Vercel. No build tools, no dependencies beyond a local dev server for testing.
 
 ## Architecture
 
@@ -22,7 +22,9 @@ The main hourly forecast view is split across three files:
 Supporting files:
 - **`vercel.json`** — Vercel deployment config (`outputDirectory: "."`)
 - **`package.json`** — defines `npm run dev` (uses `npx serve .`)
+- **`camping.html` / `camping.css` / `camping.js`** — Camping Conditions view. It looks up the selected point's county with the FCC Census area API, shows county-first fire restriction verification language and resources, checks the USFS fire restriction ArcGIS layer where available, and renders a short Open-Meteo temperature forecast.
 - **`peaks.html` / `peaks.css` / `peaks.js`** — Summit Weather Rose view linked from the shared page tabs. It samples NWS hourly forecast grids around a selected peak, city, or coordinates at 1, 5, 10, and 20 miles in 16 compass directions, then renders temperature, wind, precip probability, sky cover, and thunderstorm roses with shared legends and explainer samples. Initial load uses generic local placeholder roses until a location is selected.
+- **`peaks-test.html` / `peaks-test.js`** — Experimental Summit Weather Rose test page. It reuses `peaks.css`, samples 8 compass directions, and progressively renders from summit data outward through the distance rings.
 - **`diving.html` / `diving.css` / `diving.js`** — Diving Conditions view linked from the shared page tabs. It includes alphabetized Oahu dive-site presets, city/coordinate lookup, Open-Meteo marine/weather/air-quality calls, NOAA CO-OPS tide predictions, and summary cards for visibility and risk signals.
 
 ## Key things to know
@@ -31,11 +33,11 @@ Supporting files:
 - **All layout is driven by the `SCALE` constant** near the top of `app.js`. Changing it resizes everything proportionally.
 - **`expand()`** converts NWS interval-format data (e.g., "value valid for 3 hours") into one entry per hour.
 - **The canvas is redrawn from scratch** on every `draw()` call — there is no retained state in the canvas.
-- **CORS:** The NWS and Open-Meteo APIs allow browser requests directly. No proxy needed.
+- **CORS:** The NWS, Open-Meteo, FCC Census area, and current ArcGIS REST services used here allow browser requests directly. No proxy needed.
 
 ## How to test changes
 
-Run `npm run dev` and open the local URL in a browser. The hourly page auto-loads on open (default coords: Denver, CO). The summit page starts with generic placeholder roses until a location is selected. The diving page auto-loads the first Oahu preset.
+Run `npm run dev` and open the local URL in a browser. The camping page starts empty until a location is selected. The hourly page auto-loads on open (default coords: Denver, CO). The summit page starts with generic placeholder roses until a location is selected. The diving page auto-loads the first Oahu preset.
 
 ## Owner context
 
