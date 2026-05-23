@@ -4,6 +4,183 @@ A review of the current codebase (May 2026). Suggestions are grouped by category
 
 ---
 
+## Activity Roadmap Ideas
+
+### Shared Features
+
+- Activity readiness score: Good / Caution / Poor based on the hazards that matter for that activity.
+- Best time window: highlights the safest or most comfortable hours in the next 24-72 hours.
+- Hazard timeline: wind, storms, precipitation, temperature, UV, smoke, and lightning shown hour by hour.
+- "What changed?" callout: notable forecast changes since the last check.
+- Gear prompts: simple reminders like rain shell, extra water, sun protection, dry bag, insulated layers.
+- Microclimate notes: elevation, shade exposure, canyon/valley wind, water temperature, snowpack, or coastal effects.
+- Alert stack: NWS alerts, red flag warnings, flood watches, small craft advisories, avalanche advisories where relevant.
+- Confidence indicator: forecast confidence for the user's location and time window.
+
+### Camping
+
+- Overnight comfort index: low temp, dew point, wind chill, humidity, and rain chance.
+- Tent risk: wind gusts, storm timing, heavy rain, hail, lightning, and flood risk.
+- Fire conditions: red flag warnings, wind, humidity, burn bans if available.
+- Bug pressure estimate: temperature, humidity, standing water, wind, sunset timing.
+- Smoke and air quality: PM2.5, wildfire smoke, visibility.
+- Sunrise/sunset and moonlight: useful for setup, cooking, and nighttime visibility.
+- Ground conditions: recent rain, snowmelt, mud potential, freezing overnight temps.
+- Nearby shelter decision: storm arrival countdown and "break camp by" suggestions.
+
+### Climbing
+
+- Crag condition score: precipitation history, current humidity, sun exposure, wind, and rock drying estimate.
+- Lightning risk timeline: especially for exposed routes, alpine climbs, and ridgelines.
+- Wind at elevation: sustained wind and gusts, with a "belay comfort" or "exposure" warning.
+- Heat/cold stress: wall aspect, sun angle, apparent temperature, freeze risk.
+- Rock type drying guidance: sandstone should be flagged after rain or snowmelt.
+- Approach hazards: snow, mud, stream crossings, avalanche terrain, icy trails.
+- Visibility and cloud ceiling: useful for alpine, multipitch, and route finding.
+- Best wall aspect by time: sunny/shady recommendations based on season and temperature.
+
+### Diving
+
+- Marine forecast summary: wind, swell height, swell period, chop, tide, and current.
+- Diveability score: combines visibility, wave energy, wind direction, tide/current, storms, and water temp.
+- Tide/current windows: slack tide, current strength, and unsafe current periods.
+- Surface conditions: boat entry/exit difficulty, shore break, surge, and small craft advisories.
+- Water temperature and exposure guidance: wetsuit/drysuit suggestions.
+- Visibility estimate: recent wind, swell, runoff, rain, tides, and local reports if available.
+- Thunderstorm and lightning risk: surface interval and boat safety.
+- Air quality/smoke: relevant for strenuous shore entries or boat days.
+
+### Hiking
+
+- Trail comfort score: apparent temperature, wind, precipitation, UV, and smoke.
+- Elevation-aware forecast: trailhead vs summit temps, wind, snow, and storm timing.
+- Turnaround-time planner: shows when storms, heat, darkness, or wind become risky.
+- Lightning exposure risk: ridges, summits, above-treeline zones.
+- Heat illness risk: wet bulb globe temp if available, shade, humidity, water needs estimate.
+- Cold exposure risk: wind chill, rain plus cold, overnight survival risk.
+- Trail surface estimate: mud, ice, snow, postholing, stream crossings.
+- Daylight planner: sunrise, sunset, civil twilight, moon phase.
+
+### Water Sports
+
+For paddleboarding, boating, rafting, and floating, split the page into flatwater, river, and open-water modes.
+
+#### Paddleboarding
+
+- Wind direction and gusts: especially offshore wind warnings.
+- Flatwater window: calmest hours with gust thresholds.
+- Thunderstorm risk: fast "get off water by" timing.
+- Water temperature: cold shock risk, PFD reminder.
+- UV and heat: reflection off water makes this more important.
+- Launch/return difficulty: wind shift and gust trend.
+
+#### Boating
+
+- Small craft advisory and marine alerts.
+- Wind, gusts, wave height, swell period, chop, and visibility.
+- Storm arrival radar-style timeline.
+- Docking difficulty: crosswind/gust estimate.
+- Fuel/range safety: headwind and return-trip warning.
+- Fog and low visibility risk.
+- Lightning, waterspout, and severe weather alerts where relevant.
+
+#### Rafting
+
+- River flow: CFS, gauge height, trend, and percentile for season.
+- Rapid difficulty adjustment: too low, ideal, pushy, dangerous.
+- Water temperature and hypothermia risk.
+- Flood risk: upstream rain, snowmelt, dam releases if available.
+- Thunderstorm timing in canyon sections.
+- Wind funneling in canyons.
+- Put-in/take-out road weather.
+
+#### Floating
+
+- Comfort float score: temp, sun, wind, water temp, and storm chance.
+- River speed estimate: flow-based trip duration.
+- Exit-by time: storms, sunset, cold, or wind shift.
+- Heat and dehydration risk.
+- Water quality advisories if available.
+- Flash flood risk for narrow rivers/canyons.
+- Alcohol-risk nudge only if the tone fits the app: subtle safety message, not preachy.
+
+### Feature Concepts to Prioritize First
+
+1. Activity-specific go/no-go score.
+2. Best time window by activity.
+3. Hourly hazard timeline.
+4. Elevation or water-condition adjustments.
+5. Alerts and "get out by" timing.
+6. Gear and safety prompts.
+
+A useful pattern: each activity page has the same core layout, but the scoring inputs and hazard thresholds change. That keeps the product coherent while making each page feel genuinely tailored.
+
+---
+
+## Hosting and API Scale Watchlist
+
+The app is currently a static frontend on Vercel. Vercel serves HTML/CSS/JS/data files, then each user's browser calls public weather/geocoding/fire/tide APIs directly. That keeps hosting simple and cheap, but it means API usage is not centrally counted unless future requests move through a shared backend/cache.
+
+### What to Watch
+
+- **Vercel Edge Requests:** static assets count as CDN/edge requests. A typical page load may request several files, so this can become the first Vercel limit before raw bandwidth does.
+- **Vercel bandwidth:** most pages are small, but large data files can dominate bandwidth if deployed and downloaded by users or bots.
+- **Open-Meteo free limits:** current free non-commercial guidance is around 10,000 calls/day, 5,000 calls/hour, and 600 calls/minute. If the app becomes commercial, popular, or monetized, plan for a paid/commercial arrangement.
+- **NWS API usage:** NWS is free and browser requests are generally reasonable, but it still has practical rate limits and expects cache-friendly behavior.
+- **Autocomplete/geocoding:** search-as-you-type can create many requests per user. Debouncing helps, but autocomplete can still become a high-call feature at scale.
+- **Bots and crawlers:** repeated downloads of large static files or page assets can consume Vercel usage without representing real users.
+
+### Rough Traffic Thresholds
+
+- **Personal/hobby use:** current static setup is fine.
+- **Hundreds of daily users:** still likely fine, especially with browser-side caching and rounded coordinates.
+- **1,000-2,000 daily active users:** start watching Open-Meteo autocomplete/weather calls, Vercel edge requests, and bot traffic.
+- **3,000-5,000 daily active users:** strongly consider a shared cache/proxy for weather calls and basic usage metrics.
+- **5,000-10,000+ daily active users:** expect to think seriously about paid API terms, Vercel Pro, centralized caching, and alerts.
+
+These thresholds are approximate because users may load one page once, or they may search multiple locations and switch between several activity pages.
+
+### Recommended Future Setup
+
+1. Add `.vercelignore` or a deploy-only public folder so unused generated files, especially large CSVs, are not hosted.
+2. Keep request coordinates standardized: about 3 decimals for location-specific forecasts and 2 decimals for surrounding sample grids.
+3. Add a shared backend/cache before traffic gets large:
+   - Browser calls `/api/weather?...`.
+   - Server normalizes coordinates and request type.
+   - Server checks shared cache first.
+   - If fresh, return cached data.
+   - If stale/missing, call Open-Meteo/NWS once, cache it, then return it.
+4. Suggested shared-cache TTLs:
+   - Geocoding: 7-30 days.
+   - NWS point/grid mapping: 7-14 days.
+   - Hourly/current weather: 15-60 minutes.
+   - Camping temperature forecast: 1-3 hours.
+   - Fire restriction data/resources: 12-24 hours.
+5. Add server-side counters once a proxy exists:
+   - API calls by provider and endpoint.
+   - Cache hits vs misses.
+   - Failed/rate-limited responses.
+   - Page/activity type if useful.
+6. Add email alerts for practical thresholds:
+   - Open-Meteo calls exceed 5,000/day.
+   - Cache miss rate exceeds 30%.
+   - Vercel bandwidth exceeds 70 GB/month.
+   - Vercel edge requests exceed 700k/month.
+   - External API failures spike.
+
+### Why a Shared Cache Matters
+
+Browser `localStorage` only helps one returning user. It does not help two different people asking for Denver, Longs Peak, or the same dive site. A shared cache would let many users receive the same recent data for common locations instead of each browser making duplicate API calls.
+
+### Alerting Notes
+
+- Vercel can provide dashboard usage and account/project notifications.
+- Direct browser-to-API calls are hard to count accurately from the app alone.
+- Real API usage alerts require routing requests through a backend/proxy or using a paid API/provider dashboard.
+- Email alerts could be added with a small scheduled check or triggered inside the proxy when thresholds are crossed.
+
+---
+
 ## User-Facing
 
 ### High Impact
