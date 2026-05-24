@@ -34,8 +34,7 @@ camping.js     # Camping weather, county-first fire resources, and USFS restrict
 peaks.html     # Summit Weather Rose view
 peaks.css      # Summit Weather Rose styling
 peaks.js       # Summit rose sampling, NWS fetches, legends, and canvas rendering
-peaks-test.html # Experimental 8-direction Summit Weather Rose view
-peaks-test.js   # TEST summit loader that renders from summit outward by distance ring
+api/nws-cache.js # Vercel API route for restricted NWS proxy caching via Upstash Redis
 diving.html    # Diving Conditions view
 diving.css     # Diving Conditions styling
 diving.js      # Oahu dive presets, marine/weather/air/tide fetching, and condition summaries
@@ -54,3 +53,5 @@ Then open `http://localhost:3000` (or whatever port `serve` reports).
 ## Data sources
 
 Hourly and summit forecast data comes from [api.weather.gov](https://api.weather.gov), the free public API provided by NOAA's National Weather Service. Camping uses Open-Meteo for temperature, the FCC Census area API for county lookup, official county/state/federal resource links, and USDA Forest Service fire restriction data where available. Diving conditions use Open-Meteo marine, weather, and air-quality APIs plus NOAA CO-OPS tide predictions. No account or API key is required.
+
+`peaks.html` can use `/api/nws-cache` as a restricted Vercel proxy for NWS `points` and `gridpoints` requests. The route uses `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` when available, and the page falls back to direct NWS calls if the proxy is unavailable.

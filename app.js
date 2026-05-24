@@ -149,6 +149,8 @@ const kToMph = v => v==null?null:Math.round(v/1.60934);
 const mmToIn = v => v==null?null:+(v/25.4).toFixed(2);
 const coordForRequest = v => Number(v).toFixed(3);
 const card   = d => ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round((d??0)/22.5)%16];
+const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
 
 function niceStep(mn,mx,ticks){ const r=(mx-mn||1)/ticks,m=Math.pow(10,Math.floor(Math.log10(r))); for(const c of[1,2,5,10])if(c*m>=r)return c*m; return 10; }
 
@@ -193,14 +195,16 @@ async function fetchSuggestions() {
   const q = document.getElementById('city').value.trim();
   if (q.length < 2) { closeSuggestions(); return; }
   try {
-    const res = await fetch(
-      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=15&lang=en`,
-      { headers: { 'User-Agent': 'NWS-Weather-Dashboard/1.0' } }
+    const data = await SharedLocation.fetchJson(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=en`,
+      {
+        ttlMs: LOCATION_LOOKUP_TTL_MS,
+        fetchOptions: { headers: { 'User-Agent': 'NWS-Weather-Dashboard/1.0' } },
+      }
     );
-    const data = await res.json();
     const us = data.features
       .filter(f => f.properties.countrycode === 'US' && f.properties.name)
-      .slice(0, 7);
+      .slice(0, 5);
     renderSuggestions(us);
   } catch(e) { closeSuggestions(); }
 }
@@ -224,7 +228,9 @@ function renderSuggestions(results) {
     el.style.cursor = 'pointer';
     el.addEventListener('mouseover', () => { _activeIdx = -1; el.style.background = '#1e4a7a'; });
     el.addEventListener('mouseout',  () => { el.style.background = ''; });
-    el.onmousedown = e => { e.preventDefault(); selectSuggestion(r.geometry.coordinates[1], r.geometry.coordinates[0], label); };
+    const choose = e => { e.preventDefault(); selectSuggestion(r.geometry.coordinates[1], r.geometry.coordinates[0], label); };
+    el.onmousedown = choose;
+    el.ontouchstart = choose;
     box.appendChild(el);
   }
   const rect = document.getElementById('city').getBoundingClientRect();
@@ -292,11 +298,13 @@ async function lookupCity() {
   closeSuggestions();
   setStatus('Looking up city…');
   try {
-    const res = await fetch(
+    const data = await SharedLocation.fetchJson(
       `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10&lang=en`,
-      { headers: { 'User-Agent': 'NWS-Weather-Dashboard/1.0' } }
+      {
+        ttlMs: LOCATION_LOOKUP_TTL_MS,
+        fetchOptions: { headers: { 'User-Agent': 'NWS-Weather-Dashboard/1.0' } },
+      }
     );
-    const data = await res.json();
     const r = data.features.find(f => f.properties.countrycode === 'US' && f.properties.name);
     if (!r) { setStatus('City not found'); return; }
     const label = cityLabel(r);
@@ -405,7 +413,7 @@ async function loadForecast(options = {}) {
   try {
     const pointUrl = `https://api.weather.gov/points/${coordForRequest(lat)},${coordForRequest(lon)}`;
     const pt = window.SharedLocation
-      ? await SharedLocation.fetchJson(pointUrl, { ttlMs: 14 * 24 * 60 * 60 * 1000 })
+      ? await SharedLocation.fetchJson(pointUrl, { ttlMs: LOCATION_LOOKUP_TTL_MS })
       : await fetch(pointUrl).then(r=>r.json());
     const {gridId,gridX,gridY,relativeLocation}=pt.properties;
     const city=relativeLocation?.properties?.city||'', state=relativeLocation?.properties?.state||'';
@@ -420,10 +428,10 @@ async function loadForecast(options = {}) {
     const uvUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coordForRequest(lat)}&longitude=${coordForRequest(lon)}&hourly=uv_index&timezone=UTC&forecast_days=7`;
     const [gd, uvRes] = await Promise.all([
       window.SharedLocation
-        ? SharedLocation.fetchJson(gridUrl)
+        ? SharedLocation.fetchJson(gridUrl, { ttlMs: WEATHER_CACHE_TTL_MS })
         : fetch(gridUrl).then(r=>r.json()),
       (window.SharedLocation
-        ? SharedLocation.fetchJson(uvUrl)
+        ? SharedLocation.fetchJson(uvUrl, { ttlMs: WEATHER_CACHE_TTL_MS })
         : fetch(uvUrl).then(r=>r.json())).catch(()=>null),
     ]);
     const p=gd.properties;
@@ -469,6 +477,9 @@ async function loadForecast(options = {}) {
       snowPop:   snowPop[i]?.value??null,
       uvIndex:   uvMap.get(tmp[i]?.time?.toISOString().slice(0,13))??null,
     }));
+
+    document.getElementById('grid-ref').textContent =
+      `  ·  ${gridId} ${gridX},${gridY} · updated ${new Date(p.updateTime || gd.properties.updateTime).toLocaleString()}`;
 
     buildStartDropdown();
 

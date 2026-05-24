@@ -128,40 +128,26 @@ const PEAKS = [
 ];
 
 // ════════════════════════════════════════════════════════════
-// DIRECTIONS — compass points, counterclockwise from North to match canvas drawing
+// DIRECTIONS — 16 compass points, clockwise from North
 // ════════════════════════════════════════════════════════════
-const DIRECTION_SETS = {
-  '8': [
-    { name: 'N',   bearing:   0 },
-    { name: 'NW',  bearing: 315 },
-    { name: 'W',   bearing: 270 },
-    { name: 'SW',  bearing: 225 },
-    { name: 'S',   bearing: 180 },
-    { name: 'SE',  bearing: 135 },
-    { name: 'E',   bearing:  90 },
-    { name: 'NE',  bearing:  45 },
-  ],
-  '16': [
-    { name: 'N',   bearing:   0 },
-    { name: 'NNW', bearing: 337.5 },
-    { name: 'NW',  bearing: 315 },
-    { name: 'WNW', bearing: 292.5 },
-    { name: 'W',   bearing: 270 },
-    { name: 'WSW', bearing: 247.5 },
-    { name: 'SW',  bearing: 225 },
-    { name: 'SSW', bearing: 202.5 },
-    { name: 'S',   bearing: 180 },
-    { name: 'SSE', bearing: 157.5 },
-    { name: 'SE',  bearing: 135 },
-    { name: 'ESE', bearing: 112.5 },
-    { name: 'E',   bearing:  90 },
-    { name: 'ENE', bearing:  67.5 },
-    { name: 'NE',  bearing:  45 },
-    { name: 'NNE', bearing:  22.5 },
-  ],
-};
-let directionMode = '8';
-let DIRECTIONS = DIRECTION_SETS[directionMode];
+const DIRECTIONS = [
+  { name: 'N',   bearing:   0 },
+  { name: 'NNE', bearing:  22.5 },
+  { name: 'NE',  bearing:  45 },
+  { name: 'ENE', bearing:  67.5 },
+  { name: 'E',   bearing:  90 },
+  { name: 'ESE', bearing: 112.5 },
+  { name: 'SE',  bearing: 135 },
+  { name: 'SSE', bearing: 157.5 },
+  { name: 'S',   bearing: 180 },
+  { name: 'SSW', bearing: 202.5 },
+  { name: 'SW',  bearing: 225 },
+  { name: 'WSW', bearing: 247.5 },
+  { name: 'W',   bearing: 270 },
+  { name: 'WNW', bearing: 292.5 },
+  { name: 'NW',  bearing: 315 },
+  { name: 'NNW', bearing: 337.5 },
+];
 
 const RELATIVE_TIME_OFFSETS = [0, 3, 6, 12]; // hours from selected start
 let forecastStartTimeMs = Date.now();
@@ -179,7 +165,7 @@ const DISTANCE_BANDS = [
 // VARIABLE CONFIG
 // ════════════════════════════════════════════════════════════
 const VAR_CONFIG = {
-  temp:   { label: 'Temp',       unit: '°F',                                  colorFn: tempColor,   legend: 'temp' },
+  temp:   { label: 'Temp',       unit: '°F',  fixedMax: 40,   fixedMin: 0,    colorFn: tempColor,   legend: 'temp' },
   wind:   { label: 'Wind Speed', unit: 'mph', fixedMax: 50,  fixedMin: 0,    colorFn: windColor,   legend: 'wind' },
   gust:   { label: 'Gusts',      unit: 'mph', fixedMax: 80,  fixedMin: 0,    colorFn: windColor,   legend: 'wind' },
   precip: { label: 'Precip',     unit: '%',   fixedMax: 100, fixedMin: 0,    colorFn: precipColor, legend: 'precip' },
@@ -219,7 +205,6 @@ const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
 const POINT_CACHE_TTL_MS = LOCATION_LOOKUP_TTL_MS;
 const FORECAST_CACHE_TTL_MS = 10 * 60 * 1000;
 const MAX_NWS_CONCURRENT_REQUESTS = 6;
-const USE_NWS_PROXY_CACHE = true;
 
 // City autocomplete state
 const STATE_ABBR = {
@@ -238,18 +223,6 @@ const STATE_ABBR = {
 let _suggestTimer = null;
 let _suggestions  = [];
 let _activeIdx    = -1;
-
-function directionCount() {
-  return DIRECTIONS.length;
-}
-
-function directionSampleCount() {
-  return directionCount() * DISTANCE_BANDS.length;
-}
-
-function directionModeLabel() {
-  return `${directionCount()} directions`;
-}
 
 // ════════════════════════════════════════════════════════════
 // COLOR FUNCTIONS
@@ -300,10 +273,12 @@ function windColor(mph) {
   return '#f8fafc';
 }
 
-function tempColor(f, min = f, max = f) {
-  const span = max - min;
-  const t = span <= 0 ? 0.5 : (f - min) / span;
-  return colorRamp(['#91bfdb', '#c6dca8', '#f0d48f', '#e9a06f', '#df714f'], t);
+function tempColor(f) {
+  if (f >= 40) return '#df714f';
+  if (f >= 30) return '#e9a06f';
+  if (f >= 20) return '#f0d48f';
+  if (f >= 10) return '#c6dca8';
+  return '#91bfdb';
 }
 
 function precipColor(pct) {
@@ -374,18 +349,6 @@ function writeCachedJson(url, data) {
 }
 
 async function fetchJsonWithCache(url, ttlMs) {
-  if (USE_NWS_PROXY_CACHE && window.location.protocol !== 'file:') {
-    try {
-      const proxyUrl = `/api/nws-cache?url=${encodeURIComponent(url)}&ttlSeconds=${Math.max(60, Math.round(ttlMs / 1000))}`;
-      return await SharedLocation.fetchJson(proxyUrl, {
-        ttlMs,
-        fetchOptions: { headers: { Accept: 'application/json' } },
-      });
-    } catch (_) {
-      // Fall back to direct NWS calls if the proxy/cache is unavailable.
-    }
-  }
-
   if (window.SharedLocation) {
     return SharedLocation.fetchJson(url, {
       ttlMs,
@@ -438,50 +401,6 @@ function parseWind(s) {
   if (!s) return 0;
   const m = s.match(/(\d+)/);
   return m ? +m[1] : 0;
-}
-
-const WIND_DIRECTION_BEARINGS = {
-  N: 0,
-  NNE: 22.5,
-  NE: 45,
-  ENE: 67.5,
-  E: 90,
-  ESE: 112.5,
-  SE: 135,
-  SSE: 157.5,
-  S: 180,
-  SSW: 202.5,
-  SW: 225,
-  WSW: 247.5,
-  W: 270,
-  WNW: 292.5,
-  NW: 315,
-  NNW: 337.5,
-};
-
-function parseWindDirection(value) {
-  if (value == null) return null;
-  if (typeof value === 'number') return ((value % 360) + 360) % 360;
-
-  const text = String(value).trim().toUpperCase();
-  if (!text || text === 'VRB' || text === 'VARIABLE') return null;
-
-  const numeric = text.match(/\d+(?:\.\d+)?/);
-  if (numeric) return (+numeric[0] % 360 + 360) % 360;
-
-  return WIND_DIRECTION_BEARINGS[text] ?? null;
-}
-
-function bearingToCompass(bearing) {
-  if (bearing == null || !Number.isFinite(bearing)) return '';
-  const labels = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-  const index = Math.round((((bearing % 360) + 360) % 360) / 22.5) % labels.length;
-  return labels[index];
-}
-
-function formatWindDirection(bearing) {
-  const compass = bearingToCompass(bearing);
-  return compass ? `${compass} (${Math.round(bearing)}°)` : '';
 }
 
 function parseDurationMs(duration) {
@@ -611,90 +530,6 @@ async function buildRoseDataForPeak(peak, onStatus = () => {}) {
   };
 }
 
-async function buildRoseDataForPeakProgressive(peak, onStatus = () => {}, onProgress = () => {}) {
-  const samplePoints = DIRECTIONS.flatMap((dir, dirIdx) =>
-    DISTANCE_BANDS.map((band, bandIdx) => ({
-      ...dir,
-      dirIdx,
-      bandIdx,
-      band,
-      coords: offsetCoords(peak.lat, peak.lon, dir.bearing, band.km),
-    }))
-  );
-
-  const data = {
-    summit: { coords: { lat: peak.lat, lon: peak.lon }, periods: null, grid: null },
-    directions: DIRECTIONS.map((dir, dirIdx) => ({
-      ...dir,
-      bands: DISTANCE_BANDS.map((band, bandIdx) => {
-        const point = samplePoints.find(r => r.dirIdx === dirIdx && r.bandIdx === bandIdx);
-        return { ...band, coords: point?.coords ?? null, periods: null, grid: null };
-      }),
-    })),
-    loadTime: new Date(),
-  };
-
-  const hourlyMap = new Map();
-  const gridMap = new Map();
-
-  onStatus('Fetching summit forecast...');
-  const summitResult = await fetchPointUrls(peak.lat, peak.lon, 3)
-    .catch(() => ({ hourlyUrl: null, gridUrl: null }));
-  await Promise.all([
-    summitResult.hourlyUrl
-      ? fetchPeriods(summitResult.hourlyUrl).then(p => hourlyMap.set(summitResult.hourlyUrl, p)).catch(() => hourlyMap.set(summitResult.hourlyUrl, null))
-      : Promise.resolve(),
-    summitResult.gridUrl
-      ? fetchGridProperties(summitResult.gridUrl).then(p => gridMap.set(summitResult.gridUrl, p)).catch(() => gridMap.set(summitResult.gridUrl, null))
-      : Promise.resolve(),
-  ]);
-  data.summit.periods = summitResult.hourlyUrl ? hourlyMap.get(summitResult.hourlyUrl) : null;
-  data.summit.grid = summitResult.gridUrl ? gridMap.get(summitResult.gridUrl) : null;
-  data.loadTime = new Date();
-  onProgress(data, `Summit loaded. Loading ${DISTANCE_BANDS[0].label} samples...`);
-
-  for (let bandIdx = 0; bandIdx < DISTANCE_BANDS.length; bandIdx++) {
-    const band = DISTANCE_BANDS[bandIdx];
-    const bandPoints = samplePoints.filter(point => point.bandIdx === bandIdx);
-    onStatus(`Fetching ${band.label} samples...`);
-
-    const pointResults = await mapWithConcurrency(bandPoints, MAX_NWS_CONCURRENT_REQUESTS, point =>
-      fetchPointUrls(point.coords.lat, point.coords.lon, 2)
-        .then(urls => ({ ...point, ...urls }))
-        .catch(() => ({ ...point, hourlyUrl: null, gridUrl: null }))
-    );
-
-    const hourlyUrls = [...new Set(pointResults.map(r => r.hourlyUrl).filter(Boolean))].filter(url => !hourlyMap.has(url));
-    const gridUrls = [...new Set(pointResults.map(r => r.gridUrl).filter(Boolean))].filter(url => !gridMap.has(url));
-
-    await Promise.all([
-      mapWithConcurrency(hourlyUrls, MAX_NWS_CONCURRENT_REQUESTS, url =>
-        fetchPeriods(url)
-          .then(p => hourlyMap.set(url, p))
-          .catch(() => hourlyMap.set(url, null))
-      ),
-      mapWithConcurrency(gridUrls, MAX_NWS_CONCURRENT_REQUESTS, url =>
-        fetchGridProperties(url)
-          .then(p => gridMap.set(url, p))
-          .catch(() => gridMap.set(url, null))
-      ),
-    ]);
-
-    pointResults.forEach(point => {
-      const target = data.directions[point.dirIdx]?.bands[point.bandIdx];
-      if (!target) return;
-      target.periods = point.hourlyUrl ? hourlyMap.get(point.hourlyUrl) : null;
-      target.grid = point.gridUrl ? gridMap.get(point.gridUrl) : null;
-    });
-
-    data.loadTime = new Date();
-    const nextBand = DISTANCE_BANDS[bandIdx + 1];
-    onProgress(data, nextBand ? `${band.label} loaded. Loading ${nextBand.label} samples...` : 'All samples loaded.');
-  }
-
-  return data;
-}
-
 async function loadData(peak, options = {}) {
   const { syncUrl = true, urlMode = 'push' } = options;
   const loadId = ++loadSequence;
@@ -712,19 +547,8 @@ async function loadData(peak, options = {}) {
   });
   if (syncUrl) syncPeakLocationToUrl(peak, urlMode);
 
-  let hasDrawnPartial = false;
   try {
-    const data = await buildRoseDataForPeakProgressive(peak, setStatus, (partialData, message) => {
-      if (loadId !== loadSequence) return;
-      roseData = partialData;
-      buildStartDropdown(partialData);
-      setStatus(message || '');
-      drawAll();
-      if (!hasDrawnPartial) {
-        hasDrawnPartial = true;
-        setLoading(false);
-      }
-    });
+    const data = await buildRoseDataForPeak(peak, setStatus);
     if (loadId !== loadSequence) return;
 
     roseData = data;
@@ -768,16 +592,12 @@ function extractValue(period, variable, grid, hoursFromStart) {
   }
 }
 
-function extractWindDirection(period) {
-  return parseWindDirection(period?.windDirection);
-}
-
 // ════════════════════════════════════════════════════════════
 // DRAWING
 // ════════════════════════════════════════════════════════════
 const ROSE_PX = 300;
 const EXPLAINER_ROSE_PX = 220;
-const DPR     = Math.min(4, Math.max(2, window.devicePixelRatio || 1));
+const DPR     = window.devicePixelRatio || 1;
 const BAND_FRACTIONS = [0.31, 0.54, 0.76, 1];
 const SUMMIT_HIT_FRAC = 0.051;
 
@@ -796,7 +616,6 @@ function setupCanvas(id, size = ROSE_PX) {
   el.style.width  = size + 'px';
   el.style.height = size + 'px';
   const ctx = el.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
   ctx.scale(DPR, DPR);
   return ctx;
 }
@@ -809,7 +628,6 @@ function setupSizedCanvas(id, width, height) {
   el.style.width = width + 'px';
   el.style.height = height + 'px';
   const ctx = el.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
   ctx.scale(DPR, DPR);
   return ctx;
 }
@@ -824,7 +642,6 @@ function setupResponsiveCanvas(id) {
   el.width = width * DPR;
   el.height = height * DPR;
   const ctx = el.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
   ctx.scale(DPR, DPR);
   return { ctx, width, height };
 }
@@ -834,19 +651,6 @@ function ringBounds(index, R) {
     inner: index === 0 ? 0 : R * BAND_FRACTIONS[index - 1],
     outer: R * BAND_FRACTIONS[index],
   };
-}
-
-function directionSector(dirIdx) {
-  const sector = 360 / DIRECTIONS.length;
-  const bearing = DIRECTIONS[dirIdx]?.bearing ?? 0;
-  return {
-    start: (bearing - sector / 2 - 90) * Math.PI / 180,
-    end: (bearing + sector / 2 - 90) * Math.PI / 180,
-  };
-}
-
-function circularBearingDiff(a, b) {
-  return Math.abs((((a - b) + 540) % 360) - 180);
 }
 
 function drawBandGrid(ctx, W, cx, cy, R, options = {}) {
@@ -866,8 +670,8 @@ function drawBandGrid(ctx, W, cx, cy, R, options = {}) {
     ctx.stroke();
   }
 
-  DIRECTIONS.forEach(({ bearing }) => {
-    const a = (bearing - 90) * Math.PI / 180;
+  RING_LABELS.forEach(({ b }) => {
+    const a = (b - 90) * Math.PI / 180;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
@@ -909,23 +713,17 @@ function drawBandOutlines(ctx, cx, cy, R) {
 }
 
 function drawDirectionLabels(ctx, W, cx, cy, R, full = false) {
-  const fontSize = full && DIRECTIONS.length > 8 ? W * 0.026 : W * 0.033;
-  ctx.font = `bold ${Math.round(fontSize)}px Arial`;
+  ctx.font = `bold ${Math.round(W * 0.033)}px Arial`;
   ctx.fillStyle = '#858b97';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const labels = full
-    ? DIRECTIONS.map(dir => ({ name: dir.name, b: dir.bearing }))
+    ? RING_LABELS
     : [{ name: 'N', b: 0 }, { name: 'E', b: 90 }, { name: 'S', b: 180 }, { name: 'W', b: 270 }];
   const lr = R + W * 0.040;
   labels.forEach(({ name, b }) => {
     const a = (b - 90) * Math.PI / 180;
-    const x = Math.round(cx + Math.cos(a) * lr);
-    const y = Math.round(cy + Math.sin(a) * lr);
-    ctx.strokeStyle = 'rgba(10,12,18,0.85)';
-    ctx.lineWidth = Math.max(1, W * 0.004);
-    ctx.strokeText(name, x, y);
-    ctx.fillText(name, x, y);
+    ctx.fillText(name, cx + Math.cos(a) * lr, cy + Math.sin(a) * lr);
   });
 }
 
@@ -951,7 +749,8 @@ function traceRoseCellPath(ctx, cx, cy, R, cell) {
 
   const { inner, outer } = ringBounds(cell.bandIdx, R);
   const highlightInner = Math.max(inner, summitRadius);
-  const { start: startA, end: endA } = directionSector(cell.dirIdx);
+  const startA = (cell.dirIdx * 22.5 - 11.25 - 90) * Math.PI / 180;
+  const endA = (cell.dirIdx * 22.5 + 11.25 - 90) * Math.PI / 180;
   ctx.beginPath();
   ctx.arc(cx, cy, outer, startA, endA);
   ctx.arc(cx, cy, highlightInner, endA, startA, true);
@@ -969,65 +768,6 @@ function drawSelectionOutline(ctx, W, cx, cy, R, cell) {
   ctx.shadowBlur = Math.max(3, W * 0.012);
   ctx.stroke();
   ctx.restore();
-}
-
-function drawWindDirectionArrow(ctx, W, x, y, bearing) {
-  const angle = (bearing - 90) * Math.PI / 180;
-  const length = Math.max(13, W * 0.052);
-  const head = Math.max(4.5, W * 0.017);
-  const half = length / 2;
-  const x1 = x - Math.cos(angle) * half;
-  const y1 = y - Math.sin(angle) * half;
-  const x2 = x + Math.cos(angle) * half;
-  const y2 = y + Math.sin(angle) * half;
-  const left = angle + Math.PI * 0.78;
-  const right = angle - Math.PI * 0.78;
-
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = 'rgba(5,8,14,0.92)';
-  ctx.lineWidth = Math.max(3.2, W * 0.012);
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.lineTo(x2 + Math.cos(left) * head, y2 + Math.sin(left) * head);
-  ctx.moveTo(x2, y2);
-  ctx.lineTo(x2 + Math.cos(right) * head, y2 + Math.sin(right) * head);
-  ctx.stroke();
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.96)';
-  ctx.lineWidth = Math.max(1.2, W * 0.0046);
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.lineTo(x2 + Math.cos(left) * head, y2 + Math.sin(left) * head);
-  ctx.moveTo(x2, y2);
-  ctx.lineTo(x2 + Math.cos(right) * head, y2 + Math.sin(right) * head);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawWindDirectionArrows(ctx, W, cx, cy, R, dirBandValues) {
-  for (let dirIdx = 0; dirIdx < DIRECTIONS.length; dirIdx++) {
-    for (let bandIdx = 0; bandIdx < DISTANCE_BANDS.length; bandIdx++) {
-      const bandValue = dirBandValues[dirIdx]?.[bandIdx];
-      if (!bandValue || bandValue.missing || bandValue.value === null || bandValue.windDirection == null) continue;
-
-      const { inner, outer } = ringBounds(bandIdx, R);
-      const midR = (Math.max(inner, R * SUMMIT_HIT_FRAC / 0.40) + outer) / 2;
-      const a = (DIRECTIONS[dirIdx].bearing - 90) * Math.PI / 180;
-      drawWindDirectionArrow(
-        ctx,
-        W,
-        cx + Math.cos(a) * midR,
-        cy + Math.sin(a) * midR,
-        bandValue.windDirection
-      );
-    }
-  }
 }
 
 function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options = {}) {
@@ -1048,13 +788,14 @@ function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options
   drawBandGrid(ctx, W, cx, cy, R, options);
 
   // ── Direction/distance cells ──
-  for (let dirIdx = 0; dirIdx < DIRECTIONS.length; dirIdx++) {
+  for (let dirIdx = 0; dirIdx < 16; dirIdx++) {
     for (let bandIdx = 0; bandIdx < DISTANCE_BANDS.length; bandIdx++) {
       const bandValue = dirBandValues[dirIdx]?.[bandIdx];
       if (!bandValue || bandValue.missing || bandValue.value === null) continue;
 
       const { inner, outer } = ringBounds(bandIdx, R);
-      const { start: startA, end: endA } = directionSector(dirIdx);
+      const startA = (dirIdx * 22.5 - 11.25 - 90) * Math.PI / 180;
+      const endA   = (dirIdx * 22.5 + 11.25 - 90) * Math.PI / 180;
       const col    = cfg.colorFn(bandValue.value, useMin, useMax);
       const alpha  = variable === 'sky' ? 0.90 : 0.78;
 
@@ -1077,7 +818,6 @@ function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options
   }
 
   drawBandOutlines(ctx, cx, cy, R);
-  if (variable === 'wind') drawWindDirectionArrows(ctx, W, cx, cy, R, dirBandValues);
   const summitValue = options.summitValue;
   const summitColor = summitValue == null ? '#ffffff' : cfg.colorFn(summitValue, useMin, useMax);
   drawSummitDot(ctx, W, cx, cy, summitColor);
@@ -1090,7 +830,9 @@ function drawRose(ctx, W, dirBandValues, globalMin, globalMax, variable, options
     ctx.textAlign = 'center';
     ctx.font         = `${Math.round(W * 0.036)}px Arial`;
     ctx.fillStyle    = '#50566b';
-    const scaleText  = cfg.fixedMax != null
+    const scaleText  = variable === 'temp'
+      ? '0 – 40+ °F'
+      : cfg.fixedMax != null
       ? `0 – ${cfg.fixedMax} ${cfg.unit}`
       : `${useMin.toFixed(0)} – ${useMax.toFixed(0)} ${cfg.unit}`;
     ctx.fillText(scaleText, cx, W - 5);
@@ -1179,12 +921,9 @@ function gradientFor(variable, min, max) {
 function legendLabels(variable, min, max) {
   const cfg = VAR_CONFIG[variable];
   if (variable === 'temp') {
-    const low = Math.round(min);
-    const mid = Math.round((min + max) / 2);
-    const high = Math.round(max);
-    return [`${low}${cfg.unit}`, `${mid}${cfg.unit}`, `${high}${cfg.unit}`];
+    return ['0-9', '10-19', '20-29', '30-39', `40+ ${cfg.unit}`];
   }
-  if (variable === 'wind') return ['0-9', '10-19', '20-29', '30-39', '40+ mph'];
+  if (variable === 'wind') return ['0-10', '10-20', '20-30', '30-40', '40+ mph'];
   if (variable === 'precip') return ['0%', '50%', '100%'];
   if (variable === 'sky') return ['Clear', 'Mixed', 'Overcast'];
   if (variable === 'thunder') return ['0%', '50%', '100%'];
@@ -1192,7 +931,8 @@ function legendLabels(variable, min, max) {
 }
 
 function legendNote(variable) {
-  if (variable === 'sky') return `Each panel has ${directionSampleCount()} sky-cover boxes; blue is clear sky, white is overcast.`;
+  if (variable === 'temp') return 'Bins are >= lower °F and < upper °F; orange is 40+.';
+  if (variable === 'sky') return 'Each panel has 64 sky-cover boxes; blue is clear sky, white is overcast.';
   if (variable === 'precip') return 'Deeper blue means higher chance.';
   if (variable === 'thunder') return 'Violet to magenta shows increasing thunderstorm probability.';
   if (variable === 'wind') return 'Bins are >= lower mph and < upper mph; purple is 40+.';
@@ -1203,13 +943,12 @@ function updateLegend(variable, timeIdx, min, max) {
   const el = document.getElementById(`legend-${variable}-${timeIdx}`);
   if (!el) return;
   const labels = legendLabels(variable, min, max);
-  const note = variable === 'temp' || variable === 'wind' ? '' : legendNote(variable);
   el.innerHTML = `
     <div class="rose-legend-bar" style="background:${gradientFor(variable, min, max)}"></div>
     <div class="rose-legend-labels">
       ${labels.map(label => `<span>${label}</span>`).join('')}
     </div>
-    ${note ? `<div class="rose-legend-note">${note}</div>` : ''}
+    ${legendNote(variable) ? `<div class="rose-legend-note">${legendNote(variable)}</div>` : ''}
   `;
 }
 
@@ -1238,9 +977,7 @@ function valuesForOffsetFromData(data, varKey, offset) {
     dir.bands.map(band => {
       const period = getPeriodAt(band.periods, offset);
       const value = extractValue(period, varKey, band.grid, offset);
-      const point = { value, missing: value === null };
-      if (varKey === 'wind') point.windDirection = extractWindDirection(period);
-      return point;
+      return { value, missing: value === null };
     })
   );
 }
@@ -1295,15 +1032,7 @@ function cellFromPoint(canvas, clientX, clientY) {
   if (bandIdx < 0) return null;
 
   const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
-  let dirIdx = 0;
-  let bestDiff = Infinity;
-  DIRECTIONS.forEach((dir, i) => {
-    const diff = circularBearingDiff(angle, dir.bearing);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      dirIdx = i;
-    }
-  });
+  const dirIdx = Math.floor(((angle + 11.25) % 360) / 22.5);
   return { dirIdx, bandIdx };
 }
 
@@ -1346,16 +1075,12 @@ function showRoseTooltip(canvas, event) {
   const point = cell.summit ? meta.summit : meta.values[cell.dirIdx]?.[cell.bandIdx];
   const cfg = VAR_CONFIG[meta.variable];
   const locationLine = cell.summit
-    ? `Summit · ${currentPeak?.name ?? 'Sample'}`
+    ? `Summit · ${currentPeak.name}`
     : `${DIRECTIONS[cell.dirIdx].name} · ${DISTANCE_BANDS[cell.bandIdx].label} from summit`;
-  const windDirectionLine = meta.variable === 'wind' && !cell.summit && point.windDirection != null
-    ? `<div class="tooltip-meta">Wind direction: ${formatWindDirection(point.windDirection)}</div>`
-    : '';
   tooltip.innerHTML = `
     <div class="tooltip-title">${cfg.label}: ${formattedValue(meta.variable, point.value)}</div>
     <div class="tooltip-meta">${locationLine}</div>
-    ${windDirectionLine}
-    <div class="tooltip-meta">${meta.isStaticSample ? 'Static sample' : (meta.timeLabel || timeLabel(meta.offset))}</div>
+    <div class="tooltip-meta">${meta.timeLabel || timeLabel(meta.offset)}</div>
   `;
   tooltip.style.display = 'block';
   positionTooltip(event);
@@ -1375,8 +1100,7 @@ function selectedRoseSummary(meta, cell) {
     value: formattedValue(meta.variable, point.value),
     direction: cell.summit ? 'Summit' : DIRECTIONS[cell.dirIdx].name,
     distance: cell.summit ? '' : DISTANCE_BANDS[cell.bandIdx].label,
-    windDirection: meta.variable === 'wind' && !cell.summit ? formatWindDirection(point.windDirection) : '',
-    time: meta.isStaticSample ? 'Static sample' : (meta.timeLabel || timeLabel(meta.offset)),
+    time: meta.timeLabel || timeLabel(meta.offset),
   };
 }
 
@@ -1414,7 +1138,6 @@ function updateRoseCellReadout(canvas, meta, cell) {
       <span>${summary.direction}</span>
       <span>${summary.distance}</span>
     </div>
-    ${summary.windDirection ? `<div>Wind direction: ${summary.windDirection}</div>` : ''}
     ${timeParts.map(part => `<div>${part}</div>`).join('')}
   `;
 }
@@ -1455,12 +1178,8 @@ function selectRoseCell(canvas, event) {
   if (meta.sourceId) roseSelections.set(meta.sourceId, cell);
   drawRoseCanvasById(canvas.id);
   if (isMobileRoseLayout()) {
-    if (canvas.id === 'sample-modal-canvas') {
-      showRoseTooltip(canvas, event);
-    } else {
-      hideRoseTooltip();
-      updateRoseCellReadout(canvas, meta, cell);
-    }
+    hideRoseTooltip();
+    updateRoseCellReadout(canvas, meta, cell);
   } else {
     updateRoseCellReadout(canvas, meta, null);
     showRoseTooltip(canvas, event);
@@ -1554,12 +1273,7 @@ function drawSampleMap(id = 'sample-map', statusId = 'sample-map-status', data =
     ctx.fillStyle = '#858b97';
     ctx.font = `bold ${Math.round(EXPLAINER_ROSE_PX * 0.033)}px Arial`;
     ctx.textBaseline = 'middle';
-    const x = Math.round(cx + Math.cos(a) * labelRadius);
-    const y = Math.round(cy + Math.sin(a) * labelRadius);
-    ctx.strokeStyle = 'rgba(10,12,18,0.85)';
-    ctx.lineWidth = 1;
-    ctx.strokeText(name, x, y);
-    ctx.fillText(name, x, y);
+    ctx.fillText(name, cx + Math.cos(a) * labelRadius, cy + Math.sin(a) * labelRadius);
   });
 
   const status = document.getElementById(statusId);
@@ -1635,17 +1349,12 @@ function drawGenericSampleMap(id = 'sample-map', statusId = 'sample-map-status')
     ctx.fillStyle = '#858b97';
     ctx.font = `bold ${Math.round(EXPLAINER_ROSE_PX * 0.033)}px Arial`;
     ctx.textBaseline = 'middle';
-    const x = Math.round(cx + Math.cos(a) * labelRadius);
-    const y = Math.round(cy + Math.sin(a) * labelRadius);
-    ctx.strokeStyle = 'rgba(10,12,18,0.85)';
-    ctx.lineWidth = 1;
-    ctx.strokeText(name, x, y);
-    ctx.fillText(name, x, y);
+    ctx.fillText(name, cx + Math.cos(a) * labelRadius, cy + Math.sin(a) * labelRadius);
   });
 
   const status = document.getElementById(statusId);
   if (status) {
-    status.textContent = `Generic ${directionModeLabel()} sample layout. Location-specific sample points appear after a peak, city, or coordinates are loaded.`;
+    status.textContent = 'Generic sample layout. Location-specific sample points appear after a peak, city, or coordinates are loaded.';
   }
 }
 
@@ -1655,38 +1364,16 @@ function drawPlaceholderRoseGrid() {
   roseSelections.clear();
 
   for (const varKey of PANEL_VARS) {
-    const metas = TIME_OFFSETS.map((_, timeIdx) => fallbackRoseValues(varKey, timeIdx));
-    const rangeValues = varKey === 'temp'
-      ? metas.flatMap(meta => [
-          meta.summit.value,
-          ...meta.values.flatMap(row => row.map(point => point.value)),
-        ])
-      : [];
-    const sharedMin = rangeValues.length ? Math.min(...rangeValues) : null;
-    const sharedMax = rangeValues.length ? Math.max(...rangeValues) : null;
-
+    const meta = fallbackExplainerValues(varKey);
     TIME_OFFSETS.forEach((offset, timeIdx) => {
-      const meta = metas[timeIdx];
-      const min = sharedMin ?? meta.min;
-      const max = sharedMax ?? meta.max;
       const roseCtx = setupCanvas(`rose-${varKey}-${timeIdx}`);
       if (!roseCtx) return;
-      drawRose(roseCtx, ROSE_PX, meta.values, min, max, varKey, {
+      drawRose(roseCtx, ROSE_PX, meta.values, meta.min, meta.max, varKey, {
         showDistanceLabels: true,
         fullDirectionLabels: false,
         summitValue: meta.summit.value,
       });
-      roseCanvasMeta.set(`rose-${varKey}-${timeIdx}`, {
-        variable: varKey,
-        offset,
-        timeIdx,
-        timeLabel: columnTimeLabel(timeIdx, offset),
-        values: meta.values,
-        summit: meta.summit,
-        min,
-        max,
-      });
-      updateLegend(varKey, timeIdx, min, max);
+      updateLegend(varKey, timeIdx, meta.min, meta.max);
     });
   }
 }
@@ -1753,104 +1440,47 @@ function updateExplainerNote(isExample, peak, fallbackText = '') {
     note.textContent = `Example shown with generic sample colors. Select a peak, city, or coordinates to load current data for your location.`;
     return;
   }
-  note.textContent = `Current location loaded: ${peak.name}. The example roses remain fixed teaching samples; the rose grid below reflects this location.`;
+  note.textContent = `Current location loaded: ${peak.name}. The explainer panels and rose grid now reflect this location.`;
 }
 
 function fallbackExplainerValues(variable) {
-  return fallbackRoseValues(variable, 0);
-}
-
-function fallbackWindDirection(variable, variant, dirIdx, bandIdx) {
-  if (variable !== 'wind') return null;
-  if (variant === 0) {
-    const base = 275;
-    const shifts = new Map([
-      ['2:2', 42],
-      ['3:3', 56],
-      ['6:1', -34],
-    ]);
-    return (base + (shifts.get(`${dirIdx}:${bandIdx}`) ?? 0) + 360) % 360;
+  if (variable === 'temp') {
+    return {
+      values: DIRECTIONS.map((_, dirIdx) =>
+        DISTANCE_BANDS.map((__, bandIdx) => ({ value: 35 + dirIdx * 2 + bandIdx * 7, missing: false }))
+      ),
+      min: 35, max: 88, summit: { value: 62, missing: false },
+    };
   }
-  return (DIRECTIONS[dirIdx].bearing + 35 + variant * 45 + bandIdx * 28) % 360;
-}
-
-function nearestFallbackRow(matrix, bearing) {
-  if (!matrix?.length) return [];
-  let bestIdx = 0;
-  let bestDiff = Infinity;
-  DIRECTION_SETS['8'].forEach((dir, idx) => {
-    const diff = circularBearingDiff(bearing, dir.bearing);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestIdx = idx;
-    }
-  });
-  return matrix[bestIdx] || matrix[0] || [];
-}
-
-function matrixForActiveDirections(matrix) {
-  if (!matrix?.length || matrix.length === DIRECTIONS.length) return matrix;
-  return DIRECTIONS.map(dir => [...nearestFallbackRow(matrix, dir.bearing)]);
-}
-
-function fallbackRoseValues(variable, variant = 0) {
-  const matrices = {
-    temp: [
-      [[34, 38, 48, 58], [33, 39, 50, 62], [35, 41, 53, 66], [36, 43, 56, 68], [34, 40, 52, 64], [33, 38, 49, 60], [35, 42, 54, 65], [34, 39, 51, 61]],
-      [[18, 24, 33, 43], [12, 21, 30, 39], [7, 17, 29, 41], [4, 13, 22, 34], [9, 16, 28, 37], [14, 26, 36, 47], [20, 31, 42, 50], [10, 19, 27, 40]],
-      [[24, 18, 10, 4], [32, 25, 16, 8], [43, 34, 22, 12], [48, 38, 29, 17], [41, 31, 20, 9], [35, 27, 15, 6], [28, 19, 11, 3], [39, 30, 21, 13]],
-      [[5, 11, 19, 28], [8, 14, 24, 36], [12, 22, 34, 44], [17, 29, 39, 49], [21, 32, 42, 51], [15, 25, 35, 45], [9, 18, 31, 41], [4, 13, 23, 33]],
-    ],
-    wind: [
-      [[8, 14, 22, 34], [10, 16, 24, 38], [12, 18, 28, 42], [9, 15, 26, 40], [7, 13, 21, 32], [6, 12, 20, 30], [8, 14, 23, 36], [9, 17, 27, 44]],
-      [[12, 22, 34, 45], [6, 16, 27, 38], [9, 19, 29, 43], [14, 24, 36, 49], [4, 11, 21, 33], [18, 30, 40, 50], [7, 17, 28, 37], [10, 20, 31, 42]],
-      [[20, 13, 7, 4], [32, 24, 16, 9], [44, 35, 25, 14], [50, 41, 30, 18], [38, 29, 19, 11], [27, 21, 12, 6], [34, 26, 15, 8], [42, 31, 22, 10]],
-      [[5, 18, 31, 46], [8, 20, 35, 50], [12, 25, 39, 44], [16, 29, 37, 41], [10, 22, 33, 48], [6, 14, 24, 36], [4, 11, 21, 32], [15, 27, 40, 49]],
-    ],
-    precip: [
-      [[5, 8, 18, 42], [8, 14, 32, 68], [12, 28, 56, 86], [18, 40, 74, 96], [15, 36, 62, 82], [8, 22, 46, 64], [4, 12, 28, 48], [3, 8, 18, 34]],
-      [[18, 36, 66, 92], [8, 24, 52, 78], [3, 14, 38, 64], [0, 10, 28, 56], [6, 20, 44, 72], [12, 32, 60, 86], [22, 46, 74, 96], [10, 30, 58, 80]],
-      [[78, 58, 30, 12], [92, 70, 44, 18], [98, 82, 55, 24], [84, 62, 36, 14], [72, 48, 26, 8], [64, 38, 18, 4], [88, 66, 42, 16], [96, 74, 50, 22]],
-      [[4, 18, 40, 76], [12, 28, 56, 90], [24, 50, 78, 98], [18, 36, 62, 86], [8, 22, 48, 70], [2, 14, 32, 58], [6, 26, 54, 82], [16, 42, 68, 94]],
-    ],
-    sky: [
-      [[8, 16, 36, 68], [14, 28, 58, 86], [22, 48, 78, 96], [36, 66, 92, 100], [30, 58, 82, 94], [18, 42, 70, 88], [10, 24, 52, 76], [6, 18, 40, 64]],
-      [[42, 70, 92, 100], [28, 56, 80, 96], [14, 38, 64, 90], [6, 24, 50, 76], [18, 44, 72, 94], [32, 60, 86, 98], [48, 74, 96, 100], [22, 52, 78, 92]],
-      [[96, 76, 46, 18], [88, 64, 36, 10], [78, 52, 24, 4], [100, 84, 58, 30], [92, 70, 42, 14], [72, 44, 20, 2], [82, 60, 34, 8], [98, 80, 54, 26]],
-      [[4, 26, 56, 88], [10, 38, 68, 96], [22, 50, 78, 100], [34, 62, 90, 98], [18, 44, 72, 94], [8, 28, 52, 82], [2, 20, 48, 74], [14, 40, 66, 92]],
-    ],
-    thunder: [
-      [[0, 2, 8, 20], [2, 6, 18, 44], [4, 16, 42, 78], [8, 28, 68, 94], [6, 22, 50, 82], [2, 10, 28, 52], [0, 4, 14, 30], [0, 2, 8, 18]],
-      [[6, 20, 50, 84], [2, 14, 38, 70], [0, 8, 26, 56], [0, 4, 18, 42], [3, 12, 32, 64], [10, 28, 58, 90], [16, 42, 72, 98], [5, 18, 46, 78]],
-      [[72, 46, 20, 6], [88, 60, 30, 12], [96, 78, 44, 18], [80, 52, 24, 8], [64, 36, 14, 2], [54, 28, 10, 0], [92, 66, 38, 16], [98, 74, 50, 22]],
-      [[0, 12, 36, 72], [5, 22, 52, 88], [14, 44, 76, 98], [8, 30, 62, 90], [2, 18, 42, 70], [0, 8, 24, 54], [4, 26, 56, 84], [10, 38, 68, 96]],
-    ],
-  };
-  const summitValues = {
-    temp: [33, 28, 22, 31],
-    wind: [18, 26, 20, 30],
-    precip: [35, 55, 42, 60],
-    sky: [60, 74, 52, 68],
-    thunder: [32, 48, 36, 54],
-  };
-  const selectedBase = matrices[variable]?.[variant % 4] ?? matrices.thunder[variant % 4];
-  const selected = matrixForActiveDirections(selectedBase);
-  const values = selected.map((row, dirIdx) =>
-    row.map((value, bandIdx) => {
-      const point = { value, missing: false };
-      const windDirection = fallbackWindDirection(variable, variant, dirIdx, bandIdx);
-      if (windDirection != null) point.windDirection = windDirection;
-      return point;
-    })
-  );
-  const cfg = VAR_CONFIG[variable];
-  const flat = selected.flat();
-  if (summitValues[variable]?.[variant % 4] != null) flat.push(summitValues[variable][variant % 4]);
+  if (variable === 'wind') {
+    return {
+      values: DIRECTIONS.map((_, dirIdx) =>
+        DISTANCE_BANDS.map((__, bandIdx) => ({ value: 8 + ((dirIdx + bandIdx * 3) % 12) * 4, missing: false }))
+      ),
+      min: 0, max: 50, summit: { value: 18, missing: false },
+    };
+  }
+  if (variable === 'precip') {
+    return {
+      values: DIRECTIONS.map((_, dirIdx) =>
+        DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 7 + bandIdx * 18) % 100), missing: false }))
+      ),
+      min: 0, max: 100, summit: { value: 35, missing: false },
+    };
+  }
+  if (variable === 'sky') {
+    return {
+      values: DIRECTIONS.map((_, dirIdx) =>
+        DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 5 + bandIdx * 22) % 100), missing: false }))
+      ),
+      min: 0, max: 100, summit: { value: 60, missing: false },
+    };
+  }
   return {
-    values,
-    min: cfg.fixedMin ?? (flat.length ? Math.min(...flat) : 0),
-    max: cfg.fixedMax ?? (flat.length ? Math.max(...flat) : 100),
-    summit: { value: summitValues[variable]?.[variant % 4] ?? 45, missing: false },
+    values: DIRECTIONS.map((_, dirIdx) =>
+      DISTANCE_BANDS.map((__, bandIdx) => ({ value: ((dirIdx * 3 + bandIdx * 15) % 100), missing: false }))
+    ),
+    min: 0, max: 100, summit: { value: 45, missing: false },
   };
 }
 
@@ -1866,24 +1496,14 @@ function explainerDataForVariable(data, variable) {
   return { values, min, max, summit };
 }
 
-function syncExplainerLegend(canvasId, variable, min, max) {
-  const card = document.getElementById(canvasId)?.closest('.explainer-card');
-  const bar = card?.querySelector('.legend-bar');
-  const labels = card?.querySelector('.legend-labels');
-  if (!bar || !labels) return;
-
-  bar.style.background = gradientFor(variable, min, max);
-  labels.innerHTML = legendLabels(variable, min, max).map(label => `<span>${label}</span>`).join('');
-}
-
 function drawExplainers(data = roseData, peak = currentPeak, isExample = false) {
   samplePreviewMeta.clear();
   const examples = {
-    temp: fallbackExplainerValues('temp'),
-    wind: fallbackExplainerValues('wind'),
-    precip: fallbackExplainerValues('precip'),
-    sky: fallbackExplainerValues('sky'),
-    thunder: fallbackExplainerValues('thunder'),
+    temp: explainerDataForVariable(data, 'temp'),
+    wind: explainerDataForVariable(data, 'wind'),
+    precip: explainerDataForVariable(data, 'precip'),
+    sky: explainerDataForVariable(data, 'sky'),
+    thunder: explainerDataForVariable(data, 'thunder'),
   };
 
   Object.entries({
@@ -1901,7 +1521,6 @@ function drawExplainers(data = roseData, peak = currentPeak, isExample = false) 
       showScaleNote: false,
       summitValue: meta.summit.value,
     });
-    syncExplainerLegend(canvasId, variable, meta.min, meta.max);
   });
 
   function cardDescription(canvasId) {
@@ -1956,22 +1575,11 @@ function redrawSampleModal(meta) {
     drawSampleMap('sample-modal-canvas', null, meta.data || roseData, meta.peak || currentPeak, meta.isExample);
     return;
   }
-  const selectedCell = roseSelections.get('sample-modal-canvas');
   drawRose(setup.ctx, setup.width, meta.values, meta.min, meta.max, meta.variable, {
     showDistanceLabels: true,
     fullDirectionLabels: true,
     showScaleNote: false,
     summitValue: meta.summitValue,
-    selectedCell,
-  });
-  roseCanvasMeta.set('sample-modal-canvas', {
-    variable: meta.variable,
-    offset: 0,
-    values: meta.values,
-    summit: { value: meta.summitValue, missing: meta.summitValue == null },
-    min: meta.min,
-    max: meta.max,
-    isStaticSample: true,
   });
 }
 
@@ -2048,25 +1656,23 @@ function openSampleModal(canvasId) {
   const legend = document.getElementById('sample-modal-legend');
   const labels = document.getElementById('sample-modal-labels');
   const descDiv = document.getElementById('sample-modal-description');
-  const canvas = document.getElementById('sample-modal-canvas');
-  if (!meta || !modal || !title || !legendWrap || !legend || !labels || !canvas) return;
+  if (!meta || !modal || !title || !legendWrap || !legend || !labels) return;
 
   modal.dataset.sampleId = canvasId;
   delete modal.dataset.roseSourceId;
-  modal.classList.toggle('rose-modal', meta.type === 'rose');
+  modal.classList.remove('rose-modal');
   roseCanvasMeta.delete('sample-modal-canvas');
   roseSelections.delete('sample-modal-canvas');
-  canvas.removeAttribute('data-rose-canvas');
+  document.getElementById('sample-modal-canvas')?.removeAttribute('data-rose-canvas');
   title.textContent = meta.title;
   if (descDiv) {
-    descDiv.innerHTML = meta.type === 'rose' ? '' : (meta.description || '');
-    descDiv.hidden = meta.type === 'rose' || !meta.description;
+    descDiv.innerHTML = meta.description || '';
+    descDiv.hidden = !meta.description;
   }
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
 
   if (meta.type === 'rose') {
-    canvas.dataset.roseCanvas = 'true';
     legendWrap.classList.add('open');
     legend.dataset.variable = meta.variable;
     legend.dataset.min = meta.min;
@@ -2096,13 +1702,13 @@ function closeSampleModal() {
 }
 
 function legendHoverValue(variable, pct, min, max) {
-  if (variable === 'temp') return min + clamp01(pct) * (max - min);
+  if (variable === 'temp') return Math.min(4, Math.floor(clamp01(pct) * 5));
   if (variable === 'wind') return pct * 50;
   return pct * 100;
 }
 
 function legendHoverLabel(variable, value) {
-  if (variable === 'temp') return `${Math.round(value)}°F`;
+  if (variable === 'temp') return ['0-9°F', '10-19°F', '20-29°F', '30-39°F', '40+°F'][value] || '';
   if (variable === 'wind') return `${Math.round(value)} mph`;
   return `${Math.round(value)}%`;
 }
@@ -2210,38 +1816,6 @@ function applyStart() {
   roseSelections.clear();
   if (roseData) drawAll();
   else drawNoLocationState();
-}
-
-function updateDirectionModeText() {
-  const description = document.getElementById('sample-map-description');
-  if (description) {
-    description.textContent = `Each dot is one forecast sample coordinate used by the panels: ${directionCount()} directions at 1, 5, 10, and 20 miles from the summit.`;
-  }
-  const footer = document.getElementById('footer-direction-summary');
-  if (footer) {
-    footer.textContent = `Points sampled 1, 5, 10, and 20 miles from summit in ${directionCount()} directions`;
-  }
-}
-
-function onDirectionModeChange() {
-  const select = document.getElementById('direction-mode-sel');
-  const nextMode = select?.value === '16' ? '16' : '8';
-  if (nextMode === directionMode) return;
-
-  directionMode = nextMode;
-  DIRECTIONS = DIRECTION_SETS[directionMode];
-  loadSequence++;
-  roseSelections.clear();
-  setLoading(false);
-  updateDirectionModeText();
-
-  if (currentPeak) {
-    setStatus(`Switching to ${directionModeLabel()}...`);
-    loadData(currentPeak, { urlMode: 'replace' });
-    return;
-  }
-
-  drawNoLocationState();
 }
 
 function getFilteredPeaks() {
@@ -2600,13 +2174,8 @@ function updateSummitMobileNav() {
 // ════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tier-sel').value = '14';
-  directionMode = '8';
-  DIRECTIONS = DIRECTION_SETS[directionMode];
-  const directionSelect = document.getElementById('direction-mode-sel');
-  if (directionSelect) directionSelect.value = directionMode;
   setForecastStartTime(new Date());
   buildStartDropdown(null);
-  updateDirectionModeText();
   buildPeakSelector();
   document.getElementById('peak-sel').value = '';
   document.getElementById('coords').value = '';

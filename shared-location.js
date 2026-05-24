@@ -1,8 +1,9 @@
 (function () {
   const LOCATION_KEY = 'weather-dashboard:shared-location';
   const ENABLED_KEY = 'weather-dashboard:share-location-enabled';
-  const CACHE_PREFIX = 'weather-dashboard:api-cache:';
+  const CACHE_PREFIX = 'weather-dashboard:api-cache:v2:';
   const DEFAULT_TTL_MS = 10 * 60 * 1000;
+  const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
 
   function isEnabled() {
     return localStorage.getItem(ENABLED_KEY) === 'true';
@@ -158,7 +159,7 @@
 
     try {
       const pointUrl = `https://api.weather.gov/points/${coordForRequest(lat)},${coordForRequest(lon)}`;
-      const point = await fetchJson(pointUrl, { ttlMs: 14 * 24 * 60 * 60 * 1000 });
+      const point = await fetchJson(pointUrl, { ttlMs: LOCATION_LOOKUP_TTL_MS });
       const props = point?.properties?.relativeLocation?.properties;
       const city = props?.city || '';
       const state = props?.state || '';
@@ -188,6 +189,7 @@
     readLocation,
     saveLocation,
     parseCoordinateText,
+    LOCATION_LOOKUP_TTL_MS,
     fetchJson,
     getBrowserLocation,
     initCheckbox,

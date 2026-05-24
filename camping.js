@@ -11,7 +11,9 @@ const COLORADO_BOUNDS = {
 };
 const TEXT_CACHE_PREFIX = 'weather-dashboard:text-cache:';
 const FIRE_RESTRICTIONS_TTL_MS = 12 * 60 * 60 * 1000;
-const COUNTY_LOOKUP_TTL_MS = 24 * 60 * 60 * 1000;
+const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
+const COUNTY_LOOKUP_TTL_MS = LOCATION_LOOKUP_TTL_MS;
+const WEATHER_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
 const STAGE_DESCRIPTIONS = {
   1: 'Stage 1 — Partial restrictions in effect. Campfires are typically restricted to developed fire rings; charcoal and wood briquettes may be prohibited outside those rings. Check specific restrictions below.',
@@ -742,7 +744,7 @@ function formatForecastFetchedAt(date = new Date()) {
 async function loadCampingWeather(loc) {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${coordForRequest(loc.lat)}&longitude=${coordForRequest(loc.lon)}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&past_days=1&forecast_days=4&temperature_unit=fahrenheit`;
-    const data = await SharedLocation.fetchJson(url, { ttlMs: 60 * 60 * 1000 });
+    const data = await SharedLocation.fetchJson(url, { ttlMs: WEATHER_CACHE_TTL_MS });
 
     const dates = data?.daily?.time || [];
     const highs = data?.daily?.temperature_2m_max || [];
@@ -802,7 +804,7 @@ async function campSuggest() {
   if (q.length < 2) { hideCampSuggestions(); return; }
   try {
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`;
-    const data = await SharedLocation.fetchJson(url, { ttlMs: 5 * 60 * 1000 });
+    const data = await SharedLocation.fetchJson(url, { ttlMs: LOCATION_LOOKUP_TTL_MS });
     campSuggestions = (data?.results || []).map(r => ({
       label: [r.name, r.admin1, r.country_code].filter(Boolean).join(', '),
       lat: r.latitude,
@@ -823,7 +825,12 @@ function renderCampSuggestions() {
     const item = document.createElement('div');
     item.className = 'suggestion-item' + (i === campActiveIdx ? ' active' : '');
     item.textContent = s.label;
-    item.addEventListener('mousedown', () => selectCampSuggestion(i));
+    const choose = event => {
+      event.preventDefault();
+      selectCampSuggestion(i);
+    };
+    item.addEventListener('mousedown', choose);
+    item.addEventListener('touchstart', choose);
     el.appendChild(item);
   });
   el.style.display = '';

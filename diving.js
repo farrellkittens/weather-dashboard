@@ -43,6 +43,8 @@ function byId(id) { return document.getElementById(id); }
 function fmt(v, unit = '', digits = 0) { return v == null || Number.isNaN(v) ? '—' : `${Number(v).toFixed(digits)}${unit}`; }
 function round(v, digits = 0) { return v == null || Number.isNaN(v) ? null : Number(Number(v).toFixed(digits)); }
 function coordForRequest(value) { return Number(value).toFixed(3); }
+const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
+const WEATHER_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 function ft(m) { return m == null ? null : m * 3.28084; }
 function mph(kmh) { return kmh == null ? null : kmh / 1.60934; }
 function f(c) { return c == null ? null : c * 9 / 5 + 32; }
@@ -228,14 +230,16 @@ async function fetchDiveSuggestions() {
   const q = byId('city').value.trim();
   if (q.length < 2) { closeDiveSuggestions(); return; }
   try {
-    const res = await fetch(
-      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=15&lang=en`,
-      { headers: { 'User-Agent': 'Weather-Dashboard-Diving/1.0' } }
+    const data = await SharedLocation.fetchJson(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=en`,
+      {
+        ttlMs: LOCATION_LOOKUP_TTL_MS,
+        fetchOptions: { headers: { 'User-Agent': 'Weather-Dashboard-Diving/1.0' } },
+      }
     );
-    const data = await res.json();
     const us = data.features
       .filter(f => f.properties.countrycode === 'US' && f.properties.name)
-      .slice(0, 7);
+      .slice(0, 5);
     renderDiveSuggestions(us);
   } catch (e) {
     closeDiveSuggestions();
@@ -266,10 +270,12 @@ function renderDiveSuggestions(results) {
       el.classList.add('active');
     });
     el.addEventListener('mouseout', () => el.classList.remove('active'));
-    el.onmousedown = e => {
+    const choose = e => {
       e.preventDefault();
       selectDiveSuggestion(r.geometry.coordinates[1], r.geometry.coordinates[0], label);
     };
+    el.onmousedown = choose;
+    el.ontouchstart = choose;
     box.appendChild(el);
   }
   const rect = byId('city').getBoundingClientRect();
@@ -315,11 +321,13 @@ async function lookupDiveCity() {
   closeDiveSuggestions();
   byId('status').textContent = 'Looking up city...';
   try {
-    const res = await fetch(
+    const data = await SharedLocation.fetchJson(
       `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10&lang=en`,
-      { headers: { 'User-Agent': 'Weather-Dashboard-Diving/1.0' } }
+      {
+        ttlMs: LOCATION_LOOKUP_TTL_MS,
+        fetchOptions: { headers: { 'User-Agent': 'Weather-Dashboard-Diving/1.0' } },
+      }
     );
-    const data = await res.json();
     const r = data.features.find(f => f.properties.countrycode === 'US' && f.properties.name);
     if (!r) {
       byId('status').textContent = 'City not found';
@@ -380,7 +388,7 @@ async function loadDiveConditions(options = {}) {
 }
 
 async function fetchJson(url) {
-  if (window.SharedLocation) return SharedLocation.fetchJson(url);
+  if (window.SharedLocation) return SharedLocation.fetchJson(url, { ttlMs: WEATHER_CACHE_TTL_MS });
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   return res.json();

@@ -40,6 +40,7 @@ body.is-loading * {
 }
 #controls input { width: 130px; }
 #controls input#city { width: 150px; }
+#controls select#startSel { width: 190px; }
 #controls .city-input-wrap {
   position: relative;
   display: inline-flex;
@@ -294,7 +295,7 @@ body.is-loading * {
   margin-top: 9px;
 }
 
-.legend-temp { background: linear-gradient(90deg, #91bfdb, #f0eaa4, #df714f); }
+.legend-temp { background: linear-gradient(90deg, #91bfdb 0 20%, #c6dca8 20% 40%, #f0d48f 40% 60%, #e9a06f 60% 80%, #df714f 80% 100%); }
 .legend-wind { background: linear-gradient(90deg, #f8fafc, #f7df72, #f29a3f, #e675ad, #7c3ba6); }
 .legend-precip { background: linear-gradient(90deg, #f7fbef, #d9ef8b, #7fcdbb, #41b6c4, #1d91c0, #225ea8, #0c2c84); }
 .legend-sky { background: linear-gradient(90deg, #174d86, #4f8fc8, #a7b5c1, #eef2f6); }
