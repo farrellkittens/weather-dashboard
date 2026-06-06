@@ -3,11 +3,15 @@
 // ════════════════════════════════════════════════════════════
 const SCALE   = 1.15;
 const HW_BASE = 14;
-const HW      = HW_BASE * SCALE;
+const BASE_HW = HW_BASE * SCALE;
+let HW        = BASE_HW;
 const LEFT    = Math.round(58 * SCALE);
 const RIGHT   = Math.round(10 * SCALE);
 const HOURS   = 60;
 const BUFFER  = 1;
+const MIN_HW  = BASE_HW;
+const MAX_HW  = BASE_HW * 4;
+const HISTORY_DAYS = 14;
 
 const DATE_H  = Math.round(20 * SCALE);
 const TIME_H  = Math.round(22 * SCALE);
@@ -157,6 +161,30 @@ function niceStep(mn,mx,ticks){ const r=(mx-mn||1)/ticks,m=Math.pow(10,Math.floo
 function popLabel(p){ if(p==null)return null; if(p>=70)return'Ocnl'; if(p>=55)return'Lkly'; if(p>=40)return'Chc'; if(p>=20)return'SChc'; return null; }
 
 function floor3h(d){ const h=d.getHours(); return new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(h/3)*3,0,0,0); }
+
+function openMeteoHourlyRows(res) {
+  const hourly=res?.hourly;
+  if(!hourly?.time)return [];
+  return hourly.time.map((time,i)=>({
+    time:new Date(`${time}Z`),
+    temp:hourly.temperature_2m?.[i]??null,
+    dewpoint:hourly.dew_point_2m?.[i]??null,
+    windChill:hourly.apparent_temperature?.[i]??null,
+    rh:hourly.relative_humidity_2m?.[i]??null,
+    skyCover:hourly.cloud_cover?.[i]??null,
+    windSpeed:hourly.wind_speed_10m?.[i]??null,
+    windDir:hourly.wind_direction_10m?.[i]??null,
+    windGust:hourly.wind_gusts_10m?.[i]??null,
+    pop:hourly.precipitation_probability?.[i]??null,
+    thunder:(hourly.weather_code?.[i]??0)>=95 ? 100 : null,
+    qpf:hourly.rain?.[i]??null,
+    snow:hourly.snowfall?.[i]??null,
+    snowfall:hourly.snowfall?.[i]??null,
+    snowPop:null,
+    uvIndex:hourly.uv_index?.[i]??null,
+    source:'history',
+  }));
+}
 
 // ════════════════════════════════════════════════════════════
 // CITY AUTOCOMPLETE
@@ -425,20 +453,31 @@ async function loadForecast(options = {}) {
 
     setStatus('Fetching forecast data…');
     const gridUrl = `https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}`;
-    const uvUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coordForRequest(lat)}&longitude=${coordForRequest(lon)}&hourly=uv_index&timezone=UTC&forecast_days=7`;
-    const [gd, uvRes] = await Promise.all([
+    const openMeteoParams=new URLSearchParams({
+      latitude:coordForRequest(lat),
+      longitude:coordForRequest(lon),
+      hourly:'temperature_2m,apparent_temperature,dew_point_2m,relative_humidity_2m,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,rain,snowfall,weather_code,uv_index',
+      timezone:'UTC',
+      temperature_unit:'fahrenheit',
+      wind_speed_unit:'mph',
+      precipitation_unit:'inch',
+      past_days:String(HISTORY_DAYS),
+      forecast_days:'7',
+    });
+    const openMeteoUrl=`https://api.open-meteo.com/v1/forecast?${openMeteoParams}`;
+    const [gd, openMeteoRes] = await Promise.all([
       window.SharedLocation
         ? SharedLocation.fetchJson(gridUrl, { ttlMs: WEATHER_CACHE_TTL_MS })
         : fetch(gridUrl).then(r=>r.json()),
       (window.SharedLocation
-        ? SharedLocation.fetchJson(uvUrl, { ttlMs: WEATHER_CACHE_TTL_MS })
-        : fetch(uvUrl).then(r=>r.json())).catch(()=>null),
+        ? SharedLocation.fetchJson(openMeteoUrl, { ttlMs: WEATHER_CACHE_TTL_MS })
+        : fetch(openMeteoUrl).then(r=>r.json())).catch(()=>null),
     ]);
     const p=gd.properties;
 
     const uvMap=new Map();
-    if(uvRes?.hourly?.time && uvRes.hourly.uv_index){
-      uvRes.hourly.time.forEach((t,i)=>uvMap.set(t.slice(0,13), uvRes.hourly.uv_index[i]));
+    if(openMeteoRes?.hourly?.time && openMeteoRes.hourly.uv_index){
+      openMeteoRes.hourly.time.forEach((t,i)=>uvMap.set(t.slice(0,13), openMeteoRes.hourly.uv_index[i]));
     }
 
     const N=168;
@@ -459,7 +498,7 @@ async function loadForecast(options = {}) {
     const snowPop=expand(p.probabilityOfSnow?.values,N);
 
     const n=Math.min(tmp.length,N);
-    ALL_DATA=Array.from({length:n},(_,i)=>({
+    const forecastData=Array.from({length:n},(_,i)=>({
       time:      tmp[i]?.time,
       temp:      tmp[i]?.value??null,
       dewpoint:  dew[i]?.value??null,
@@ -476,15 +515,19 @@ async function loadForecast(options = {}) {
       snowfall:  snw[i]?.value??null,
       snowPop:   snowPop[i]?.value??null,
       uvIndex:   uvMap.get(tmp[i]?.time?.toISOString().slice(0,13))??null,
+      source:    'forecast',
     }));
+    const forecastStart=forecastData[0]?.time;
+    const historyData=openMeteoHourlyRows(openMeteoRes)
+      .filter(d=>d.time<forecastStart);
+    ALL_DATA=[...historyData,...forecastData];
 
     document.getElementById('grid-ref').textContent =
       `  ·  ${gridId} ${gridX},${gridY} · updated ${new Date(p.updateTime || gd.properties.updateTime).toLocaleString()}`;
 
     buildStartDropdown();
 
-    const now=new Date();
-    const target=floor3h(new Date(now.getTime()-6*3.6e6));
+    const target=floor3h(new Date());
     startIdx=findClosestIdx(target);
     setDropdownToIdx(startIdx);
 
@@ -507,9 +550,7 @@ function buildStartDropdown() {
   nowOpt.value='now'; nowOpt.textContent='Now';
   sel.appendChild(nowOpt);
 
-  const lastStart=Math.max(0, ALL_DATA.length-HOURS);
-
-  for (let i=0;i<lastStart;i++) {
+  for (let i=0;i<ALL_DATA.length;i++) {
     const t=ALL_DATA[i].time;
     if (t.getHours()%3!==0) continue;
     const hr=t.getHours(), hr12=hr===0?12:hr>12?hr-12:hr;
@@ -524,7 +565,7 @@ function buildStartDropdown() {
 function applyStart() {
   const val=document.getElementById('startSel').value;
   if (val==='now') {
-    const target=floor3h(new Date(Date.now()-6*3.6e6));
+    const target=floor3h(new Date());
     startIdx=findClosestIdx(target);
     setDropdownToIdx(startIdx);
   } else {
@@ -549,18 +590,17 @@ function setDropdownToIdx(idx) {
 }
 
 function sliceAndDraw() {
-  D=ALL_DATA.slice(startIdx, startIdx+HOURS);
-  resetChartScroll();
+  D=ALL_DATA;
   if(D.length) draw();
-  setTimeout(()=>{ if(resetChartScroll()&&D.length)draw(); },0);
-  setTimeout(()=>{ if(resetChartScroll()&&D.length)draw(); },150);
+  scrollChartToIdx(startIdx);
+  setTimeout(()=>scrollChartToIdx(startIdx),0);
+  setTimeout(()=>scrollChartToIdx(startIdx),150);
 }
 
-function resetChartScroll() {
+function scrollChartToIdx(idx) {
   const chartWrap=document.getElementById('chart-wrap');
-  if(!chartWrap||chartWrap.scrollLeft===0)return false;
-  chartWrap.scrollLeft=0;
-  return true;
+  if(!chartWrap)return;
+  chartWrap.scrollLeft=Math.max(0,LEFT+BUFFER*HW+idx*HW-LEFT);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -580,7 +620,6 @@ function draw() {
     chartStage.style.width=W+'px';
     chartStage.style.height=H+'px';
   }
-
   canvas.width =Math.round(W*dpr);
   canvas.height=Math.round(H*dpr);
   canvas.style.width =W+'px';
@@ -619,6 +658,14 @@ function draw() {
     ctx.strokeStyle=C.nowLine; ctx.lineWidth=1.5;
     ctx.setLineDash([4,3]);
     ctx.beginPath();ctx.moveTo(nx,0);ctx.lineTo(nx,H);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  const forecastIdx=D.findIndex(d=>d.source==='forecast');
+  if(forecastIdx>0){
+    const fx=LEFT+BUFFER*HW+forecastIdx*HW;
+    ctx.strokeStyle='#8ab4d8';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.moveTo(fx,0);ctx.lineTo(fx,H);ctx.stroke();
     ctx.setLineDash([]);
   }
 
@@ -1223,6 +1270,83 @@ function getChartStickyX() {
 }
 
 // ════════════════════════════════════════════════════════════
+// MOBILE PINCH ZOOM
+// ════════════════════════════════════════════════════════════
+let pinchState=null;
+let pinchRaf=null;
+
+function clampChartHW(value) {
+  return Math.max(MIN_HW, Math.min(MAX_HW, value));
+}
+
+function touchDistance(touches) {
+  const dx=touches[0].clientX-touches[1].clientX;
+  const dy=touches[0].clientY-touches[1].clientY;
+  return Math.hypot(dx,dy);
+}
+
+function touchCenterX(touches) {
+  return (touches[0].clientX+touches[1].clientX)/2;
+}
+
+function zoomChartTo(nextHW, centerClientX) {
+  const chartWrap=document.getElementById('chart-wrap');
+  if(!chartWrap||!D.length)return;
+
+  const rect=chartWrap.getBoundingClientRect();
+  const centerInWrap=centerClientX-rect.left;
+  const centeredContentX=chartWrap.scrollLeft+centerInWrap;
+  const hourAtCenter=(centeredContentX-LEFT-BUFFER*HW)/HW;
+
+  HW=clampChartHW(nextHW);
+  draw();
+
+  const nextContentX=LEFT+BUFFER*HW+hourAtCenter*HW;
+  chartWrap.scrollLeft=Math.max(0,nextContentX-centerInWrap);
+}
+
+function queuePinchZoom(nextHW, centerClientX, distance) {
+  if(pinchRaf)cancelAnimationFrame(pinchRaf);
+  pinchRaf=requestAnimationFrame(()=>{
+    pinchRaf=null;
+    zoomChartTo(nextHW,centerClientX);
+    if(pinchState){
+      pinchState.distance=distance;
+      pinchState.hw=HW;
+    }
+  });
+}
+
+function setupChartPinchZoom() {
+  const chartWrap=document.getElementById('chart-wrap');
+  if(!chartWrap)return;
+
+  chartWrap.addEventListener('touchstart',e=>{
+    if(e.touches.length!==2)return;
+    pinchState={
+      distance:touchDistance(e.touches),
+      hw:HW,
+    };
+  },{passive:true});
+
+  chartWrap.addEventListener('touchmove',e=>{
+    if(!pinchState||e.touches.length!==2)return;
+    e.preventDefault();
+    const distance=touchDistance(e.touches);
+    const ratio=distance/Math.max(pinchState.distance,1);
+    queuePinchZoom(pinchState.hw*ratio,touchCenterX(e.touches),distance);
+  },{passive:false});
+
+  chartWrap.addEventListener('touchend',e=>{
+    if(e.touches.length<2)pinchState=null;
+  },{passive:true});
+
+  chartWrap.addEventListener('touchcancel',()=>{pinchState=null;},{passive:true});
+  chartWrap.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+  chartWrap.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+}
+
+// ════════════════════════════════════════════════════════════
 // MOBILE SECTION NAV
 // ════════════════════════════════════════════════════════════
 function setupMobileSectionNav() {
@@ -1326,6 +1450,7 @@ window.addEventListener('resize',()=>{clearTimeout(rsz);rsz=setTimeout(()=>{if(D
 
 // Boot
 if('scrollRestoration' in history)history.scrollRestoration='manual';
+setupChartPinchZoom();
 window.SharedLocation?.initCheckbox({ getLocation: getCurrentDashboardLocation });
 window.addEventListener('popstate', () => {
   const loc = getDashboardLocationFromUrl();

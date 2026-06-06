@@ -346,6 +346,22 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 .day-high { font-size: 22px; font-weight: bold; color: #f0b830; line-height: 1.1; }
 .day-low { font-size: 17px; font-weight: bold; color: #6ab4d8; line-height: 1.1; margin-top: 6px; }
 .day-range-label { font-size: 9px; color: #567888; text-transform: uppercase; letter-spacing: 0.4px; }
+.day-aqi {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #33464e;
+  font-size: 13px;
+  font-weight: bold;
+}
+.day-aqi span {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.day-aqi-good { color: #75c987; }
+.day-aqi-moderate { color: #e5c85b; }
+.day-aqi-sensitive { color: #e39a58; }
+.day-aqi-unhealthy { color: #df6f6f; }
 .weather-fetched-at {
   margin-top: 14px;
   color: #b6c0c4;
@@ -363,4 +379,7 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
   #camp-page { padding: 12px 10px; }
   .metric-card { min-width: 90px; }
   .resource-list { grid-template-columns: 1fr; }
+  .day-grid { gap: 4px; flex-wrap: nowrap; }
+  .day-card { min-width: 0; max-width: none; padding: 10px 2px; }
+  .weather-icon { width: 36px; height: 36px; }
 }

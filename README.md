@@ -7,9 +7,10 @@ A static weather and outdoor conditions dashboard with camping, forecast, summit
 - Hourly forecast chart for any US location (enter lat/lon coordinates)
 - Panels: Temperature / Wind Chill / Dewpoint, Sky Cover / Humidity / PoP, Wind Speed & Gusts, Rain, Thunderstorm, and Snow probability
 - Dark theme with a hover tooltip showing values at each hour
-- Scrollable 60-hour window across a 7-day forecast
+- Edge-to-edge hourly timeline with 14 days of history and a 7-day forecast
 - Summit Weather Rose view for Longs Peak, sampling NWS forecast grids 1, 5, 10, and 20 miles from the summit in 16 directions for temperature, wind, precipitation, sky cover, and thunderstorm signal
 - Camping Conditions view with county-first fire restriction resources, USFS fire restriction data where available, and a short temperature forecast
+- Colorado Water Sports view with a statewide, region-grouped paddleboard and river-tubing location directory, access links, seven-day weather, and current-week USGS river gauge charts
 - Diving Conditions view with Oahu dive-site presets, marine/weather/air-quality data, and NOAA tide predictions
 
 ## How to use
@@ -31,6 +32,9 @@ app.js         # All JavaScript — data fetching, chart rendering
 camping.html   # Camping Conditions view
 camping.css    # Camping Conditions styling
 camping.js     # Camping weather, county-first fire resources, and USFS restriction checks
+water.html     # Colorado paddleboard and tube-float directory
+water.css      # Water Sports view styling
+water.js       # Water location data, access links, filters, and forecast
 peaks.html     # Summit Weather Rose view
 peaks.css      # Summit Weather Rose styling
 peaks.js       # Summit rose sampling, NWS fetches, legends, and canvas rendering
@@ -52,6 +56,6 @@ Then open `http://localhost:3000` (or whatever port `serve` reports).
 
 ## Data sources
 
-Hourly and summit forecast data comes from [api.weather.gov](https://api.weather.gov), the free public API provided by NOAA's National Weather Service. Camping uses Open-Meteo for temperature, the FCC Census area API for county lookup, official county/state/federal resource links, and USDA Forest Service fire restriction data where available. Diving conditions use Open-Meteo marine, weather, and air-quality APIs plus NOAA CO-OPS tide predictions. No account or API key is required.
+Hourly forecast and summit data comes from [api.weather.gov](https://api.weather.gov), the free public API provided by NOAA's National Weather Service. The hourly graph prepends 14 days of Open-Meteo historical model data. Camping uses Open-Meteo for temperature, the FCC Census area API for county lookup, official county/state/federal resource links, and USDA Forest Service fire restriction data where available. Water Sports uses USGS instantaneous values for river gauge height and discharge. Diving conditions use Open-Meteo marine, weather, and air-quality APIs plus NOAA CO-OPS tide predictions. No account or API key is required.
 
 `peaks.html` can use `/api/nws-cache` as a restricted Vercel proxy for NWS `points` and `gridpoints` requests. The route uses `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` when available, and the page falls back to direct NWS calls if the proxy is unavailable.

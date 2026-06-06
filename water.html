@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colorado Water Sports</title>
+<link rel="stylesheet" href="water.css">
+</head>
+<body>
+<div id="header"><span>Colorado Water Sports</span></div>
+
+<div id="page-tabs">
+  <a href="camping.html" class="tab">Camping</a>
+  <a href="water.html" class="tab active">Water Sports</a>
+  <a href="peaks.html" class="tab">Forecast: Directional</a>
+  <a href="index.html" class="tab">Forecast: Graph</a>
+  <a href="diving.html" class="tab">Surf Report</a>
+</div>
+
+<div id="controls">
+  <span class="control-group location-control">
+    <label for="water-location">Colorado location:</label>
+    <select id="water-location"></select>
+  </span>
+  <span class="control-group">
+    <label for="activity-filter">Activity:</label>
+    <select id="activity-filter">
+      <option value="all">Paddleboard or tube</option>
+      <option value="paddle">Paddleboard</option>
+      <option value="tube">Tube float</option>
+    </select>
+  </span>
+  <button id="load-button" type="button">Load conditions</button>
+</div>
+
+<main id="water-page">
+  <div class="notice">
+    <strong>Check before you launch.</strong> This is a broad directory of established public-access spots, not a guarantee of current access.
+    Rules, flows, closures, permits, entry points, and allowable craft can change. Always confirm with the water manager and wear a properly fitted PFD.
+  </div>
+
+  <section id="place-card" class="place-card" aria-live="polite"></section>
+
+  <section id="river-section" class="section-block river-section" aria-labelledby="river-title" hidden>
+    <div class="section-heading">
+      <h1 id="river-title">Current-Week River Gauge</h1>
+      <span id="river-status">Loading USGS gauge data...</span>
+    </div>
+    <div id="river-activities" class="river-activities"></div>
+    <div id="river-summary" class="river-summary"></div>
+    <div id="river-chart" class="river-chart" role="img" aria-label="Seven-day river gauge height and flow chart"></div>
+  </section>
+
+  <section class="section-block" aria-labelledby="forecast-title">
+    <div class="section-heading">
+      <h1 id="forecast-title">Seven-Day Conditions</h1>
+      <span id="forecast-status">Select a location to load weather.</span>
+    </div>
+    <div id="forecast-grid" class="forecast-grid"></div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <h2>On-Water Checklist</h2>
+    </div>
+    <div class="checklist">
+      <div><strong>PFD:</strong> Colorado requires an appropriately sized life jacket readily accessible for each person on a vessel; wearing it is the safer choice.</div>
+      <div><strong>Cold water:</strong> Mountain lakes and runoff-fed rivers can be dangerously cold even on warm days.</div>
+      <div><strong>River flows:</strong> Tubing suitability changes quickly. Avoid high water, low-head dams, strainers, and sections beyond your ability.</div>
+      <div><strong>Clean gear:</strong> Clean, drain, and dry paddleboards, tubes, paddles, and other equipment between waters.</div>
+    </div>
+  </section>
+</main>
+
+<div id="footer">Weather: Open-Meteo. Access information: linked water managers. Directory updated June 2026; verify current rules before every trip.</div>
+<script src="water.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

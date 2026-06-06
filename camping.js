@@ -741,19 +741,46 @@ function formatForecastFetchedAt(date = new Date()) {
   return `Forecast fetched ${day} at ${time}.`;
 }
 
+function dailyMaxAqi(airQuality) {
+  const times = airQuality?.hourly?.time || [];
+  const values = airQuality?.hourly?.us_aqi || [];
+
+  return times.reduce((daily, time, i) => {
+    const value = Number(values[i]);
+    if (!time || !Number.isFinite(value)) return daily;
+    const date = time.slice(0, 10);
+    daily[date] = Math.max(daily[date] ?? value, value);
+    return daily;
+  }, {});
+}
+
+function aqiClass(aqi) {
+  if (aqi > 150) return 'day-aqi-unhealthy';
+  if (aqi > 100) return 'day-aqi-sensitive';
+  if (aqi > 50) return 'day-aqi-moderate';
+  return 'day-aqi-good';
+}
+
 async function loadCampingWeather(loc) {
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coordForRequest(loc.lat)}&longitude=${coordForRequest(loc.lon)}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&past_days=1&forecast_days=4&temperature_unit=fahrenheit`;
-    const data = await SharedLocation.fetchJson(url, { ttlMs: WEATHER_CACHE_TTL_MS });
+    const coords = `latitude=${coordForRequest(loc.lat)}&longitude=${coordForRequest(loc.lon)}`;
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?${coords}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&past_days=1&forecast_days=4&temperature_unit=fahrenheit`;
+    const airQualityUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?${coords}&hourly=us_aqi&timezone=auto&past_days=1&forecast_days=2`;
+    const [data, airQuality] = await Promise.all([
+      SharedLocation.fetchJson(weatherUrl, { ttlMs: WEATHER_CACHE_TTL_MS }),
+      SharedLocation.fetchJson(airQualityUrl, { ttlMs: WEATHER_CACHE_TTL_MS }).catch(() => null),
+    ]);
 
     const dates = data?.daily?.time || [];
     const highs = data?.daily?.temperature_2m_max || [];
     const lows = data?.daily?.temperature_2m_min || [];
     const weatherCodes = data?.daily?.weather_code || [];
+    const aqiByDate = dailyMaxAqi(airQuality);
     if (dates.length === 0) return;
 
     const todayStr = new Date().toLocaleDateString('sv'); // YYYY-MM-DD in local time
     const yesterdayStr = new Date(Date.now() - 864e5).toLocaleDateString('sv');
+    const tomorrowStr = new Date(Date.now() + 864e5).toLocaleDateString('sv');
 
     const grid = byId('weather-grid');
     grid.innerHTML = '';
@@ -770,6 +797,11 @@ async function loadCampingWeather(loc) {
       const high = highs[i] != null ? Math.round(highs[i]) : null;
       const low = lows[i] != null ? Math.round(lows[i]) : null;
       const condition = weatherConditionForCode(weatherCodes[i]);
+      const aqi = aqiByDate[dateStr];
+      const showAqi = [yesterdayStr, todayStr, tomorrowStr].includes(dateStr) && aqi != null;
+      const aqiMarkup = showAqi
+        ? `<div class="day-aqi ${aqiClass(aqi)}"><span>AQI</span> ${Math.round(aqi)}</div>`
+        : '';
 
       const card = document.createElement('div');
       card.className = 'day-card' + (dateStr === yesterdayStr ? ' day-card-past' : '');
@@ -781,6 +813,7 @@ async function loadCampingWeather(loc) {
         <div class="day-range-label">high</div>
         <div class="day-low">${low != null ? low + '°' : '—'}</div>
         <div class="day-range-label">low</div>
+        ${aqiMarkup}
       `;
       grid.appendChild(card);
     });

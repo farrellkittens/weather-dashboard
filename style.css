@@ -105,10 +105,10 @@
 
   #status { padding: 4px 14px; font-size: 12px; color: #888; min-height: 20px; text-align: center; }
 
-  /* ── Canvas wrapper — centers when it fits, scrolls cleanly when it doesn't ── */
+  /* ── Canvas wrapper — full browser width with a horizontally scrolling timeline ── */
   #chart-shell { position: relative; }
-  #chart-wrap { overflow-x: auto; padding: 6px 0 10px; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
-  #chart-stage { display: grid; margin: 0 auto; }
+  #chart-wrap { width: 100%; overflow-x: auto; padding: 6px 0 10px; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+  #chart-stage { display: grid; margin: 0; }
   #chart-stage > canvas { grid-area: 1 / 1; display: block; margin: 0; }
   #c { cursor: crosshair; }
   #axis-c { position: sticky; left: 0; z-index: 2; pointer-events: none; cursor: default; justify-self: start; align-self: start; }
