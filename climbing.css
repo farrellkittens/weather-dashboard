@@ -1,0 +1,144 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; font-size: 13px; background: #252827; color: #e3e7e4; }
+
+#header {
+  background: #14231f; color: #c3ded4; padding: 9px 14px;
+  font-size: 15px; font-weight: bold; border-bottom: 1px solid #3f4c48;
+}
+
+#page-tabs { background: #0e1520; border-bottom: 2px solid #2e5a8a; display: flex; justify-content: flex-start; align-items: flex-end; overflow-x: auto; touch-action: pan-x; overscroll-behavior-x: contain; }
+.tab, .tab:visited { flex: 0 0 auto; display: inline-block; padding: 9px 14px; font-size: 13px; font-weight: bold; color: #8eb4d8; text-decoration: none; text-align: center; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; transition: color 0.15s, background 0.15s; }
+#page-tabs .tab { order: 10; }
+#page-tabs .tab[href="peaks.html"] { order: 1; }
+#page-tabs .tab[href="index.html"] { order: 2; }
+.tab:hover { color: #d4e8fc; background: rgba(255,255,255,0.05); }
+.tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(91,158,214,0.1); }
+
+#climbing-page { max-width: 980px; padding: 16px 14px 22px; }
+
+#chooser,
+#from-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #3f4c48;
+  background: #1f2423;
+}
+
+#from-panel { margin-bottom: 12px; border-bottom: 0; background: #202927; }
+
+.control-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 31px;
+}
+
+label { font-weight: bold; color: #c9d1ce; font-size: 12px; }
+select,
+input {
+  min-height: 29px;
+  background: #303736;
+  border: 1px solid #586561;
+  color: #f2f5f3;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+select { min-width: 190px; }
+#from-input { width: min(420px, 58vw); }
+button {
+  min-height: 29px;
+  background: #2f7564;
+  color: #f4fbf8;
+  border: 0;
+  padding: 5px 13px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+button:hover { background: #3a8a77; }
+button:disabled { opacity: .68; cursor: wait; }
+
+#status,
+#from-status {
+  color: #94aaa2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+#status { padding: 8px 0 14px; }
+#from-status { flex-basis: 100%; }
+
+.section-block { margin-top: 18px; }
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 11px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #3f4c48;
+}
+.section-heading h1,
+.section-heading h2 { color: #c3ded4; font-size: 15px; }
+.section-heading span { color: #7f9b91; font-size: 11px; }
+.section-heading a { color: #98d8bf; font-weight: bold; font-size: 12px; text-decoration: none; }
+.section-heading a:hover { color: #d5fff0; text-decoration: underline; }
+
+#location-meta,
+#drive-card {
+  background: #1d2b28;
+  border: 1px solid #38524b;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  color: #b7c9c2;
+  line-height: 1.45;
+}
+#location-meta strong,
+#drive-card strong { color: #eef8f4; }
+
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.day-card {
+  min-height: 150px;
+  background: #1e2c29;
+  border: 1px solid #3a554d;
+  border-radius: 6px;
+  padding: 12px;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto auto;
+  gap: 5px;
+}
+.day-card-past { opacity: .82; }
+.day-label { color: #dceee8; font-weight: bold; font-size: 13px; }
+.day-condition { color: #a9c5bb; min-height: 32px; line-height: 1.35; }
+.day-temps { color: #f4fbf8; font-size: 22px; font-weight: bold; }
+.day-detail { color: #88a69a; font-size: 12px; }
+.day-precip { color: #9fd7bf; font-size: 12px; font-weight: bold; }
+.weather-error {
+  grid-column: 1 / -1;
+  background: #332b1f;
+  border: 1px solid #6a5637;
+  border-radius: 6px;
+  padding: 13px 14px;
+  color: #e5c985;
+}
+
+@media (max-width: 700px) {
+  #chooser,
+  #from-panel { display: grid; grid-template-columns: 92px minmax(0, 1fr); }
+  .control-row { display: contents; }
+  label { justify-self: end; align-self: center; text-align: right; }
+  select,
+  input,
+  #from-input { width: 100%; min-width: 0; }
+  button { grid-column: 2; }
+  #from-status { grid-column: 1 / -1; }
+  .day-grid { grid-template-columns: 1fr; }
+}

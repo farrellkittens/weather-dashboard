@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Climbing Conditions</title>
+<link rel="stylesheet" href="climbing.css">
+</head>
+<body>
+<div id="header">
+  <span>Climbing Conditions</span>
+</div>
+
+<div id="page-tabs">
+  <a href="peaks.html" class="tab">Forecast: Directional</a>
+  <a href="index.html" class="tab">Forecast: Graph</a>
+  <a href="camping.html" class="tab">Camping</a>
+  <a href="climbing.html" class="tab active">Climbing</a>
+  <a href="water.html" class="tab">Water Sports</a>
+  <a href="diving.html" class="tab">Surf Report</a>
+</div>
+
+<main id="climbing-page">
+  <section id="chooser" aria-label="Climbing location chooser">
+    <div class="control-row">
+      <label for="region-select">Location</label>
+      <select id="region-select"></select>
+    </div>
+    <div class="control-row" id="area-row" hidden>
+      <label for="area-select">Area</label>
+      <select id="area-select"></select>
+    </div>
+    <div class="control-row" id="subarea-row" hidden>
+      <label for="subarea-select">Climbing area</label>
+      <select id="subarea-select"></select>
+    </div>
+    <div class="control-row" id="crag-row" hidden>
+      <label for="crag-select">Crag</label>
+      <select id="crag-select"></select>
+    </div>
+  </section>
+
+  <section id="from-panel" aria-label="Drive time origin">
+    <div class="control-row">
+      <label for="from-input">From</label>
+      <input id="from-input" value="Colorado State Capitol, Denver, CO" autocomplete="off">
+      <button id="from-button" type="button">Update</button>
+    </div>
+    <div id="from-status"></div>
+  </section>
+
+  <div id="status">Choose a climbing location.</div>
+
+  <section id="summary-section" class="section-block" hidden>
+    <div class="section-heading">
+      <h1 id="location-title">Climbing location</h1>
+      <a id="source-link" href="https://openbeta.io" target="_blank" rel="noopener noreferrer">OpenBeta</a>
+      <a id="mp-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Mountain Project</a>
+    </div>
+    <div id="location-meta"></div>
+    <div id="drive-card"></div>
+  </section>
+
+  <section id="weather-section" class="section-block" hidden>
+    <div class="section-heading">
+      <h2>Weather</h2>
+      <span id="weather-fetched-at"></span>
+    </div>
+    <div class="day-grid" id="weather-grid"></div>
+  </section>
+</main>
+
+<div id="footer">Climbing areas: OpenBeta GraphQL API. Weather: Open-Meteo. Routing: OSRM with distance fallback.</div>
+
+<script src="shared-location.js"></script>
+<script src="climbing.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

@@ -1,8 +1,11 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; color: #e2e6e8; }
 #header { background: #102c35; color: #b9e4ed; padding: 9px 14px; font-size: 15px; font-weight: bold; border-bottom: 1px solid #3d4d52; }
-#page-tabs { background: #0e1520; border-bottom: 2px solid #2e5a8a; display: flex; align-items: flex-end; overflow-x: auto; }
+#page-tabs { background: #0e1520; border-bottom: 2px solid #2e5a8a; display: flex; align-items: flex-end; overflow-x: auto; touch-action: pan-x; overscroll-behavior-x: contain; }
 .tab { flex: 0 0 auto; padding: 9px 14px; font-weight: bold; color: #8eb4d8; text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; }
+#page-tabs .tab { order: 10; }
+#page-tabs .tab[href="peaks.html"] { order: 1; }
+#page-tabs .tab[href="index.html"] { order: 2; }
 .tab:hover { color: #d4e8fc; background: rgba(255,255,255,.05); }
 .tab.active { color: #eef4ff; border-bottom-color: #55bdd2; background: rgba(85,189,210,.1); }
 #controls { padding: 9px 14px; background: #202426; border-bottom: 1px solid #3d4d52; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
