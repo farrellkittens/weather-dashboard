@@ -62,6 +62,22 @@ const RIVER_ACTIVITY_GUIDANCE = {
   },
 };
 const SPOTS = [
+  // Established tubing and gentle river-float corridors
+  ['Boulder Creek Tubing Corridor', 'River Tubing / Floating', 40.015, -105.285, 'tube', 'Boulder', 'Use only when the city has not closed the creek; high runoff is dangerous.', 'https://bouldercolorado.gov/services/boulder-creek'],
+  ['Cache la Poudre River - Filter Plant to Picnic Rock', 'River Tubing / Floating', 40.671, -105.223, 'tube', 'Fort Collins', 'Flow-dependent whitewater run; know hazards and take-out before launching.', 'https://www.poudrewatershed.org/river-access'],
+  ['Clear Creek - Golden Whitewater Park', 'River Tubing / Floating', 39.756, -105.225, 'tube', 'Golden', 'Seasonal restrictions and closures are common during high water.', 'https://www.cityofgolden.net/play/recreation-attractions/clear-creek/'],
+  ['Colorado River - Pumphouse to Radium', 'River Tubing / Floating', 39.988, -106.510, 'tube', 'Kremmling', 'Remote river float with rapids; use an appropriate craft and check flows.', 'https://www.blm.gov/visit/upper-colorado-river-special-recreation-management-area'],
+  ['Colorado River - Rancho del Rio to State Bridge', 'River Tubing / Floating', 39.925, -106.725, 'tube', 'Bond', 'Flow-dependent river float; arrange a take-out and check local hazards.', 'https://www.blm.gov/visit/upper-colorado-river-special-recreation-management-area'],
+  ['Colorado River - Palisade to Grand Junction', 'River Tubing / Floating', 39.113, -108.350, 'tube', 'Palisade', 'Long float; check flows, diversion structures, weather, and take-out access.', 'https://www.blm.gov/visit/colorado-river'],
+  ['Dolores River - Town of Dolores', 'River Tubing / Floating', 37.473, -108.504, 'tube', 'Dolores', 'Only suitable at some flows; identify hazards and take-out first.', 'https://www.townofdolores.com/'],
+  ['Gunnison River - Gunnison Whitewater Park', 'River Tubing / Floating', 38.529, -106.946, 'tube', 'Gunnison', 'Whitewater features and cold runoff; flow-dependent.', 'https://www.gunnisonco.gov/'],
+  ['North Platte River - Northgate Canyon', 'River Tubing / Floating', 40.891, -106.316, 'tube', 'Walden', 'Remote whitewater, not a casual tube float; expert planning required.', 'https://cpw.state.co.us/state-parks/north-sand-hills'],
+  ['San Juan River - Pagosa Springs', 'River Tubing / Floating', 37.267, -107.010, 'tube', 'Pagosa Springs', 'Popular town float; check town advisories and river flow.', 'https://pagosaoutside.com/river-conditions/'],
+  ['South Platte River - Deckers', 'River Tubing / Floating', 39.255, -105.226, 'tube', 'Deckers', 'Flow-dependent with rocks, cold water, and fishing traffic; choose access carefully.', 'https://www.fs.usda.gov/recarea/psicc/recarea/?recid=12920'],
+  ['South Platte River - Denver Urban Run', 'River Tubing / Floating', 39.753, -105.010, 'tube', 'Denver', 'Use designated access; avoid dams and check water quality and flow.', 'https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Parks-Recreation'],
+  ['St. Vrain Creek - Lyons', 'River Tubing / Floating', 40.224, -105.270, 'tube', 'Lyons', 'Check town closures and flows; avoid high runoff.', 'https://www.townoflyons.com/'],
+  ['Yampa River - Steamboat Springs', 'River Tubing / Floating', 40.486, -106.831, 'tube', 'Steamboat Springs', 'Commercial tubing and private floating are flow-dependent; closures occur.', 'https://steamboatsprings.net/1319/Yampa-River-Management'],
+
   // Front Range and Denver metro
   ['Bear Creek Lake Park', 'Front Range / Denver', 39.652, -105.153, 'paddle', 'Lakewood', 'Permit/entry fee may apply; launch only in designated areas.', 'https://www.lakewood.org/Government/Departments/Community-Resources/Parks-Forestry-and-Open-Space/Bear-Creek-Lake-Park'],
   ['Big Soda Lake', 'Front Range / Denver', 39.648, -105.169, 'paddle', 'Lakewood', 'Paddlecraft are seasonal; check park hours, fees, and current water-contact rules.', 'https://www.lakewood.org/Government/Departments/Community-Resources/Parks-Forestry-and-Open-Space/Bear-Creek-Lake-Park'],
@@ -122,22 +138,6 @@ const SPOTS = [
   ['Ridgway Reservoir', 'Southern / Southwest Colorado', 38.232, -107.738, 'paddle', 'Ridgway', 'State park pass; use designated launch and recreation areas.', 'https://cpw.state.co.us/state-parks/ridgway-state-park'],
   ['Trinidad Lake', 'Southern / Southwest Colorado', 37.146, -104.557, 'paddle', 'Trinidad', 'State park pass and boating rules apply.', 'https://cpw.state.co.us/state-parks/trinidad-lake-state-park'],
   ['Vallecito Reservoir', 'Southern / Southwest Colorado', 37.388, -107.575, 'paddle', 'Bayfield', 'Large, cold reservoir; check marina/forest access and wind.', 'https://www.fs.usda.gov/recarea/sanjuan/recarea/?recid=43056'],
-
-  // Established tubing and gentle river-float corridors
-  ['Boulder Creek Tubing Corridor', 'River Tubing / Floating', 40.015, -105.285, 'tube', 'Boulder', 'Use only when the city has not closed the creek; high runoff is dangerous.', 'https://bouldercolorado.gov/services/boulder-creek'],
-  ['Cache la Poudre River - Filter Plant to Picnic Rock', 'River Tubing / Floating', 40.671, -105.223, 'tube', 'Fort Collins', 'Flow-dependent whitewater run; know hazards and take-out before launching.', 'https://www.poudrewatershed.org/river-access'],
-  ['Clear Creek - Golden Whitewater Park', 'River Tubing / Floating', 39.756, -105.225, 'tube', 'Golden', 'Seasonal restrictions and closures are common during high water.', 'https://www.cityofgolden.net/play/recreation-attractions/clear-creek/'],
-  ['Colorado River - Pumphouse to Radium', 'River Tubing / Floating', 39.988, -106.510, 'tube', 'Kremmling', 'Remote river float with rapids; use an appropriate craft and check flows.', 'https://www.blm.gov/visit/upper-colorado-river-special-recreation-management-area'],
-  ['Colorado River - Rancho del Rio to State Bridge', 'River Tubing / Floating', 39.925, -106.725, 'tube', 'Bond', 'Flow-dependent river float; arrange a take-out and check local hazards.', 'https://www.blm.gov/visit/upper-colorado-river-special-recreation-management-area'],
-  ['Colorado River - Palisade to Grand Junction', 'River Tubing / Floating', 39.113, -108.350, 'tube', 'Palisade', 'Long float; check flows, diversion structures, weather, and take-out access.', 'https://www.blm.gov/visit/colorado-river'],
-  ['Dolores River - Town of Dolores', 'River Tubing / Floating', 37.473, -108.504, 'tube', 'Dolores', 'Only suitable at some flows; identify hazards and take-out first.', 'https://www.townofdolores.com/'],
-  ['Gunnison River - Gunnison Whitewater Park', 'River Tubing / Floating', 38.529, -106.946, 'tube', 'Gunnison', 'Whitewater features and cold runoff; flow-dependent.', 'https://www.gunnisonco.gov/'],
-  ['North Platte River - Northgate Canyon', 'River Tubing / Floating', 40.891, -106.316, 'tube', 'Walden', 'Remote whitewater, not a casual tube float; expert planning required.', 'https://cpw.state.co.us/state-parks/north-sand-hills'],
-  ['San Juan River - Pagosa Springs', 'River Tubing / Floating', 37.267, -107.010, 'tube', 'Pagosa Springs', 'Popular town float; check town advisories and river flow.', 'https://pagosaoutside.com/river-conditions/'],
-  ['South Platte River - Deckers', 'River Tubing / Floating', 39.255, -105.226, 'tube', 'Deckers', 'Flow-dependent with rocks, cold water, and fishing traffic; choose access carefully.', 'https://www.fs.usda.gov/recarea/psicc/recarea/?recid=12920'],
-  ['South Platte River - Denver Urban Run', 'River Tubing / Floating', 39.753, -105.010, 'tube', 'Denver', 'Use designated access; avoid dams and check water quality and flow.', 'https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Parks-Recreation'],
-  ['St. Vrain Creek - Lyons', 'River Tubing / Floating', 40.224, -105.270, 'tube', 'Lyons', 'Check town closures and flows; avoid high runoff.', 'https://www.townoflyons.com/'],
-  ['Yampa River - Steamboat Springs', 'River Tubing / Floating', 40.486, -106.831, 'tube', 'Steamboat Springs', 'Commercial tubing and private floating are flow-dependent; closures occur.', 'https://steamboatsprings.net/1319/Yampa-River-Management'],
 ];
 
 const spots = SPOTS.map(([name, region, lat, lon, activity, town, note, url]) => ({ name, region, lat, lon, activity, town, note, url }));
@@ -151,6 +151,10 @@ const riverActivitiesEl = document.getElementById('river-activities');
 const riverSummaryEl = document.getElementById('river-summary');
 const riverChartEl = document.getElementById('river-chart');
 
+function regionLabel(region) {
+  return region === 'River Tubing / Floating' ? region : `${region} - Lakes / Reservoirs`;
+}
+
 function renderOptions() {
   const previous = locationSelect.value;
   const filter = activityFilter.value;
@@ -159,7 +163,7 @@ function renderOptions() {
   locationSelect.innerHTML = regions.map(region => {
     const options = visible.filter(spot => spot.region === region)
       .map(spot => `<option value="${spots.indexOf(spot)}">${spot.name} — ${spot.town}</option>`).join('');
-    return `<optgroup label="${region}">${options}</optgroup>`;
+    return `<optgroup label="${regionLabel(region)}">${options}</optgroup>`;
   }).join('');
   if ([...locationSelect.options].some(option => option.value === previous)) locationSelect.value = previous;
   renderPlace();
@@ -175,7 +179,7 @@ function renderPlace() {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lon}`;
   document.getElementById('place-card').innerHTML = `
     <div class="place-top">
-      <div><div class="place-kicker">${spot.region} · ${spot.town}</div><h1>${spot.name}</h1></div>
+      <div><div class="place-kicker">${regionLabel(spot.region)} · ${spot.town}</div><h1>${spot.name}</h1></div>
       <div class="badges"><span class="badge ${spot.activity}">${activityLabel}</span></div>
     </div>
     <div class="place-note">${spot.note}</div>

@@ -528,15 +528,14 @@ function thunderValue(period) {
 
 const cToF = c => c == null ? null : Math.round(c * 9 / 5 + 32);
 
-function floor3h(d) {
-  const h = d.getHours();
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(h / 3) * 3, 0, 0, 0);
+function floorHour(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), 0, 0, 0);
 }
 
-function ceil3h(d) {
-  const floored = floor3h(d);
+function ceilHour(d) {
+  const floored = floorHour(d);
   if (floored.getTime() >= d.getTime()) return floored;
-  return new Date(floored.getTime() + 3 * 3_600_000);
+  return new Date(floored.getTime() + 3_600_000);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2184,11 +2183,11 @@ function buildStartDropdown(data = roseData) {
   const lastPeriod = periods[periods.length - 1];
   const last = lastPeriod?.endTime ? new Date(lastPeriod.endTime) : new Date(Date.now() + 72 * 3_600_000);
   const latestStart = new Date(last.getTime() - Math.max(...RELATIVE_TIME_OFFSETS) * 3_600_000);
-  const start = ceil3h(new Date(Math.max(Date.now(), first.getTime())));
+  const start = ceilHour(new Date(Math.max(Date.now(), first.getTime())));
   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  for (let t = start; t <= latestStart; t = new Date(t.getTime() + 3 * 3_600_000)) {
+  for (let t = start; t <= latestStart; t = new Date(t.getTime() + 3_600_000)) {
     const hr = t.getHours();
     const hr12 = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
     const ampm = hr < 12 ? 'am' : 'pm';

@@ -161,7 +161,7 @@ function niceStep(mn,mx,ticks){ const r=(mx-mn||1)/ticks,m=Math.pow(10,Math.floo
 
 function popLabel(p){ if(p==null)return null; if(p>=70)return'Ocnl'; if(p>=55)return'Lkly'; if(p>=40)return'Chc'; if(p>=20)return'SChc'; return null; }
 
-function floor3h(d){ const h=d.getHours(); return new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(h/3)*3,0,0,0); }
+function floorHour(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate(),d.getHours(),0,0,0); }
 
 function parseUtcHour(time) {
   const [datePart, hourPart = '00:00'] = String(time || '').split('T');
@@ -537,7 +537,7 @@ async function loadForecast(options = {}) {
 
     buildStartDropdown();
 
-    const target=floor3h(new Date());
+    const target=floorHour(new Date());
     startIdx=findClosestIdx(target);
     setDropdownToIdx(startIdx);
 
@@ -562,7 +562,6 @@ function buildStartDropdown() {
 
   for (let i=0;i<ALL_DATA.length;i++) {
     const t=ALL_DATA[i].time;
-    if (t.getHours()%3!==0) continue;
     const hr=t.getHours(), hr12=hr===0?12:hr>12?hr-12:hr;
     const ampm=hr<12?'am':'pm';
     const opt=document.createElement('option');
@@ -575,7 +574,7 @@ function buildStartDropdown() {
 function applyStart() {
   const val=document.getElementById('startSel').value;
   if (val==='now') {
-    const target=floor3h(new Date());
+    const target=floorHour(new Date());
     startIdx=findClosestIdx(target);
     setDropdownToIdx(startIdx);
   } else {
@@ -1109,12 +1108,13 @@ function drawAxisOverlay(n,H) {
   axisCtx.font=labelFont;
   const labelW=Math.max(...PANELS.map(panel=>measurePanelLabels(axisCtx,getPanelLabelItems(panel),labelGap,wordGap)));
   const overlayW=Math.min(chartW,LEFT+labelPad+Math.ceil(labelW)+labelPad);
-  axisCanvas.width=Math.round(overlayW*dpr);
-  axisCanvas.height=Math.round(H*dpr);
+  const axisDpr=canvasDprForSize(overlayW,H);
+  axisCanvas.width=Math.round(overlayW*axisDpr);
+  axisCanvas.height=Math.round(H*axisDpr);
   axisCanvas.style.width=overlayW+'px';
   axisCanvas.style.height=H+'px';
 
-  axisCtx.setTransform(dpr,0,0,dpr,0,0);
+  axisCtx.setTransform(axisDpr,0,0,axisDpr,0,0);
   axisCtx.clearRect(0,0,overlayW,H);
 
   function drawStickyPanelLabel(panel,y0){
