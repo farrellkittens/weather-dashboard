@@ -6,11 +6,15 @@
   const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
 
   function isEnabled() {
-    return localStorage.getItem(ENABLED_KEY) === 'true';
+    try {
+      return localStorage.getItem(ENABLED_KEY) === 'true';
+    } catch (error) {
+      return false;
+    }
   }
 
   function setEnabled(enabled) {
-    localStorage.setItem(ENABLED_KEY, enabled ? 'true' : 'false');
+    writeLocalStorage(ENABLED_KEY, enabled ? 'true' : 'false');
   }
 
   function readLocation() {
@@ -26,7 +30,7 @@
     const lat = Number(location.lat);
     const lon = Number(location.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-    localStorage.setItem(LOCATION_KEY, JSON.stringify({
+    writeLocalStorage(LOCATION_KEY, JSON.stringify({
       ...location,
       lat,
       lon,
@@ -36,6 +40,30 @@
 
   function cacheKey(url) {
     return CACHE_PREFIX + url;
+  }
+
+  function writeLocalStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      pruneApiCache();
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  function pruneApiCache() {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(CACHE_PREFIX)) localStorage.removeItem(key);
+      }
+    } catch (_) {}
   }
 
   function coordForRequest(value) {
