@@ -155,6 +155,7 @@ const coordForRequest = v => Number(v).toFixed(3);
 const card   = d => ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round((d??0)/22.5)%16];
 const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
 const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+const MAX_CANVAS_DIMENSION = 8192;
 
 function niceStep(mn,mx,ticks){ const r=(mx-mn||1)/ticks,m=Math.pow(10,Math.floor(Math.log10(r))); for(const c of[1,2,5,10])if(c*m>=r)return c*m; return 10; }
 
@@ -162,28 +163,37 @@ function popLabel(p){ if(p==null)return null; if(p>=70)return'Ocnl'; if(p>=55)re
 
 function floor3h(d){ const h=d.getHours(); return new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(h/3)*3,0,0,0); }
 
+function parseUtcHour(time) {
+  const [datePart, hourPart = '00:00'] = String(time || '').split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute = 0] = hourPart.split(':').map(Number);
+  if (![year, month, day, hour, minute].every(Number.isFinite)) return null;
+  return new Date(Date.UTC(year, month - 1, day, hour, minute));
+}
+
 function openMeteoHourlyRows(res) {
   const hourly=res?.hourly;
   if(!hourly?.time)return [];
   return hourly.time.map((time,i)=>({
-    time:new Date(`${time}Z`),
-    temp:hourly.temperature_2m?.[i]??null,
-    dewpoint:hourly.dew_point_2m?.[i]??null,
-    windChill:hourly.apparent_temperature?.[i]??null,
-    rh:hourly.relative_humidity_2m?.[i]??null,
-    skyCover:hourly.cloud_cover?.[i]??null,
-    windSpeed:hourly.wind_speed_10m?.[i]??null,
-    windDir:hourly.wind_direction_10m?.[i]??null,
-    windGust:hourly.wind_gusts_10m?.[i]??null,
-    pop:hourly.precipitation_probability?.[i]??null,
-    thunder:(hourly.weather_code?.[i]??0)>=95 ? 100 : null,
-    qpf:hourly.rain?.[i]??null,
-    snow:hourly.snowfall?.[i]??null,
-    snowfall:hourly.snowfall?.[i]??null,
-    snowPop:null,
-    uvIndex:hourly.uv_index?.[i]??null,
-    source:'history',
-  }));
+      time:parseUtcHour(time),
+      temp:hourly.temperature_2m?.[i]??null,
+      dewpoint:hourly.dew_point_2m?.[i]??null,
+      windChill:hourly.apparent_temperature?.[i]??null,
+      rh:hourly.relative_humidity_2m?.[i]??null,
+      skyCover:hourly.cloud_cover?.[i]??null,
+      windSpeed:hourly.wind_speed_10m?.[i]??null,
+      windDir:hourly.wind_direction_10m?.[i]??null,
+      windGust:hourly.wind_gusts_10m?.[i]??null,
+      pop:hourly.precipitation_probability?.[i]??null,
+      thunder:(hourly.weather_code?.[i]??0)>=95 ? 100 : null,
+      qpf:hourly.rain?.[i]??null,
+      snow:hourly.snowfall?.[i]??null,
+      snowfall:hourly.snowfall?.[i]??null,
+      snowPop:null,
+      uvIndex:hourly.uv_index?.[i]??null,
+      source:'history',
+    }))
+    .filter(row=>row.time);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -603,6 +613,11 @@ function scrollChartToIdx(idx) {
   chartWrap.scrollLeft=Math.max(0,LEFT+BUFFER*HW+idx*HW-LEFT);
 }
 
+function canvasDprForSize(w,h) {
+  const deviceDpr=window.devicePixelRatio||1;
+  return Math.max(1,Math.min(deviceDpr,MAX_CANVAS_DIMENSION/w,MAX_CANVAS_DIMENSION/h));
+}
+
 // ════════════════════════════════════════════════════════════
 // DRAW
 // ════════════════════════════════════════════════════════════
@@ -611,10 +626,10 @@ function draw() {
   canvas=document.getElementById('c');
   axisCanvas=document.getElementById('axis-c');
   chartStage=document.getElementById('chart-stage');
-  dpr=window.devicePixelRatio||1;
 
   const W=LEFT+BUFFER*HW+n*HW+RIGHT;
   const H=PANELS.reduce((s,p)=>s+DATE_H+TIME_H+p.h,0);
+  dpr=canvasDprForSize(W,H);
 
   if(chartStage){
     chartStage.style.width=W+'px';
