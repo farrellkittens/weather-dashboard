@@ -1,83 +1,51 @@
+const OPENBETA_API_URL = 'https://api.openbeta.io';
+const OPENBETA_HOME_URL = 'https://openbeta.io';
 const DEFAULT_FROM = {
   label: 'Colorado State Capitol, Denver, CO',
   lat: 39.7393,
   lon: -104.9848,
 };
 const FROM_KEY = 'weather-dashboard:climbing-from';
+const GRAPHQL_CACHE_PREFIX = 'weather-dashboard:openbeta-cache:';
 const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
 const ROUTE_CACHE_TTL_MS = 5 * 60 * 1000;
 const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
+const OPENBETA_TREE_TTL_MS = 24 * 60 * 60 * 1000;
+const OPENBETA_AREA_TTL_MS = 12 * 60 * 60 * 1000;
 
-const US_STATES = [
-  ['AL', 'Alabama'], ['AK', 'Alaska'], ['AZ', 'Arizona'], ['AR', 'Arkansas'], ['CA', 'California'],
-  ['CO', 'Colorado'], ['CT', 'Connecticut'], ['DE', 'Delaware'], ['FL', 'Florida'], ['GA', 'Georgia'],
-  ['HI', 'Hawaii'], ['ID', 'Idaho'], ['IL', 'Illinois'], ['IN', 'Indiana'], ['IA', 'Iowa'],
-  ['KS', 'Kansas'], ['KY', 'Kentucky'], ['LA', 'Louisiana'], ['ME', 'Maine'], ['MD', 'Maryland'],
-  ['MA', 'Massachusetts'], ['MI', 'Michigan'], ['MN', 'Minnesota'], ['MS', 'Mississippi'], ['MO', 'Missouri'],
-  ['MT', 'Montana'], ['NE', 'Nebraska'], ['NV', 'Nevada'], ['NH', 'New Hampshire'], ['NJ', 'New Jersey'],
-  ['NM', 'New Mexico'], ['NY', 'New York'], ['NC', 'North Carolina'], ['ND', 'North Dakota'], ['OH', 'Ohio'],
-  ['OK', 'Oklahoma'], ['OR', 'Oregon'], ['PA', 'Pennsylvania'], ['RI', 'Rhode Island'], ['SC', 'South Carolina'],
-  ['SD', 'South Dakota'], ['TN', 'Tennessee'], ['TX', 'Texas'], ['UT', 'Utah'], ['VT', 'Vermont'],
-  ['VA', 'Virginia'], ['WA', 'Washington'], ['WV', 'West Virginia'], ['WI', 'Wisconsin'], ['WY', 'Wyoming'],
+const AREA_FIELDS = `
+  uuid
+  area_name
+  totalClimbs
+  metadata { lat lng mp_id }
+  children {
+    uuid
+    area_name
+    totalClimbs
+    metadata { lat lng mp_id }
+    children { uuid }
+  }
+`;
+
+const LEVELS = [
+  { rowId: 'area-row', selectId: 'area-select', label: 'Area', placeholder: 'Choose an area' },
+  { rowId: 'subarea-row', selectId: 'subarea-select', label: 'Climbing area', placeholder: 'Choose a climbing area' },
+  { rowId: 'crag-row', selectId: 'crag-select', label: 'Crag', placeholder: 'Optional: choose a crag' },
 ];
-
-const CLIMBING_AREAS = {
-  CO: {
-    name: 'Colorado',
-    mpUrl: 'https://www.mountainproject.com/area/105708956/colorado',
-    children: [
-      {
-        id: 'golden',
-        name: 'Golden',
-        lat: 39.7555,
-        lon: -105.2211,
-        mpUrl: 'https://www.mountainproject.com/area/105800295/golden',
-        children: [
-          {
-            id: 'clear-creek-canyon',
-            name: 'Clear Creek Canyon',
-            lat: 39.7528,
-            lon: -105.2344,
-            mpUrl: 'https://www.mountainproject.com/area/105744243/clear-creek-canyon',
-            children: [
-              {
-                id: 'the-canal-zone',
-                name: 'Canal Zone, The',
-                lat: 39.7503,
-                lon: -105.2478,
-                mpUrl: 'https://www.mountainproject.com/area/106210042/the-canal-zone',
-              },
-              {
-                id: 'river-wall',
-                name: 'River Wall',
-                lat: 39.7516,
-                lon: -105.2424,
-                mpUrl: 'https://www.mountainproject.com/area/105744714/river-wall',
-              },
-            ],
-          },
-          {
-            id: 'north-table-mountain',
-            name: 'North Table Mountain/Golden Cliffs',
-            lat: 39.7802,
-            lon: -105.2171,
-            mpUrl: 'https://www.mountainproject.com/area/105744241/north-table-mountaingolden-cliffs',
-          },
-        ],
-      },
-    ],
-  },
-};
 
 let fromLocation = readFromLocation();
 let selectedLocation = null;
+let countries = [];
+let usaRoot = null;
+let selectedPath = [];
+let areaCache = new Map();
+let pathOffset = 0;
 
 function byId(id) { return document.getElementById(id); }
 function coordForRequest(value) { return Number(value).toFixed(3); }
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
-function escapeAttr(value) { return escapeHtml(value).replace(/`/g, '&#96;'); }
 
 function readFromLocation() {
   try {
@@ -96,114 +64,235 @@ function saveFromLocation(loc) {
 function setStatus(message) { byId('status').textContent = message || ''; }
 function setFromStatus(message) { byId('from-status').textContent = message || ''; }
 
+function gqlCacheKey(query, variables) {
+  return GRAPHQL_CACHE_PREFIX + JSON.stringify({ query, variables });
+}
+
+function readGqlCache(query, variables, ttlMs) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(gqlCacheKey(query, variables)) || 'null');
+    if (cached?.storedAt && Date.now() - cached.storedAt < ttlMs) return cached.data;
+  } catch (_) {}
+  return null;
+}
+
+function writeGqlCache(query, variables, data) {
+  try {
+    localStorage.setItem(gqlCacheKey(query, variables), JSON.stringify({ storedAt: Date.now(), data }));
+  } catch (_) {}
+}
+
+async function fetchOpenBeta(query, variables = {}, ttlMs = OPENBETA_AREA_TTL_MS) {
+  const cached = readGqlCache(query, variables, ttlMs);
+  if (cached) return cached;
+
+  const res = await fetch(OPENBETA_API_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!res.ok) throw new Error(`OpenBeta request failed: ${res.status}`);
+  const payload = await res.json();
+  if (payload.errors?.length) throw new Error(payload.errors[0].message || 'OpenBeta returned an error.');
+  writeGqlCache(query, variables, payload.data);
+  return payload.data;
+}
+
+function normalizeArea(area) {
+  if (!area?.area_name) return null;
+  const lat = Number(area.metadata?.lat);
+  const lon = Number(area.metadata?.lng);
+  const rawChildren = Array.isArray(area.children) ? area.children : [];
+  const node = {
+    uuid: area.uuid,
+    name: area.area_name,
+    lat: Number.isFinite(lat) ? lat : null,
+    lon: Number.isFinite(lon) ? lon : null,
+    mpId: String(area.metadata?.mp_id || '').trim(),
+    totalClimbs: Number(area.totalClimbs) || 0,
+    hasChildren: rawChildren.length > 0,
+    children: rawChildren.map(normalizeArea).filter(Boolean),
+  };
+  if (node.uuid) areaCache.set(node.uuid, node);
+  return node;
+}
+
+async function loadCountries() {
+  const data = await fetchOpenBeta(`
+    query Countries {
+      countries { ${AREA_FIELDS} }
+    }
+  `, {}, OPENBETA_TREE_TTL_MS);
+  countries = (data.countries || []).map(normalizeArea).filter(Boolean).sort(byName);
+  usaRoot = countries.find(country => country.name === 'USA') || null;
+  if (!usaRoot) throw new Error('OpenBeta did not return the USA area tree.');
+}
+
+async function loadArea(uuid) {
+  if (!uuid) return null;
+  const cached = areaCache.get(uuid);
+  if (cached?.children?.length || cached?.hasChildren === false) return cached;
+
+  const data = await fetchOpenBeta(`
+    query Area($uuid: ID) {
+      area(uuid: $uuid) { ${AREA_FIELDS} }
+    }
+  `, { uuid }, OPENBETA_AREA_TTL_MS);
+  return normalizeArea(data.area);
+}
+
+function byName(a, b) {
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+}
+
+function setLevelLabel(levelIndex, label) {
+  const level = LEVELS[levelIndex];
+  const labelEl = document.querySelector(`label[for="${level.selectId}"]`);
+  if (labelEl) labelEl.textContent = label;
+}
+
 function fillSelect(select, items, placeholder) {
   select.innerHTML = '';
   const empty = document.createElement('option');
   empty.value = '';
   empty.textContent = placeholder;
   select.appendChild(empty);
-  items.forEach(item => {
+
+  items.slice().sort(byName).forEach(item => {
     const option = document.createElement('option');
-    option.value = item.id || item[0];
-    option.textContent = item.name || item[1];
+    option.value = item.uuid;
+    option.textContent = item.totalClimbs ? `${item.name} (${item.totalClimbs})` : item.name;
     select.appendChild(option);
   });
+}
+
+function hideLevels(fromIndex = 0) {
+  LEVELS.slice(fromIndex).forEach(level => {
+    byId(level.rowId).hidden = true;
+    byId(level.selectId).innerHTML = '';
+  });
+}
+
+function resetResults() {
+  selectedLocation = null;
+  selectedPath = [];
+  byId('summary-section').hidden = true;
+  byId('weather-section').hidden = true;
+  byId('drive-card').innerHTML = '';
+}
+
+function hasCoordinates(node) {
+  return node && Number.isFinite(node.lat) && Number.isFinite(node.lon);
 }
 
 function initRegionSelect() {
   const region = byId('region-select');
   region.innerHTML = '';
+
   [
-    ['', 'All locations'],
-    ['international', 'International'],
-    ...US_STATES,
-  ].forEach(([value, label]) => {
+    { value: '', label: 'All locations' },
+    { value: 'international', label: 'International' },
+    ...(usaRoot?.children || []).map(state => ({ value: state.uuid, label: state.name })),
+  ].forEach(item => {
     const option = document.createElement('option');
-    option.value = value;
-    option.textContent = label;
+    option.value = item.value;
+    option.textContent = item.label;
     region.appendChild(option);
   });
 }
 
-function hideLowerRows(level = 0) {
-  const rows = ['area-row', 'subarea-row', 'crag-row'];
-  rows.slice(level).forEach(id => { byId(id).hidden = true; });
+async function initClimbingPage() {
+  byId('from-input').value = fromLocation.label;
+  wireEvents();
+  setStatus('Loading OpenBeta locations...');
+  try {
+    await loadCountries();
+    initRegionSelect();
+    setStatus('Choose a climbing location.');
+  } catch (error) {
+    setStatus(error.message || 'OpenBeta locations could not be loaded.');
+  }
 }
 
-function findChild(parent, id) {
-  return (parent?.children || []).find(child => child.id === id) || null;
+function wireEvents() {
+  byId('from-button').addEventListener('click', geocodeFromLocation);
+  byId('from-input').addEventListener('keydown', event => {
+    if (event.key === 'Enter') geocodeFromLocation();
+  });
+  byId('region-select').addEventListener('change', onRegionChange);
+  LEVELS.forEach((level, index) => {
+    byId(level.selectId).addEventListener('change', () => onLevelChange(index));
+  });
 }
 
-function currentPath() {
-  const stateCode = byId('region-select').value;
-  if (!stateCode || stateCode === 'international') return [];
-  const state = CLIMBING_AREAS[stateCode];
-  if (!state) return [];
-  const area = findChild(state, byId('area-select').value);
-  const subarea = findChild(area, byId('subarea-select').value);
-  const crag = findChild(subarea, byId('crag-select').value);
-  return [state, area, subarea, crag].filter(Boolean);
-}
-
-function pickDeepestLocation() {
-  const path = currentPath();
-  return [...path].reverse().find(item => Number.isFinite(item.lat) && Number.isFinite(item.lon)) || null;
-}
-
-function onRegionChange() {
-  hideLowerRows(0);
-  selectedLocation = null;
-  byId('summary-section').hidden = true;
-  byId('weather-section').hidden = true;
-
-  const stateCode = byId('region-select').value;
-  if (!stateCode) {
+async function onRegionChange() {
+  hideLevels(0);
+  resetResults();
+  const value = byId('region-select').value;
+  if (!value) {
     setStatus('Choose a climbing location.');
     return;
   }
-  if (stateCode === 'international') {
-    setStatus('International areas are listed here to mirror Mountain Project, but detailed area data is not seeded yet.');
+
+  if (value === 'international') {
+    const international = countries.filter(country => country.name !== 'USA');
+    pathOffset = 0;
+    setLevelLabel(0, 'Country');
+    setLevelLabel(1, 'Area');
+    setLevelLabel(2, 'Crag');
+    fillSelect(byId('area-select'), international, 'Choose a country');
+    byId('area-row').hidden = false;
+    setStatus('Choose a country.');
     return;
   }
-  const state = CLIMBING_AREAS[stateCode];
-  if (!state) {
-    setStatus('This state is available in the Mountain Project-style chooser, but detailed area data is not seeded yet.');
+
+  const state = await loadArea(value);
+  selectedPath = [state].filter(Boolean);
+  pathOffset = selectedPath.length;
+  setLevelLabel(0, 'Area');
+  setLevelLabel(1, 'Climbing area');
+  setLevelLabel(2, 'Crag');
+  await renderNodeAndChildren(state, 0, 'Choose an area');
+}
+
+async function onLevelChange(levelIndex) {
+  hideLevels(levelIndex + 1);
+  const uuid = byId(LEVELS[levelIndex].selectId).value;
+  const pathIndex = pathOffset + levelIndex;
+  if (!uuid) {
+    selectedPath = selectedPath.slice(0, pathIndex);
+    const fallback = selectedPath[selectedPath.length - 1] || null;
+    if (fallback) await loadSelectedLocation(fallback);
     return;
   }
-  fillSelect(byId('area-select'), state.children || [], 'Choose an area');
-  byId('area-row').hidden = false;
-  setStatus('Choose an area.');
+
+  const node = await loadArea(uuid);
+  selectedPath = selectedPath.slice(0, pathIndex);
+  selectedPath[pathIndex] = node;
+  const nextLevel = levelIndex + 1;
+  await renderNodeAndChildren(node, nextLevel, LEVELS[nextLevel]?.placeholder);
 }
 
-function onAreaChange() {
-  hideLowerRows(1);
-  const area = currentPath()[1];
-  if (!area) { setStatus('Choose an area.'); return; }
-  if (area.children?.length) {
-    fillSelect(byId('subarea-select'), area.children, 'Choose a climbing area');
-    byId('subarea-row').hidden = false;
+async function renderNodeAndChildren(node, nextLevelIndex, placeholder) {
+  if (!node) return;
+  await loadSelectedLocation(node);
+
+  if (!node.children?.length || nextLevelIndex >= LEVELS.length) {
+    setStatus('');
+    return;
   }
-  loadSelectedLocation();
+
+  const next = LEVELS[nextLevelIndex];
+  fillSelect(byId(next.selectId), node.children, placeholder || next.placeholder);
+  byId(next.rowId).hidden = false;
+  setStatus(`Showing ${node.children.length} sub-area${node.children.length === 1 ? '' : 's'}.`);
 }
 
-function onSubareaChange() {
-  hideLowerRows(2);
-  const subarea = currentPath()[2];
-  if (!subarea) { loadSelectedLocation(); return; }
-  if (subarea.children?.length) {
-    fillSelect(byId('crag-select'), subarea.children, 'Optional: choose a crag');
-    byId('crag-row').hidden = false;
+async function loadSelectedLocation(loc) {
+  if (!hasCoordinates(loc)) {
+    setStatus('This OpenBeta location does not have coordinates yet.');
+    return;
   }
-  loadSelectedLocation();
-}
-
-function onCragChange() {
-  loadSelectedLocation();
-}
-
-async function loadSelectedLocation() {
-  const loc = pickDeepestLocation();
-  if (!loc) return;
   selectedLocation = loc;
   renderSummary(loc);
   setStatus('Loading conditions...');
@@ -215,12 +304,19 @@ async function loadSelectedLocation() {
 }
 
 function renderSummary(loc) {
-  const path = currentPath().map(item => item.name).join(' > ');
+  const path = selectedPath.filter(Boolean).map(item => item.name).join(' > ') || loc.name;
+  const mpLink = byId('mp-link');
   byId('location-title').textContent = loc.name;
-  byId('mp-link').href = loc.mpUrl || '#';
+  byId('source-link').href = OPENBETA_HOME_URL;
+  if (loc.mpId) {
+    mpLink.href = `https://www.mountainproject.com/area/${encodeURIComponent(loc.mpId)}`;
+    mpLink.hidden = false;
+  } else {
+    mpLink.hidden = true;
+  }
   byId('location-meta').innerHTML = `
     <strong>${escapeHtml(path)}</strong><br>
-    ${Number(loc.lat).toFixed(4)}, ${Number(loc.lon).toFixed(4)}
+    ${loc.totalClimbs ? `${loc.totalClimbs.toLocaleString()} climbs · ` : ''}${Number(loc.lat).toFixed(4)}, ${Number(loc.lon).toFixed(4)}
   `;
   byId('summary-section').hidden = false;
 }
@@ -362,13 +458,4 @@ async function geocodeFromLocation() {
   }
 }
 
-initRegionSelect();
-byId('from-input').value = fromLocation.label;
-byId('from-button').addEventListener('click', geocodeFromLocation);
-byId('from-input').addEventListener('keydown', event => {
-  if (event.key === 'Enter') geocodeFromLocation();
-});
-byId('region-select').addEventListener('change', onRegionChange);
-byId('area-select').addEventListener('change', onAreaChange);
-byId('subarea-select').addEventListener('change', onSubareaChange);
-byId('crag-select').addEventListener('change', onCragChange);
+initClimbingPage();
