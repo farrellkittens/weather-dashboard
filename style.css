@@ -36,6 +36,10 @@
   .sug-item + .sug-item { border-top: 1px solid #333; }
   #controls input#coords { width: 150px; }
   #controls select#startSel { width: 190px; }
+  #controls select#startSel option { color: #1f2933; }
+  #controls select#startSel option[value="now"] { color: #eee; background: #333; }
+  #controls select#startSel option.start-option-day-0 { background: #fff; }
+  #controls select#startSel option.start-option-day-1 { background: #edf7ff; }
   #controls button { background: #2d5a8e; color: #eee; border: none; padding: 4px 13px; font-size: 12px; cursor: pointer; border-radius: 3px; }
   #controls button:hover { background: #3a70aa; }
   #controls button:disabled { cursor: wait; opacity: 0.7; }

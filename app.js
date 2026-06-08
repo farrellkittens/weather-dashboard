@@ -560,12 +560,20 @@ function buildStartDropdown() {
   nowOpt.value='now'; nowOpt.textContent='Now';
   sel.appendChild(nowOpt);
 
+  let lastDateKey='';
+  let dayBand=-1;
   for (let i=0;i<ALL_DATA.length;i++) {
     const t=ALL_DATA[i].time;
+    const dateKey=`${t.getFullYear()}-${t.getMonth()}-${t.getDate()}`;
+    if (dateKey!==lastDateKey) {
+      dayBand++;
+      lastDateKey=dateKey;
+    }
     const hr=t.getHours(), hr12=hr===0?12:hr>12?hr-12:hr;
     const ampm=hr<12?'am':'pm';
     const opt=document.createElement('option');
     opt.value=i;
+    opt.className=`start-option-day-${dayBand%2}`;
     opt.textContent=`${DAYS[t.getDay()]} ${MONS[t.getMonth()]} ${t.getDate()}  ${hr12}:00${ampm}`;
     sel.appendChild(opt);
   }

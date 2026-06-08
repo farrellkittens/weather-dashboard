@@ -2187,12 +2187,20 @@ function buildStartDropdown(data = roseData) {
   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  let lastDateKey = '';
+  let dayBand = -1;
   for (let t = start; t <= latestStart; t = new Date(t.getTime() + 3_600_000)) {
+    const dateKey = `${t.getFullYear()}-${t.getMonth()}-${t.getDate()}`;
+    if (dateKey !== lastDateKey) {
+      dayBand++;
+      lastDateKey = dateKey;
+    }
     const hr = t.getHours();
     const hr12 = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
     const ampm = hr < 12 ? 'am' : 'pm';
     const opt = document.createElement('option');
     opt.value = String(t.getTime());
+    opt.className = `start-option-day-${dayBand % 2}`;
     opt.textContent = `${DAYS[t.getDay()]} ${MONS[t.getMonth()]} ${t.getDate()}  ${hr12}:00${ampm}`;
     sel.appendChild(opt);
   }

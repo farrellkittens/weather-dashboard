@@ -46,6 +46,10 @@ body.is-loading * {
 #controls input { width: 130px; }
 #controls input#city { width: 150px; }
 #controls select#startSel { width: 190px; }
+#controls select#startSel option { color: #1f2933; }
+#controls select#startSel option[value="now"] { color: #eee; background: #333; }
+#controls select#startSel option.start-option-day-0 { background: #fff; }
+#controls select#startSel option.start-option-day-1 { background: #edf7ff; }
 #controls .city-input-wrap {
   position: relative;
   display: inline-flex;
