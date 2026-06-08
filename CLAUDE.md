@@ -39,6 +39,8 @@ Supporting files:
 
 Run `npm run dev` and open the local URL in a browser. The camping page starts empty until a location is selected. The hourly page auto-loads on open (default coords: Denver, CO). The summit page starts with generic placeholder roses until a location is selected. The diving page auto-loads the first Oahu preset.
 
+When multiple changes are made, agents should proactively close any Weather Dashboard-related local hosting ports they started or find still running, then serve the current local workspace on port 8000 and give the user the local URL, including the Mac LAN address when available.
+
 ## Owner context
 
 - The owner is not a software engineer — keep explanations accessible.

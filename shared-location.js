@@ -183,6 +183,39 @@
     });
   }
 
+  function initPageTabsOverflowCue() {
+    const tabs = document.getElementById('page-tabs');
+    if (!tabs) return;
+    let cue = tabs.querySelector('.tabs-overflow-cue');
+    if (!cue) {
+      cue = document.createElement('span');
+      cue.className = 'tabs-overflow-cue';
+      cue.setAttribute('aria-hidden', 'true');
+      cue.textContent = '>';
+      tabs.appendChild(cue);
+    }
+    let dismissed = false;
+
+    function updateCue() {
+      if (dismissed) return;
+      const canScrollRight = tabs.scrollWidth - tabs.clientWidth - tabs.scrollLeft > 2;
+      tabs.classList.toggle('has-more-tabs', canScrollRight);
+    }
+
+    tabs.addEventListener('scroll', () => {
+      if (tabs.scrollLeft > 2) {
+        dismissed = true;
+        tabs.classList.remove('has-more-tabs');
+        return;
+      }
+      updateCue();
+    }, { passive: true });
+
+    window.addEventListener('resize', updateCue, { passive: true });
+    updateCue();
+    requestAnimationFrame(updateCue);
+  }
+
   window.SharedLocation = {
     isEnabled,
     setEnabled,
@@ -194,4 +227,10 @@
     getBrowserLocation,
     initCheckbox,
   };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPageTabsOverflowCue, { once: true });
+  } else {
+    initPageTabsOverflowCue();
+  }
 })();

@@ -12,6 +12,7 @@ const ROUTE_CACHE_TTL_MS = 5 * 60 * 1000;
 const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
 const OPENBETA_TREE_TTL_MS = 24 * 60 * 60 * 1000;
 const OPENBETA_AREA_TTL_MS = 12 * 60 * 60 * 1000;
+const SHARED_API_CACHE_PREFIX = 'weather-dashboard:api-cache:';
 
 const AREA_FIELDS = `
   uuid
@@ -57,8 +58,32 @@ function readFromLocation() {
 
 function saveFromLocation(loc) {
   fromLocation = loc;
-  localStorage.setItem(FROM_KEY, JSON.stringify(loc));
   byId('from-input').value = loc.label;
+  writeFromLocation(loc);
+}
+
+function writeFromLocation(loc) {
+  try {
+    localStorage.setItem(FROM_KEY, JSON.stringify(loc));
+  } catch (_) {
+    pruneClimbingStorageCaches();
+    try {
+      localStorage.setItem(FROM_KEY, JSON.stringify(loc));
+    } catch (_) {
+      // Persisting the input is a convenience; routing can continue with in-memory state.
+    }
+  }
+}
+
+function pruneClimbingStorageCaches() {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(GRAPHQL_CACHE_PREFIX) || key?.startsWith(SHARED_API_CACHE_PREFIX)) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (_) {}
 }
 
 function setStatus(message) { byId('status').textContent = message || ''; }
