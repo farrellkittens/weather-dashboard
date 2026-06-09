@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Colorado Water Sports</title>
-<link rel="stylesheet" href="water.css?v=3">
+<title>Water Sports</title>
+<link rel="stylesheet" href="water.css?v=6">
 </head>
 <body>
-<div id="header"><span>Colorado Water Sports</span></div>
+<div id="header"><span>Water Sports</span></div>
 
 <div id="page-tabs">
   <a href="peaks.html" class="tab">Forecast: Directional</a>
@@ -20,15 +20,17 @@
 
 <div id="controls">
   <span class="control-group location-control">
-    <label for="water-location">Colorado location:</label>
-    <select id="water-location"></select>
+    <label for="water-location">Location:</label>
+    <select id="water-location" class="native-location-select" aria-hidden="true" tabindex="-1"></select>
+    <div id="water-location-menu" class="location-menu"></div>
   </span>
   <span class="control-group">
     <label for="activity-filter">Activity:</label>
     <select id="activity-filter">
-      <option value="all">Paddleboard or tube</option>
+      <option value="all">Paddleboard, tube, or fish</option>
       <option value="paddle">Paddleboard</option>
       <option value="tube">Tube float</option>
+      <option value="fish">Fishing</option>
     </select>
   </span>
   <button id="load-button" type="button">Load conditions</button>
@@ -65,7 +67,7 @@
       <h2>On-Water Checklist</h2>
     </div>
     <div class="checklist">
-      <div><strong>PFD:</strong> Colorado requires an appropriately sized life jacket readily accessible for each person on a vessel; wearing it is the safer choice.</div>
+      <div><strong>PFD:</strong> State rules vary, but an appropriately sized life jacket for each person is essential; wearing it is the safer choice.</div>
       <div><strong>Cold water:</strong> Mountain lakes and runoff-fed rivers can be dangerously cold even on warm days.</div>
       <div><strong>River flows:</strong> Tubing suitability changes quickly. Avoid high water, low-head dams, strainers, and sections beyond your ability.</div>
       <div><strong>Clean gear:</strong> Clean, drain, and dry paddleboards, tubes, paddles, and other equipment between waters.</div>
@@ -75,7 +77,7 @@
 
 <div id="footer">Weather: Open-Meteo. Access information: linked water managers. Directory updated June 2026; verify current rules before every trip.</div>
 <script src="shared-location.js?v=3"></script>
-<script src="water.js"></script>
+<script src="water.js?v=5"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

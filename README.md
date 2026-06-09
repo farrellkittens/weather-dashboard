@@ -10,7 +10,7 @@ A static weather and outdoor conditions dashboard with camping, forecast, summit
 - Edge-to-edge hourly timeline with 14 days of history and a 7-day forecast
 - Summit Weather Rose view for Longs Peak, sampling NWS forecast grids 1, 5, 10, and 20 miles from the summit in 16 directions for temperature, wind, precipitation, sky cover, and thunderstorm signal
 - Camping Conditions view with county-first fire restriction resources, USFS fire restriction data where available, and a short temperature forecast
-- Colorado Water Sports view with a statewide, region-grouped paddleboard and river-tubing location directory, access links, seven-day weather, and current-week USGS river gauge charts
+- Water Sports view with Colorado and Oregon paddleboard, river-tubing, and fishing location directories, access links, seven-day weather, and current-week USGS river gauge charts
 - Diving Conditions view with Oahu dive-site presets, marine/weather/air-quality data, and NOAA tide predictions
 
 ## How to use
@@ -32,7 +32,7 @@ app.js         # All JavaScript — data fetching, chart rendering
 camping.html   # Camping Conditions view
 camping.css    # Camping Conditions styling
 camping.js     # Camping weather, county-first fire resources, and USFS restriction checks
-water.html     # Colorado paddleboard and tube-float directory
+water.html     # Paddleboard, tube-float, and fishing directory
 water.css      # Water Sports view styling
 water.js       # Water location data, access links, filters, and forecast
 peaks.html     # Summit Weather Rose view

@@ -16,9 +16,18 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 .location-control { flex: 1 1 430px; }
 #controls label { font-weight: bold; color: #c5cbce; font-size: 12px; white-space: nowrap; }
 #controls select { background: #303638; border: 1px solid #566367; color: #f0f3f4; padding: 5px 8px; font-size: 12px; border-radius: 3px; max-width: 100%; }
-#water-location { flex: 1 1 auto; min-width: 220px; }
-#controls button { background: #277b8e; color: #f4fbfd; border: 0; padding: 6px 13px; cursor: pointer; border-radius: 3px; }
-#controls button:hover { background: #3294aa; }
+.native-location-select { display: none; }
+.location-menu { position: relative; flex: 1 1 auto; min-width: 220px; }
+.location-menu-button { width: 100%; background: #303638; border: 1px solid #566367; color: #f0f3f4; padding: 5px 28px 5px 8px; font-size: 12px; border-radius: 3px; text-align: left; position: relative; }
+.location-menu-button::after { content: ""; position: absolute; right: 9px; top: 50%; margin-top: -2px; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #d5dee1; }
+.location-menu-list { display: none; position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; max-height: min(560px, 72vh); overflow-y: auto; background: #23282b; border: 1px solid #5d6a6e; border-radius: 5px; box-shadow: 0 12px 24px rgba(0,0,0,.36); padding: 6px 0; }
+.location-menu.open .location-menu-list { display: block; }
+.location-state-header { color: #fff; font-weight: 800; font-size: 12px; padding: 8px 10px 5px; background: #17242a; text-transform: uppercase; }
+.location-region-subheader { color: #aeb8bc; font-weight: 600; font-size: 11px; padding: 7px 10px 4px 18px; }
+.location-option { width: 100%; border: 0; border-radius: 0; background: transparent; color: #f0f3f4; padding: 6px 10px 6px 28px; text-align: left; font-size: 12px; cursor: pointer; }
+.location-option:hover, .location-option.active { background: #35515a; color: #fff; }
+#load-button { background: #277b8e; color: #f4fbfd; border: 0; padding: 6px 13px; cursor: pointer; border-radius: 3px; }
+#load-button:hover { background: #3294aa; }
 #water-page { max-width: 1040px; padding: 16px 14px 30px; }
 .notice { color: #e4d394; background: #332f20; border: 1px solid #6a6038; border-radius: 6px; padding: 12px 14px; line-height: 1.5; margin-bottom: 14px; }
 .notice strong { color: #fff1b8; }
@@ -30,6 +39,7 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 .badge { border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: bold; }
 .badge.paddle { color: #9de5f2; background: #173e48; border: 1px solid #367789; }
 .badge.tube { color: #b8e6b0; background: #213d24; border: 1px solid #4f7c52; }
+.badge.fish { color: #ffd99a; background: #3f3218; border: 1px solid #8a6830; }
 .place-note { color: #b1cad2; line-height: 1.55; margin-top: 12px; }
 .place-links { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 14px; }
 .place-links a { color: #bcebf5; border: 1px solid #46717c; border-radius: 4px; padding: 6px 9px; text-decoration: none; font-weight: bold; font-size: 11px; }
@@ -95,4 +105,4 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 #footer { color: #718a94; border-top: 1px solid #3d4d52; padding: 11px 14px; font-size: 10px; }
 @media (max-width: 800px) { .forecast-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .checklist { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .river-activities, .river-summary { grid-template-columns: 1fr; } .river-activity-note { grid-column: auto; } }
-@media (max-width: 520px) { #controls, .control-group { align-items: stretch; } .control-group { flex-direction: column; width: 100%; } #water-location, #activity-filter, #load-button { width: 100%; } .forecast-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { #controls, .control-group { align-items: stretch; } .control-group { flex-direction: column; width: 100%; } .location-menu, #activity-filter, #load-button { width: 100%; } .forecast-grid { grid-template-columns: 1fr; } }

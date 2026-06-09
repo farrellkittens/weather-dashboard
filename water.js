@@ -1,4 +1,6 @@
 const CPW_BOATING = 'https://cpw.state.co.us/activities/boating';
+const OREGON_BOATING = 'https://www.oregon.gov/osmb/boater-info/Pages/Required-Equipment.aspx';
+const ODFW_FISHING = 'https://myodfw.com/fishing';
 const USGS_GAUGE_URL = 'https://waterservices.usgs.gov/nwis/iv/';
 const RIVER_GAUGES = {
   'Boulder Creek Tubing Corridor': '06730200',
@@ -15,6 +17,10 @@ const RIVER_GAUGES = {
   'South Platte River - Denver Urban Run': '06711565',
   'St. Vrain Creek - Lyons': '06730525',
   'Yampa River - Steamboat Springs': '09239500',
+  'Deschutes River - Downtown Bend Float': '14070500',
+  'Clackamas River - Barton to Carver': '14211010',
+  'Sandy River - Dabney to Lewis and Clark': '14142500',
+  'Tualatin River Water Trail - Tualatin': '14207500',
 };
 // Only activity-specific ranges supported by a linked local authority or flow study.
 // Missing activities intentionally render as "No verified range."
@@ -138,10 +144,22 @@ const SPOTS = [
   ['Ridgway Reservoir', 'Southern / Southwest Colorado', 38.232, -107.738, 'paddle', 'Ridgway', 'State park pass; use designated launch and recreation areas.', 'https://cpw.state.co.us/state-parks/ridgway-state-park'],
   ['Trinidad Lake', 'Southern / Southwest Colorado', 37.146, -104.557, 'paddle', 'Trinidad', 'State park pass and boating rules apply.', 'https://cpw.state.co.us/state-parks/trinidad-lake-state-park'],
   ['Vallecito Reservoir', 'Southern / Southwest Colorado', 37.388, -107.575, 'paddle', 'Bayfield', 'Large, cold reservoir; check marina/forest access and wind.', 'https://www.fs.usda.gov/recarea/sanjuan/recarea/?recid=43056'],
+
+  // Oregon - Bend and Portland-area river access
+  ['Deschutes River - Downtown Bend Float', 'Oregon - Bend / Central Oregon', 44.044, -121.315, 'tube', 'Bend', 'Classic downtown Bend float from Riverbend/Farewell Bend toward Drake Park via Bend Whitewater Park; use Park & Float or the shuttle and follow posted channel signs.', 'https://www.bendparksandrec.org/float/'],
+  ['Clackamas River - Barton to Carver', 'Oregon - Portland Area', 45.380, -122.377, 'tube', 'Boring / Oregon City', 'Popular Portland-area river float corridor; mountain-fed water, rapids, strainers, and changing flows make take-out planning essential.', 'https://portlandgeneral.com/about/parks-campgrounds/clackamas-river-access-sites'],
+  ['Sandy River - Dabney to Lewis and Clark', 'Oregon - Portland Area', 45.539, -122.217, 'tube', 'Troutdale', 'Popular warm-weather float and fishing river near Portland; verify park access, hazards, and water level before launching.', 'https://www.travelportland.com/culture/fishing-near-portland/'],
+  ['Tualatin River Water Trail - Tualatin', 'Oregon - Portland Area', 45.380, -122.765, 'paddle', 'Tualatin', 'Gentler Portland-area paddle and float option with access at Brown’s Ferry, Tualatin Community, Jurgens, and nearby launches.', 'https://www.tualatinoregon.gov/recreation/tualatin-river-water-trail'],
+  ['Willamette River - Sellwood Riverfront Park', 'Oregon - Portland Area', 45.464, -122.661, 'paddle', 'Portland', 'Popular Portland riverfront access for hand-launched craft, swimming, and bank time; check weekly summer water-quality results before getting in.', 'https://www.portland.gov/parks/guide-swimming-portland-rivers'],
+  ['Willamette River - Cathedral Park', 'Oregon - Portland Area', 45.588, -122.757, 'fish', 'Portland', 'Iconic St. Johns Bridge access with a boat ramp, dock, beach, and permitted fishing areas; check Willamette water quality and dock rules.', 'https://www.portland.gov/parks/fishing-portland-parks'],
+  ['Willamette Park Boat Ramp', 'Oregon - Portland Area', 45.478, -122.669, 'fish', 'Portland', 'Central Portland launch and fishing access on the Willamette; pay attention to ramp traffic, dock limits, and current river conditions.', 'https://www.portland.gov/parks/docks'],
+  ['Clackamette Park', 'Oregon - Portland Area', 45.364, -122.607, 'fish', 'Oregon City', 'Popular bank and boat access near the Clackamas-Willamette confluence; check ODFW seasons, license rules, and river levels.', 'https://www.dfw.state.or.us/resources/fishing/where_how/docs/50_in_60_flyer.pdf'],
+  ['St. Louis Ponds', 'Oregon - Portland Area', 45.140, -122.973, 'fish', 'Gervais', 'Well-known family-friendly pond fishery south of Portland; verify open ponds, youth/disabled angler areas, and ODFW regulations.', 'https://www.dfw.state.or.us/resources/fishing/where_how/docs/50_in_60_flyer.pdf'],
 ];
 
 const spots = SPOTS.map(([name, region, lat, lon, activity, town, note, url]) => ({ name, region, lat, lon, activity, town, note, url }));
 const locationSelect = document.getElementById('water-location');
+const locationMenu = document.getElementById('water-location-menu');
 const activityFilter = document.getElementById('activity-filter');
 const statusEl = document.getElementById('forecast-status');
 const gridEl = document.getElementById('forecast-grid');
@@ -152,21 +170,53 @@ const riverSummaryEl = document.getElementById('river-summary');
 const riverChartEl = document.getElementById('river-chart');
 
 function regionLabel(region) {
-  return region === 'River Tubing / Floating' ? region : `${region} - Lakes / Reservoirs`;
+  if (region === 'River Tubing / Floating' || region.startsWith('Oregon')) return region;
+  return `${region} - Lakes / Reservoirs`;
+}
+
+function stateLabel(spot) {
+  return spot.region.startsWith('Oregon') ? 'Oregon' : 'Colorado';
+}
+
+function firstSpotOption() {
+  return [...locationSelect.options].find(option => !option.disabled);
+}
+
+function spotOptionLabel(spot) {
+  return `${spot.name} - ${spot.town}`;
 }
 
 function renderOptions() {
   const previous = locationSelect.value;
   const filter = activityFilter.value;
   const visible = spots.filter(spot => filter === 'all' || spot.activity === filter);
-  const regions = [...new Set(visible.map(spot => spot.region))];
-  locationSelect.innerHTML = regions.map(region => {
-    const options = visible.filter(spot => spot.region === region)
-      .map(spot => `<option value="${spots.indexOf(spot)}">${spot.name} — ${spot.town}</option>`).join('');
-    return `<optgroup label="${regionLabel(region)}">${options}</optgroup>`;
-  }).join('');
+  locationSelect.innerHTML = visible
+    .map(spot => `<option value="${spots.indexOf(spot)}">${spotOptionLabel(spot)}</option>`).join('');
   if ([...locationSelect.options].some(option => option.value === previous)) locationSelect.value = previous;
+  else if (firstSpotOption()) locationSelect.value = firstSpotOption().value;
+  renderLocationMenu(visible);
   renderPlace();
+}
+
+function renderLocationMenu(visible) {
+  const selected = selectedSpot();
+  const states = [...new Set(visible.map(stateLabel))];
+  const groups = states.map(state => {
+    const stateSpots = visible.filter(spot => stateLabel(spot) === state);
+    const regions = [...new Set(stateSpots.map(spot => spot.region))];
+    const regionGroups = regions.map(region => {
+      const options = stateSpots.filter(spot => spot.region === region).map(spot => {
+        const index = spots.indexOf(spot);
+        const activeClass = spot === selected ? ' active' : '';
+        return `<button type="button" class="location-option${activeClass}" data-location-index="${index}">${spotOptionLabel(spot)}</button>`;
+      }).join('');
+      return `<div class="location-region-subheader">${regionLabel(region)}</div>${options}`;
+    }).join('');
+    return `<div class="location-state-header">${state}</div>${regionGroups}`;
+  }).join('');
+  locationMenu.innerHTML = `
+    <button type="button" class="location-menu-button" aria-haspopup="listbox" aria-expanded="false">${spotOptionLabel(selected)}</button>
+    <div class="location-menu-list" role="listbox">${groups}</div>`;
 }
 
 function selectedSpot() {
@@ -175,8 +225,12 @@ function selectedSpot() {
 
 function renderPlace() {
   const spot = selectedSpot();
-  const activityLabel = spot.activity === 'tube' ? 'Tube float' : 'Paddleboard';
+  const activityLabels = { fish: 'Fishing', paddle: 'Paddleboard', tube: 'Tube float' };
+  const activityLabel = activityLabels[spot.activity] || 'Water access';
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lon}`;
+  const isOregon = spot.region.startsWith('Oregon');
+  const rulesUrl = spot.activity === 'fish' ? ODFW_FISHING : isOregon ? OREGON_BOATING : CPW_BOATING;
+  const rulesLabel = spot.activity === 'fish' ? 'Fishing rules' : isOregon ? 'Oregon boating rules' : 'Colorado boating rules';
   document.getElementById('place-card').innerHTML = `
     <div class="place-top">
       <div><div class="place-kicker">${regionLabel(spot.region)} · ${spot.town}</div><h1>${spot.name}</h1></div>
@@ -186,7 +240,7 @@ function renderPlace() {
     <div class="place-links">
       <a href="${spot.url}" target="_blank" rel="noopener">Check official information</a>
       <a href="${mapsUrl}" target="_blank" rel="noopener">Open map</a>
-      <a href="${CPW_BOATING}" target="_blank" rel="noopener">Colorado boating rules</a>
+      <a href="${rulesUrl}" target="_blank" rel="noopener">${rulesLabel}</a>
     </div>`;
 }
 
@@ -355,8 +409,8 @@ function buildGaugeChart(series) {
     const lineY = plot.bottom - position * (plot.bottom - plot.top);
     return `<line class="chart-grid horizontal" x1="${plot.left}" y1="${lineY}" x2="${plot.right}" y2="${lineY}"/>`;
   }).join('');
-  const flowLabels = axisLabels(flowRange, plot.right + 8, 'start', y);
-  const heightLabels = axisLabels(heightRange, plot.left - 8, 'end', y);
+  const flowLabels = axisLabels(flowRange, plot.left - 8, 'end', y, formatNumber);
+  const heightLabels = axisLabels(heightRange, plot.right + 8, 'start', y, formatGaugeHeight);
   const latestFlow = series.flow.at(-1);
   const latestHeight = series.height.at(-1);
   const peakFlow = series.flow.reduce((peak, reading) => !peak || reading.value > peak.value ? reading : peak, null);
@@ -365,8 +419,8 @@ function buildGaugeChart(series) {
   const peakMarker = peakFlow && peakFlow !== latestFlow ? `${chartDot(peakFlow, flowRange, 'flow peak', x, y)}${chartLabel(peakFlow, flowRange, `7-day peak ${formatNumber(peakFlow.value)} CFS`, 'flow', x, y, 13)}` : '';
   return `<svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
     ${verticalGrid}${horizontalGrid}
-    <text class="chart-axis-title height" x="${plot.left}" y="18">LEFT AXIS · Gauge height (ft)</text>
-    <text class="chart-axis-title flow" x="${plot.right}" y="18" text-anchor="end">RIGHT AXIS · Flow (CFS)</text>
+    <text class="chart-axis-title flow" x="${plot.left}" y="18">LEFT AXIS · Flow (CFS)</text>
+    <text class="chart-axis-title height" x="${plot.right}" y="18" text-anchor="end">RIGHT AXIS · Gauge height (ft)</text>
     <text class="chart-context" x="${width / 2}" y="36" text-anchor="middle">Seven-day history · latest readings are at the right edge</text>
     ${heightLabels}${flowLabels}
     ${series.height.length ? `<path class="chart-height" d="${path(series.height, heightRange)}"/>` : ''}
@@ -396,9 +450,9 @@ function valueRange(readings) {
   return { min: Math.max(0, min - pad), max: max + pad };
 }
 
-function axisLabels(range, x, anchor, y) {
+function axisLabels(range, x, anchor, y, formatValue = formatNumber) {
   return [range.max, (range.max + range.min) / 2, range.min]
-    .map(value => `<text class="chart-axis" x="${x}" y="${y(value, range) + 3}" text-anchor="${anchor}">${formatNumber(value)}</text>`).join('');
+    .map(value => `<text class="chart-axis" x="${x}" y="${y(value, range) + 3}" text-anchor="${anchor}">${formatValue(value)}</text>`).join('');
 }
 
 function sampleReadings(readings, maxPoints) {
@@ -409,6 +463,10 @@ function sampleReadings(readings, maxPoints) {
 
 function formatNumber(value) {
   return Math.round(value).toLocaleString();
+}
+
+function formatGaugeHeight(value) {
+  return value.toFixed(1);
 }
 
 function formatReadingTime(date) {
@@ -433,7 +491,28 @@ activityFilter.addEventListener('change', () => {
   renderOptions();
   loadConditions();
 });
-locationSelect.addEventListener('change', loadConditions);
+locationSelect.addEventListener('change', () => {
+  loadConditions();
+});
+locationMenu.addEventListener('click', event => {
+  const menuButton = event.target.closest('.location-menu-button');
+  if (menuButton) {
+    const isOpen = locationMenu.classList.toggle('open');
+    menuButton.setAttribute('aria-expanded', String(isOpen));
+    return;
+  }
+  const option = event.target.closest('.location-option');
+  if (!option) return;
+  locationSelect.value = option.dataset.locationIndex;
+  locationMenu.classList.remove('open');
+  renderLocationMenu(spots.filter(spot => activityFilter.value === 'all' || spot.activity === activityFilter.value));
+  loadConditions();
+});
+document.addEventListener('click', event => {
+  if (locationMenu.contains(event.target)) return;
+  locationMenu.classList.remove('open');
+  locationMenu.querySelector('.location-menu-button')?.setAttribute('aria-expanded', 'false');
+});
 document.getElementById('load-button').addEventListener('click', loadConditions);
 renderOptions();
 loadConditions();
