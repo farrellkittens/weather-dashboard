@@ -2,6 +2,7 @@ const CPW_BOATING = 'https://cpw.state.co.us/activities/boating';
 const OREGON_BOATING = 'https://www.oregon.gov/osmb/boater-info/Pages/Required-Equipment.aspx';
 const ODFW_FISHING = 'https://myodfw.com/fishing';
 const USGS_GAUGE_URL = 'https://waterservices.usgs.gov/nwis/iv/';
+const NWPS_GAUGE_URL = 'https://api.water.noaa.gov/nwps/v1/gauges/';
 const RIVER_GAUGES = {
   'Boulder Creek Tubing Corridor': '06730200',
   'Cache la Poudre River - Filter Plant to Picnic Rock': '06752260',
@@ -17,10 +18,25 @@ const RIVER_GAUGES = {
   'South Platte River - Denver Urban Run': '06711565',
   'St. Vrain Creek - Lyons': '06730525',
   'Yampa River - Steamboat Springs': '09239500',
-  'Deschutes River - Downtown Bend Float': '14070500',
+  'Deschutes River - Downtown Bend Float': {
+    provider: 'nwps',
+    id: 'BENO3',
+    siteName: 'Deschutes River at Benham Falls (BENO3)',
+    sourceLabel: 'NOAA NWPS BENO3 gauge',
+    sourceUrl: 'https://water.noaa.gov/gauges/beno3',
+    context: 'Upstream active mainstem proxy for the Farewell Bend to Drake Park float',
+  },
   'Clackamas River - Barton to Carver': '14211010',
   'Sandy River - Dabney to Lewis and Clark': '14142500',
   'Tualatin River Water Trail - Tualatin': '14207500',
+};
+const RIVER_FLOW_INFO_SOURCES = {
+  'Deschutes River - Downtown Bend Float': [
+    ['Bend Whitewater Park conditions', 'https://www.bendparksandrec.org/facility/bend-whitewater-park/#current-conditions'],
+    ['American Whitewater City of Bend reach', 'https://www.americanwhitewater.org/content/River/view/river-detail/11052/main'],
+    ['NOAA downstream Bend gauge (DEBO3)', 'https://water.noaa.gov/gauges/debo3'],
+    ['USBR Hydromet Deschutes stations', 'https://www.usbr.gov/pn/hydromet/destea.html'],
+  ],
 };
 // Only activity-specific ranges supported by a linked local authority or flow study.
 // Missing activities intentionally render as "No verified range."
@@ -271,32 +287,57 @@ async function loadConditions() {
 }
 
 async function loadRiverGauge(spot) {
-  const site = RIVER_GAUGES[spot.name];
-  riverSection.hidden = !site;
+  const gauge = riverGaugeFor(spot.name);
+  riverSection.hidden = !gauge;
   riverActivitiesEl.innerHTML = '';
   riverSummaryEl.innerHTML = '';
   riverChartEl.innerHTML = '';
-  if (!site) return;
+  if (!gauge) return;
 
-  riverStatusEl.textContent = 'Loading USGS gauge data...';
+  riverStatusEl.textContent = 'Loading river gauge data...';
   riverActivitiesEl.innerHTML = renderRiverActivities(RIVER_ACTIVITY_GUIDANCE[spot.name]);
-  const params = new URLSearchParams({
-    format: 'json',
-    sites: site,
-    period: 'P7D',
-    parameterCd: '00060,00065',
-    siteStatus: 'all',
-  });
   try {
-    const response = await fetch(`${USGS_GAUGE_URL}?${params}`);
-    if (!response.ok) throw new Error(`Gauge request failed (${response.status})`);
-    const data = await response.json();
-    const series = parseGaugeSeries(data.value?.timeSeries || []);
-    renderRiverGauge(series, site, spot.name);
+    const series = gauge.provider === 'nwps' ? await fetchNwpsGauge(gauge) : await fetchUsgsGauge(gauge);
+    renderRiverGauge(series, gauge, spot.name);
   } catch (error) {
     riverStatusEl.textContent = error.message;
     riverChartEl.innerHTML = '<div class="chart-empty">Current gauge readings are unavailable. Check the linked official information before launching.</div>';
   }
+}
+
+function riverGaugeFor(riverName) {
+  const gauge = RIVER_GAUGES[riverName];
+  if (!gauge) return null;
+  if (typeof gauge === 'string') {
+    return {
+      provider: 'usgs',
+      site: gauge,
+      sourceLabel: 'USGS gauge',
+      sourceUrl: `https://waterdata.usgs.gov/monitoring-location/${gauge}/`,
+    };
+  }
+  return gauge;
+}
+
+async function fetchUsgsGauge(gauge) {
+  const params = new URLSearchParams({
+    format: 'json',
+    sites: gauge.site,
+    period: 'P7D',
+    parameterCd: '00060,00065',
+    siteStatus: 'all',
+  });
+  const response = await fetch(`${USGS_GAUGE_URL}?${params}`);
+  if (!response.ok) throw new Error(`Gauge request failed (${response.status})`);
+  const data = await response.json();
+  return parseGaugeSeries(data.value?.timeSeries || []);
+}
+
+async function fetchNwpsGauge(gauge) {
+  const response = await fetch(`${NWPS_GAUGE_URL}${gauge.id}/stageflow`);
+  if (!response.ok) throw new Error(`Gauge request failed (${response.status})`);
+  const data = await response.json();
+  return limitGaugeSeriesToDays(parseNwpsStageFlow(data, gauge), 7);
 }
 
 function parseGaugeSeries(timeSeries) {
@@ -313,19 +354,54 @@ function parseGaugeSeries(timeSeries) {
   return parsed;
 }
 
-function renderRiverGauge(series, site, riverName) {
+function parseNwpsStageFlow(data, gauge) {
+  const observed = data.observed || {};
+  const readings = observed.data || [];
+  const flowMultiplier = observed.secondaryUnits === 'kcfs' ? 1000 : 1;
+  return {
+    siteName: gauge.siteName || `NOAA NWPS gauge ${gauge.id}`,
+    flow: readings
+      .map(reading => ({ time: new Date(reading.validTime), value: Number(reading.secondary) * flowMultiplier }))
+      .filter(reading => Number.isFinite(reading.value) && Number.isFinite(reading.time.getTime())),
+    height: readings
+      .map(reading => ({ time: new Date(reading.validTime), value: Number(reading.primary) }))
+      .filter(reading => Number.isFinite(reading.value) && Number.isFinite(reading.time.getTime())),
+  };
+}
+
+function limitGaugeSeriesToDays(series, days) {
+  const latest = [...series.flow, ...series.height].reduce((max, reading) => Math.max(max, reading.time.getTime()), 0);
+  if (!latest) return series;
+  const cutoff = latest - days * 24 * 60 * 60 * 1000;
+  return {
+    ...series,
+    flow: series.flow.filter(reading => reading.time.getTime() >= cutoff),
+    height: series.height.filter(reading => reading.time.getTime() >= cutoff),
+  };
+}
+
+function renderRiverGauge(series, gauge, riverName) {
   const flowNow = series.flow.at(-1);
   const heightNow = series.height.at(-1);
   const flowPeak = series.flow.length ? Math.max(...series.flow.map(reading => reading.value)) : null;
   const latest = [flowNow?.time, heightNow?.time].filter(Boolean).sort((a, b) => b - a)[0];
   const trend = flowNow ? gaugeTrend(series.flow) : 'Unavailable';
-  riverStatusEl.innerHTML = `${series.siteName || `USGS site ${site}`} · <a href="https://waterdata.usgs.gov/monitoring-location/${site}/" target="_blank" rel="noopener">USGS details</a>`;
+  const context = gauge.context ? ` · ${gauge.context}` : '';
+  riverStatusEl.innerHTML = `${series.siteName || gauge.siteName || gauge.sourceLabel}${context} · ${renderRiverFlowSources(gauge, riverName)}`;
   riverActivitiesEl.innerHTML = renderRiverActivities(RIVER_ACTIVITY_GUIDANCE[riverName], flowNow?.value);
   riverSummaryEl.innerHTML = `
     ${riverStat('Flow', flowNow ? `${formatNumber(flowNow.value)} CFS` : 'Unavailable', flowPeak !== null ? `Latest discharge · 7-day peak ${formatNumber(flowPeak)} CFS` : 'Latest reported discharge')}
     ${riverStat('Gauge height', heightNow ? `${heightNow.value.toFixed(2)} ft` : 'Unavailable', 'Height at the monitoring gauge')}
     ${riverStat('Weekly flow trend', trend, latest ? `Updated ${formatReadingTime(latest)}` : 'No current reading')}`;
   riverChartEl.innerHTML = buildGaugeChart(series);
+}
+
+function renderRiverFlowSources(gauge, riverName) {
+  const links = [
+    [gauge.sourceLabel, gauge.sourceUrl],
+    ...(RIVER_FLOW_INFO_SOURCES[riverName] || []),
+  ];
+  return links.map(([name, url]) => `<a href="${url}" target="_blank" rel="noopener">${name}</a>`).join(' · ');
 }
 
 function renderRiverActivities(guidance = {}, currentFlow) {

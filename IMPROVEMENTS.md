@@ -61,7 +61,7 @@ A review of the current codebase (May 2026). Suggestions are grouped by category
 - Trail surface estimate: mud, ice, snow, postholing, stream crossings.
 - Daylight planner: sunrise, sunset, civil twilight, moon phase.
 
-### Water Sports
+### SUP/Float
 
 For paddleboarding, boating, rafting, and floating, split the page into flatwater, river, and open-water modes.
 
