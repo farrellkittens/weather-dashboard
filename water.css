@@ -74,7 +74,7 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 .river-stat .label { color: #7f9eaa; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
 .river-stat .value { color: #eef8fa; font-size: 18px; font-weight: bold; margin-top: 3px; }
 .river-stat .detail { color: #96b2bd; font-size: 10px; margin-top: 3px; }
-.river-chart { min-height: 250px; background: #1a252a; border: 1px solid #3a5060; border-radius: 6px; padding: 8px; overflow: hidden; }
+.river-chart { position: relative; min-height: 250px; background: #1a252a; border: 1px solid #3a5060; border-radius: 6px; padding: 8px; overflow: hidden; }
 .river-chart svg { display: block; width: 100%; height: auto; min-height: 230px; }
 .chart-grid { stroke: #34474f; stroke-width: 1; }
 .chart-grid.horizontal { stroke-dasharray: 3 5; opacity: .7; }
@@ -92,6 +92,14 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 .chart-callout { font-size: 9px; font-weight: bold; paint-order: stroke; stroke: #1a252a; stroke-width: 3px; stroke-linejoin: round; }
 .chart-callout.flow { fill: #b8e99f; }
 .chart-legend { fill: #b9dbe4; font-size: 10px; font-weight: bold; }
+.chart-height, .chart-flow, .chart-dot-height, .chart-dot-flow, .chart-callout { pointer-events: none; }
+.chart-hover-target rect { fill: transparent; pointer-events: all; }
+.chart-hover-target line { stroke: #eef8fa; stroke-width: 1; opacity: 0; pointer-events: none; }
+.chart-hover-target:hover line { opacity: .65; }
+.river-chart-tooltip { position: absolute; z-index: 5; display: none; min-width: 150px; padding: 9px 10px; background: rgba(12, 20, 24, .96); border: 1px solid #6e8993; border-radius: 5px; box-shadow: 0 8px 22px rgba(0,0,0,.35); color: #dcebef; font-size: 11px; line-height: 1.35; pointer-events: none; }
+.river-chart-tooltip .tooltip-time { display: block; color: #eef8fa; margin-bottom: 6px; }
+.river-chart-tooltip .tooltip-row { display: flex; justify-content: space-between; gap: 18px; color: #9fb9c3; }
+.river-chart-tooltip b { color: #f4fbfd; }
 .chart-empty { color: #9fb9c3; display: grid; min-height: 230px; place-items: center; text-align: center; padding: 20px; }
 .forecast-grid { display: grid; grid-template-columns: repeat(7, minmax(105px, 1fr)); gap: 9px; }
 .forecast-day { background: #1e2a30; border: 1px solid #3a5060; border-radius: 6px; padding: 10px; min-height: 125px; }

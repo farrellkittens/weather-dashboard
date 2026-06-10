@@ -394,6 +394,7 @@ function renderRiverGauge(series, gauge, riverName) {
     ${riverStat('Gauge height', heightNow ? `${heightNow.value.toFixed(2)} ft` : 'Unavailable', 'Height at the monitoring gauge')}
     ${riverStat('Weekly flow trend', trend, latest ? `Updated ${formatReadingTime(latest)}` : 'No current reading')}`;
   riverChartEl.innerHTML = buildGaugeChart(series);
+  hideRiverChartTooltip();
 }
 
 function renderRiverFlowSources(gauge, riverName) {
@@ -493,6 +494,7 @@ function buildGaugeChart(series) {
   const flowMarkers = latestFlow ? `${chartDot(latestFlow, flowRange, 'flow', x, y)}${chartLabel(latestFlow, flowRange, `Latest ${formatNumber(latestFlow.value)} CFS`, 'flow', x, y, -8)}` : '';
   const heightMarkers = latestHeight ? chartDot(latestHeight, heightRange, 'height', x, y) : '';
   const peakMarker = peakFlow && peakFlow !== latestFlow ? `${chartDot(peakFlow, flowRange, 'flow peak', x, y)}${chartLabel(peakFlow, flowRange, `7-day peak ${formatNumber(peakFlow.value)} CFS`, 'flow', x, y, 13)}` : '';
+  const hoverTargets = chartHoverTargets(series, plot, x);
   return `<svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
     ${verticalGrid}${horizontalGrid}
     <text class="chart-axis-title flow" x="${plot.left}" y="18">LEFT AXIS · Flow (CFS)</text>
@@ -501,8 +503,36 @@ function buildGaugeChart(series) {
     ${heightLabels}${flowLabels}
     ${series.height.length ? `<path class="chart-height" d="${path(series.height, heightRange)}"/>` : ''}
     ${series.flow.length ? `<path class="chart-flow" d="${path(series.flow, flowRange)}"/>` : ''}
+    ${hoverTargets}
     ${heightMarkers}${flowMarkers}${peakMarker}
   </svg>`;
+}
+
+function chartHoverTargets(series, plot, x) {
+  const times = [...new Set([...series.flow, ...series.height].map(reading => reading.time.getTime()))].sort((a, b) => a - b);
+  return times.map((time, i) => {
+    const pointX = x(new Date(time));
+    const prevX = i ? (pointX + x(new Date(times[i - 1]))) / 2 : plot.left;
+    const nextX = i < times.length - 1 ? (pointX + x(new Date(times[i + 1]))) / 2 : plot.right;
+    const flow = nearestReading(series.flow, time);
+    const height = nearestReading(series.height, time);
+    const flowLabel = flow ? `${formatNumber(flow.value)} CFS` : 'Unavailable';
+    const heightLabel = height ? `${height.value.toFixed(2)} ft` : 'Unavailable';
+    const timeLabel = new Date(time).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return `<g class="chart-hover-target" data-time="${escapeAttribute(timeLabel)}" data-flow="${escapeAttribute(flowLabel)}" data-height="${escapeAttribute(heightLabel)}">
+      <rect x="${prevX.toFixed(1)}" y="${plot.top}" width="${Math.max(nextX - prevX, 1).toFixed(1)}" height="${plot.bottom - plot.top}"/>
+      <line x1="${pointX.toFixed(1)}" y1="${plot.top}" x2="${pointX.toFixed(1)}" y2="${plot.bottom}"/>
+    </g>`;
+  }).join('');
+}
+
+function nearestReading(readings, time) {
+  if (!readings.length) return null;
+  return readings.reduce((nearest, reading) => {
+    const distance = Math.abs(reading.time.getTime() - time);
+    const nearestDistance = Math.abs(nearest.time.getTime() - time);
+    return distance < nearestDistance ? reading : nearest;
+  }, readings[0]);
 }
 
 function chartDot(reading, range, className, x, y) {
@@ -535,6 +565,65 @@ function sampleReadings(readings, maxPoints) {
   if (readings.length <= maxPoints) return readings;
   const step = Math.ceil(readings.length / maxPoints);
   return readings.filter((_, i) => i % step === 0 || i === readings.length - 1);
+}
+
+function escapeAttribute(value) {
+  return String(value).replace(/[&"<]/g, char => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;' }[char]));
+}
+
+function ensureRiverChartTooltip() {
+  let tooltip = riverChartEl.querySelector('.river-chart-tooltip');
+  if (tooltip) return tooltip;
+  tooltip = document.createElement('div');
+  tooltip.className = 'river-chart-tooltip';
+  tooltip.setAttribute('aria-hidden', 'true');
+  riverChartEl.appendChild(tooltip);
+  return tooltip;
+}
+
+function showRiverChartTooltip(event, target) {
+  const tooltip = ensureRiverChartTooltip();
+  tooltip.innerHTML = '';
+  [
+    ['time', target.dataset.time],
+    ['Flow', target.dataset.flow],
+    ['Gauge height', target.dataset.height],
+  ].forEach(([label, value]) => {
+    const line = document.createElement('div');
+    line.className = label === 'time' ? 'tooltip-time' : 'tooltip-row';
+    if (label !== 'time') {
+      const name = document.createElement('span');
+      name.textContent = label;
+      line.append(name);
+    }
+    const text = document.createElement(label === 'time' ? 'strong' : 'b');
+    text.textContent = value;
+    line.append(text);
+    tooltip.append(line);
+  });
+  tooltip.style.display = 'block';
+  tooltip.setAttribute('aria-hidden', 'false');
+  positionRiverChartTooltip(event, tooltip);
+}
+
+function positionRiverChartTooltip(event, tooltip) {
+  const rect = riverChartEl.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const maxLeft = Math.max(8, rect.width - tooltipRect.width - 8);
+  const maxTop = Math.max(8, rect.height - tooltipRect.height - 8);
+  const left = Math.max(8, Math.min(maxLeft, event.clientX - rect.left + 12));
+  const aboveTop = event.clientY - rect.top - tooltipRect.height - 12;
+  const fallbackTop = event.clientY - rect.top + 12;
+  const top = Math.max(8, Math.min(maxTop, aboveTop > 8 ? aboveTop : fallbackTop));
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+
+function hideRiverChartTooltip() {
+  const tooltip = riverChartEl.querySelector('.river-chart-tooltip');
+  if (!tooltip) return;
+  tooltip.style.display = 'none';
+  tooltip.setAttribute('aria-hidden', 'true');
 }
 
 function formatNumber(value) {
@@ -584,6 +673,15 @@ locationMenu.addEventListener('click', event => {
   renderLocationMenu(spots.filter(spot => activityFilter.value === 'all' || spot.activity === activityFilter.value));
   loadConditions();
 });
+riverChartEl.addEventListener('pointermove', event => {
+  const target = event.target.closest('.chart-hover-target');
+  if (!target || !riverChartEl.contains(target)) {
+    hideRiverChartTooltip();
+    return;
+  }
+  showRiverChartTooltip(event, target);
+});
+riverChartEl.addEventListener('pointerleave', hideRiverChartTooltip);
 document.addEventListener('click', event => {
   if (locationMenu.contains(event.target)) return;
   locationMenu.classList.remove('open');
