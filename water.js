@@ -185,6 +185,49 @@ const riverActivitiesEl = document.getElementById('river-activities');
 const riverSummaryEl = document.getElementById('river-summary');
 const riverChartEl = document.getElementById('river-chart');
 
+function slugify(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const spotSlugs = spots.map(spot => slugify(`${spot.name} ${spot.town}`));
+
+function selectedSpotSlug() {
+  return spotSlugs[Number(locationSelect.value)] || spotSlugs[0];
+}
+
+function syncWaterStateToUrl(mode = 'push') {
+  const url = new URL(window.location.href);
+  url.searchParams.set('spot', selectedSpotSlug());
+  if (activityFilter.value && activityFilter.value !== 'all') url.searchParams.set('activity', activityFilter.value);
+  else url.searchParams.delete('activity');
+  if (url.href === window.location.href) return;
+  history[mode === 'replace' ? 'replaceState' : 'pushState']({
+    waterSpot: selectedSpotSlug(),
+    waterActivity: activityFilter.value,
+  }, '', url);
+}
+
+function applyWaterStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const activity = params.get('activity');
+  if ([...activityFilter.options].some(option => option.value === activity)) {
+    activityFilter.value = activity;
+  }
+  const slug = params.get('spot') || params.get('location');
+  const index = slug ? spotSlugs.findIndex(candidate => candidate === slug) : -1;
+  if (index >= 0) {
+    if (activityFilter.value !== 'all' && spots[index].activity !== activityFilter.value) {
+      activityFilter.value = spots[index].activity;
+    }
+    locationSelect.value = String(index);
+  }
+  return index >= 0 || Boolean(activity);
+}
+
 function regionLabel(region) {
   if (region === 'River Tubing / Floating' || region.startsWith('Oregon')) return region;
   return `${region} - Lakes / Reservoirs`;
@@ -260,9 +303,11 @@ function renderPlace() {
     </div>`;
 }
 
-async function loadConditions() {
+async function loadConditions(options = {}) {
+  const { syncUrl = true, urlMode = 'push' } = options;
   const spot = selectedSpot();
   renderPlace();
+  if (syncUrl) syncWaterStateToUrl(urlMode);
   loadRiverGauge(spot);
   statusEl.textContent = 'Loading weather...';
   gridEl.innerHTML = '';
@@ -688,5 +733,15 @@ document.addEventListener('click', event => {
   locationMenu.querySelector('.location-menu-button')?.setAttribute('aria-expanded', 'false');
 });
 document.getElementById('load-button').addEventListener('click', loadConditions);
+window.addEventListener('popstate', () => {
+  applyWaterStateFromUrl();
+  renderOptions();
+  applyWaterStateFromUrl();
+  renderOptions();
+  loadConditions({ syncUrl: false });
+});
+applyWaterStateFromUrl();
 renderOptions();
-loadConditions();
+applyWaterStateFromUrl();
+renderOptions();
+loadConditions({ urlMode: 'replace' });

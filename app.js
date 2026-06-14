@@ -406,9 +406,21 @@ function getDashboardLocationFromUrl() {
   };
 }
 
+function getDashboardStartFromUrl() {
+  const value = new URLSearchParams(window.location.search).get('start');
+  if (!value || value === 'now') return null;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
 function applyDashboardLocationToInputs(loc) {
   document.getElementById('coords').value = `${Number(loc.lat).toFixed(6)}, ${Number(loc.lon).toFixed(6)}`;
   document.getElementById('city').value = loc.label || '';
+}
+
+function currentDashboardStartParam() {
+  if (!ALL_DATA.length || !ALL_DATA[startIdx]?.time) return null;
+  return ALL_DATA[startIdx].time.toISOString();
 }
 
 function syncDashboardLocationToUrl(loc, mode = 'push') {
@@ -419,6 +431,9 @@ function syncDashboardLocationToUrl(loc, mode = 'push') {
   const label = String(loc.label || '').trim();
   if (label) url.searchParams.set('location', label);
   else url.searchParams.delete('location');
+  const start = currentDashboardStartParam();
+  if (start) url.searchParams.set('start', start);
+  else url.searchParams.delete('start');
   if (url.href === window.location.href) return;
   history[mode === 'replace' ? 'replaceState' : 'pushState']({ dashboardLocation: loc }, '', url);
 }
@@ -537,9 +552,10 @@ async function loadForecast(options = {}) {
 
     buildStartDropdown();
 
-    const target=floorHour(new Date());
+    const target=floorHour(getDashboardStartFromUrl() || new Date());
     startIdx=findClosestIdx(target);
     setDropdownToIdx(startIdx);
+    if (syncUrl) syncDashboardLocationToUrl({ lat, lon, label }, 'replace');
 
     setStatus('');
     sliceAndDraw();
@@ -589,6 +605,8 @@ function applyStart() {
     startIdx=parseInt(val);
   }
   sliceAndDraw();
+  const loc = getCurrentDashboardLocation();
+  if (loc) syncDashboardLocationToUrl(loc);
 }
 
 function findClosestIdx(target) {

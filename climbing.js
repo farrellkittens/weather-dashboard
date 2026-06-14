@@ -60,6 +60,7 @@ function saveFromLocation(loc) {
   fromLocation = loc;
   byId('from-input').value = loc.label;
   writeFromLocation(loc);
+  syncClimbingStateToUrl();
 }
 
 function writeFromLocation(loc) {
@@ -210,6 +211,57 @@ function hasCoordinates(node) {
   return node && Number.isFinite(node.lat) && Number.isFinite(node.lon);
 }
 
+function getClimbingStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const fromLat = Number(params.get('fromLat'));
+  const fromLon = Number(params.get('fromLon'));
+  return {
+    uuid: params.get('climb') || '',
+    from: Number.isFinite(fromLat) && Number.isFinite(fromLon)
+      ? {
+          lat: fromLat,
+          lon: fromLon,
+          label: params.get('from') || 'Shared start',
+        }
+      : null,
+  };
+}
+
+function syncClimbingStateToUrl(mode = 'push') {
+  const url = new URL(window.location.href);
+  if (selectedLocation?.uuid) url.searchParams.set('climb', selectedLocation.uuid);
+  else url.searchParams.delete('climb');
+  if (Number.isFinite(fromLocation?.lat) && Number.isFinite(fromLocation?.lon)) {
+    url.searchParams.set('fromLat', Number(fromLocation.lat).toFixed(6));
+    url.searchParams.set('fromLon', Number(fromLocation.lon).toFixed(6));
+    url.searchParams.set('from', fromLocation.label || 'Start');
+  } else {
+    ['fromLat', 'fromLon', 'from'].forEach(key => url.searchParams.delete(key));
+  }
+  if (url.href === window.location.href) return;
+  history[mode === 'replace' ? 'replaceState' : 'pushState']({
+    climbingLocation: selectedLocation?.uuid || null,
+    fromLocation,
+  }, '', url);
+}
+
+async function applyClimbingStateFromUrl(options = {}) {
+  const { loadSelection = true } = options;
+  const state = getClimbingStateFromUrl();
+  if (state.from) {
+    fromLocation = state.from;
+    byId('from-input').value = state.from.label;
+    writeFromLocation(state.from);
+  }
+  if (!loadSelection || !state.uuid) return false;
+  const node = await loadArea(state.uuid);
+  if (!node) return false;
+  selectedPath = [node];
+  await loadSelectedLocation(node, { syncUrl: false });
+  syncClimbingStateToUrl('replace');
+  return true;
+}
+
 function initRegionSelect() {
   const region = byId('region-select');
   region.innerHTML = '';
@@ -233,7 +285,8 @@ async function initClimbingPage() {
   try {
     await loadCountries();
     initRegionSelect();
-    setStatus('Choose a climbing location.');
+    const restored = await applyClimbingStateFromUrl();
+    if (!restored) setStatus('Choose a climbing location.');
   } catch (error) {
     setStatus(error.message || 'OpenBeta locations could not be loaded.');
   }
@@ -247,6 +300,13 @@ function wireEvents() {
   byId('region-select').addEventListener('change', onRegionChange);
   LEVELS.forEach((level, index) => {
     byId(level.selectId).addEventListener('change', () => onLevelChange(index));
+  });
+  window.addEventListener('popstate', async () => {
+    resetResults();
+    hideLevels(0);
+    byId('region-select').value = '';
+    const restored = await applyClimbingStateFromUrl();
+    if (!restored) setStatus('Choose a climbing location.');
   });
 }
 
@@ -313,12 +373,14 @@ async function renderNodeAndChildren(node, nextLevelIndex, placeholder) {
   setStatus(`Showing ${node.children.length} sub-area${node.children.length === 1 ? '' : 's'}.`);
 }
 
-async function loadSelectedLocation(loc) {
+async function loadSelectedLocation(loc, options = {}) {
+  const { syncUrl = true } = options;
   if (!hasCoordinates(loc)) {
     setStatus('This OpenBeta location does not have coordinates yet.');
     return;
   }
   selectedLocation = loc;
+  if (syncUrl) syncClimbingStateToUrl();
   renderSummary(loc);
   setStatus('Loading conditions...');
   await Promise.all([

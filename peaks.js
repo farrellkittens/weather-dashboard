@@ -2166,6 +2166,17 @@ function setForecastStartTime(startTime) {
   forecastStartTimeMs = start.getTime();
 }
 
+function getPeakStartFromUrl() {
+  const value = new URLSearchParams(window.location.search).get('start');
+  if (!value || value === 'now') return null;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function currentPeakStartParam() {
+  return new Date(forecastStartTimeMs).toISOString();
+}
+
 function buildStartDropdown(data = roseData) {
   const sel = document.getElementById('startSel');
   if (!sel) return;
@@ -2205,7 +2216,9 @@ function buildStartDropdown(data = roseData) {
     sel.appendChild(opt);
   }
 
+  const startValue = String(forecastStartTimeMs);
   if ([...sel.options].some(opt => opt.value === previousValue)) sel.value = previousValue;
+  else if ([...sel.options].some(opt => opt.value === startValue)) sel.value = startValue;
   else sel.value = 'now';
 }
 
@@ -2217,6 +2230,7 @@ function applyStart() {
   roseSelections.clear();
   if (roseData) drawAll();
   else drawNoLocationState();
+  if (currentPeak) syncPeakLocationToUrl(currentPeak);
 }
 
 function updateDirectionModeText() {
@@ -2346,13 +2360,14 @@ function syncPeakLocationToUrl(peak, mode = 'push') {
   else url.searchParams.delete('elev');
   if (peak.tier) url.searchParams.set('tier', String(peak.tier));
   else url.searchParams.delete('tier');
+  url.searchParams.set('start', currentPeakStartParam());
   if (url.href === window.location.href) return;
   history[mode === 'replace' ? 'replaceState' : 'pushState']({ peakLocation: peak }, '', url);
 }
 
 function clearPeakUrl(mode = 'push') {
   const url = new URL(window.location.href);
-  for (const key of ['lat', 'lon', 'location', 'elev', 'tier']) url.searchParams.delete(key);
+  for (const key of ['lat', 'lon', 'location', 'elev', 'tier', 'start']) url.searchParams.delete(key);
   if (url.href === window.location.href) return;
   history[mode === 'replace' ? 'replaceState' : 'pushState']({ peakLocation: null }, '', url);
 }
@@ -2611,7 +2626,7 @@ window.addEventListener('DOMContentLoaded', () => {
   DIRECTIONS = DIRECTION_SETS[directionMode];
   const directionSelect = document.getElementById('direction-mode-sel');
   if (directionSelect) directionSelect.value = directionMode;
-  setForecastStartTime(new Date());
+  setForecastStartTime(getPeakStartFromUrl() || new Date());
   buildStartDropdown(null);
   updateDirectionModeText();
   buildPeakSelector();
@@ -2620,6 +2635,7 @@ window.addEventListener('DOMContentLoaded', () => {
   updatePeakInfo();
   window.SharedLocation?.initCheckbox({ getLocation: getCurrentPeakLocation });
   window.addEventListener('popstate', () => {
+    setForecastStartTime(getPeakStartFromUrl() || new Date());
     const peak = getPeakLocationFromUrl();
     if (peak) {
       applyPeakLocationToInputs(peak);
