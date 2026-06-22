@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Forecast: Directional</title>
-<link rel="stylesheet" href="peaks.css?v=3">
+<link rel="stylesheet" href="peaks.css?v=4">
 </head>
 <body>
 
@@ -21,60 +21,62 @@
   <a href="diving.html" class="tab">Surf Report</a>
 </div>
 
-<div id="controls">
-  <span class="control-group">
-    <label>Category:</label>
-    <select id="tier-sel" onchange="onTierChange()">
-      <option value="all">All</option>
-      <option value="12">12ers</option>
-      <option value="13">13ers</option>
-      <option value="14">14ers</option>
-    </select>
-  </span>
-
-  <span class="control-group">
-    <label>Peak:</label>
-    <select id="peak-sel" onchange="onPeakChange()"></select>
-  </span>
-
-  <span class="controls-sep">|</span>
-
-  <span class="control-group">
-    <label>City, State:</label>
-    <span class="city-input-wrap">
-      <input id="city" placeholder="Aspen, CO" autocomplete="off" oninput="peakDebounceSuggest()">
-      <button id="use-location" class="use-location-button" type="button" onclick="usePeakBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+<div id="summit-sticky-controls">
+  <div id="controls">
+    <span class="control-group">
+      <label>Category:</label>
+      <select id="tier-sel" onchange="onTierChange()">
+        <option value="all">All</option>
+        <option value="12">12ers</option>
+        <option value="13">13ers</option>
+        <option value="14">14ers</option>
+      </select>
     </span>
-  </span>
 
-  <span class="control-group">
-    <label>Lat, Lon:</label>
-    <input id="coords" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadFromCoords()">
-  </span>
+    <span class="control-group">
+      <label>Peak:</label>
+      <select id="peak-sel" onchange="onPeakChange()"></select>
+    </span>
 
-  <span class="control-group">
-    <label>Start:</label>
-    <select id="startSel"></select>
-    <button type="button" onclick="applyStart()">Go</button>
-  </span>
+    <span class="controls-sep">|</span>
 
-  <span class="control-group">
-    <label>Directions:</label>
-    <select id="direction-mode-sel" onchange="onDirectionModeChange()">
-      <option value="8">8-direction</option>
-      <option value="16">16-direction</option>
-    </select>
-  </span>
+    <span class="control-group">
+      <label>City, State:</label>
+      <span class="city-input-wrap">
+        <input id="city" placeholder="Aspen, CO" autocomplete="off" oninput="peakDebounceSuggest()">
+        <button id="use-location" class="use-location-button" type="button" onclick="usePeakBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+      </span>
+    </span>
 
-  <label class="share-location-toggle">
-    <input id="share-location" type="checkbox">
-    <span>Use this location on all tabs</span>
-  </label>
+    <span class="control-group">
+      <label>Lat, Lon:</label>
+      <input id="coords" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadFromCoords()">
+    </span>
 
-  <div id="peak-info"></div>
+    <span class="control-group">
+      <label>Start:</label>
+      <select id="startSel"></select>
+      <button type="button" onclick="applyStart()">Go</button>
+    </span>
+
+    <span class="control-group">
+      <label>Directions:</label>
+      <select id="direction-mode-sel" onchange="onDirectionModeChange()">
+        <option value="8">8-direction</option>
+        <option value="16">16-direction</option>
+      </select>
+    </span>
+
+    <label class="share-location-toggle">
+      <input id="share-location" type="checkbox">
+      <span>Use this location on all tabs</span>
+    </label>
+
+    <div id="peak-info"></div>
+  </div>
+
+  <nav id="summit-mobile-nav" aria-label="Summit Weather Rose section jumps"></nav>
 </div>
-
-<nav id="summit-mobile-nav" aria-label="Summit Weather Rose section jumps"></nav>
 
 <div id="city-suggestions"></div>
 

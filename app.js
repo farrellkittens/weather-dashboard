@@ -85,10 +85,8 @@ const PANELS = [
   },
 ];
 
-const MOBILE_SECTION_NAV = [
-  { id:'location', label:'Loc' },
-  ...PANELS.map(p => ({ id:p.id, label:({ temp:'Temp', sky:'Sky', wind:'Wind', rain:'Rain', thunder:'Storm', snow:'Snow', uv:'UV' })[p.id] || p.id })),
-];
+const PANEL_SHORT_LABELS = { temp:'Temp', sky:'Sky', wind:'Wind', rain:'Rain', thunder:'Storm', snow:'Snow', uv:'UV' };
+const PANEL_VISIBILITY_STORAGE_KEY = 'forecastGraphVisiblePanels';
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -98,8 +96,9 @@ let D         = [];
 let startIdx  = 0;
 let canvas, ctx, dpr, axisCanvas, axisCtx, chartStage;
 let mobileNavReady = false;
-let mobileSectionTargets = [];
+let mobileNavSignature = '';
 let mobileNavRaf = null;
+const hiddenPanels = new Set(loadHiddenPanels());
 
 // ════════════════════════════════════════════════════════════
 // HELPERS
@@ -157,6 +156,70 @@ const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
 const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
 const MAX_CANVAS_DIMENSION = 8192;
 
+function loadHiddenPanels() {
+  try {
+    const saved=JSON.parse(localStorage.getItem(PANEL_VISIBILITY_STORAGE_KEY)||'[]');
+    const ids=Array.isArray(saved) ? saved.filter(id=>PANELS.some(panel=>panel.id===id)) : [];
+    return ids.length>=PANELS.length ? ids.slice(0,-1) : ids;
+  } catch {
+    return [];
+  }
+}
+
+function saveHiddenPanels() {
+  try {
+    localStorage.setItem(PANEL_VISIBILITY_STORAGE_KEY,JSON.stringify([...hiddenPanels]));
+  } catch {}
+}
+
+function visiblePanels() {
+  const panels=PANELS.filter(panel=>!hiddenPanels.has(panel.id));
+  return panels.length ? panels : PANELS.slice(0,1);
+}
+
+function chartSectionNavItems() {
+  return PANELS.map(panel=>({ id:panel.id, label:PANEL_SHORT_LABELS[panel.id]||panel.id, fullLabel:panel.label }));
+}
+
+function togglePanelVisibility(panelId) {
+  const isHidden=hiddenPanels.has(panelId);
+  const visibleCount=PANELS.length-hiddenPanels.size;
+  if(isHidden)hiddenPanels.delete(panelId);
+  else if(visibleCount>1)hiddenPanels.add(panelId);
+  saveHiddenPanels();
+  updateChartVisibilityControls();
+  updateMobileSectionNav();
+  if(D.length)draw();
+}
+
+function setupChartVisibilityControls() {
+  const controls=document.getElementById('chart-controls');
+  if(!controls)return;
+  controls.innerHTML='';
+
+  for(const panel of PANELS){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.dataset.panel=panel.id;
+    btn.textContent=PANEL_SHORT_LABELS[panel.id]||panel.label;
+    btn.title=`Show or hide ${panel.label}`;
+    btn.setAttribute('aria-label',`Show or hide ${panel.label}`);
+    btn.addEventListener('click',()=>togglePanelVisibility(panel.id));
+    controls.appendChild(btn);
+  }
+
+  updateChartVisibilityControls();
+}
+
+function updateChartVisibilityControls() {
+  const controls=document.getElementById('chart-controls');
+  if(!controls)return;
+  controls.querySelectorAll('button[data-panel]').forEach(btn=>{
+    const isVisible=!hiddenPanels.has(btn.dataset.panel);
+    btn.setAttribute('aria-pressed',String(isVisible));
+  });
+}
+
 function niceStep(mn,mx,ticks){ const r=(mx-mn||1)/ticks,m=Math.pow(10,Math.floor(Math.log10(r))); for(const c of[1,2,5,10])if(c*m>=r)return c*m; return 10; }
 
 function popLabel(p){ if(p==null)return null; if(p>=70)return'Ocnl'; if(p>=55)return'Lkly'; if(p>=40)return'Chc'; if(p>=20)return'SChc'; return null; }
@@ -171,7 +234,67 @@ function parseUtcHour(time) {
   return new Date(Date.UTC(year, month - 1, day, hour, minute));
 }
 
-function openMeteoHourlyRows(res) {
+function localHourKey(date) {
+  if(!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const pad=n=>String(n).padStart(2,'0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}`;
+}
+
+function parseEpaUvDateTime(value) {
+  const match=String(value||'').match(/^([A-Za-z]{3})\/(\d{1,2})\/(\d{4})\s+(\d{1,2})\s+(AM|PM)$/i);
+  if(!match)return null;
+  const months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  const month=months[match[1].toLowerCase()];
+  let hour=Number(match[4])%12;
+  if(match[5].toUpperCase()==='PM')hour+=12;
+  const day=Number(match[2]), year=Number(match[3]);
+  if(month==null||![day,year,hour].every(Number.isFinite))return null;
+  return new Date(year,month,day,hour,0,0,0);
+}
+
+function parseEpaUvDate(value) {
+  const match=String(value||'').match(/^([A-Za-z]{3})\/(\d{1,2})\/(\d{4})$/i);
+  if(!match)return '';
+  const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+  const month=months[match[1].toLowerCase()];
+  if(!month)return '';
+  return `${match[3]}-${month}-${String(Number(match[2])).padStart(2,'0')}`;
+}
+
+function openMeteoDailyUvMap(res) {
+  const out=new Map();
+  const times=res?.daily?.time||[];
+  const vals=res?.daily?.uv_index_max||[];
+  times.forEach((time,i)=>{
+    const value=Number(vals[i]);
+    if(time&&Number.isFinite(value))out.set(time,value);
+  });
+  return out;
+}
+
+function epaUvMaps(hourlyRes, dailyRes, openMeteoDailyUv) {
+  const hourlyMap=new Map();
+  for(const row of hourlyRes||[]){
+    const date=parseEpaUvDateTime(row.DATE_TIME);
+    const value=Number(row.UV_VALUE);
+    if(date&&Number.isFinite(value))hourlyMap.set(localHourKey(date),value);
+  }
+
+  let calibration=1;
+  for(const row of dailyRes||[]){
+    const dateKey=parseEpaUvDate(row.DATE);
+    const epaValue=Number(row.UV_INDEX);
+    const openMeteoValue=openMeteoDailyUv.get(dateKey);
+    if(Number.isFinite(epaValue)&&Number.isFinite(openMeteoValue)&&openMeteoValue>0){
+      calibration=epaValue/openMeteoValue;
+      break;
+    }
+  }
+  if(!Number.isFinite(calibration)||calibration<0.5||calibration>2)calibration=1;
+  return { hourlyMap, calibration };
+}
+
+function openMeteoHourlyRows(res, uvCalibration=1) {
   const hourly=res?.hourly;
   if(!hourly?.time)return [];
   return hourly.time.map((time,i)=>({
@@ -190,7 +313,8 @@ function openMeteoHourlyRows(res) {
       snow:hourly.snowfall?.[i]??null,
       snowfall:hourly.snowfall?.[i]??null,
       snowPop:null,
-      uvIndex:hourly.uv_index?.[i]??null,
+      uvIndex:hourly.uv_index?.[i]==null?null:hourly.uv_index[i]*uvCalibration,
+      uvSource:uvCalibration!==1?'EPA-calibrated Open-Meteo':'Open-Meteo',
       source:'history',
     }))
     .filter(row=>row.time);
@@ -482,6 +606,7 @@ async function loadForecast(options = {}) {
       latitude:coordForRequest(lat),
       longitude:coordForRequest(lon),
       hourly:'temperature_2m,apparent_temperature,dew_point_2m,relative_humidity_2m,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,rain,snowfall,weather_code,uv_index',
+      daily:'uv_index_max',
       timezone:'UTC',
       temperature_unit:'fahrenheit',
       wind_speed_unit:'mph',
@@ -490,16 +615,33 @@ async function loadForecast(options = {}) {
       forecast_days:'7',
     });
     const openMeteoUrl=`https://api.open-meteo.com/v1/forecast?${openMeteoParams}`;
-    const [gd, openMeteoRes] = await Promise.all([
+    const epaCity=city.trim();
+    const epaState=state.trim().toUpperCase();
+    const epaBase=epaCity&&epaState
+      ? `https://data.epa.gov/efservice/getEnvirofactsUV`
+      : '';
+    const epaPath=epaBase
+      ? `/CITY/${encodeURIComponent(epaCity)}/STATE/${encodeURIComponent(epaState)}/JSON`
+      : '';
+    const epaHourlyUrl=epaBase ? `${epaBase}HOURLY${epaPath}` : '';
+    const epaDailyUrl=epaBase ? `${epaBase}DAILY${epaPath}` : '';
+    const cachedJson=(url,ttlMs)=>window.SharedLocation
+      ? SharedLocation.fetchJson(url,{ttlMs})
+      : fetch(url).then(r=>{if(!r.ok)throw new Error(`Request failed: ${r.status}`);return r.json();});
+    const [gd, openMeteoRes, epaHourlyRes, epaDailyRes] = await Promise.all([
       window.SharedLocation
         ? SharedLocation.fetchJson(gridUrl, { ttlMs: WEATHER_CACHE_TTL_MS })
         : fetch(gridUrl).then(r=>r.json()),
       (window.SharedLocation
         ? SharedLocation.fetchJson(openMeteoUrl, { ttlMs: WEATHER_CACHE_TTL_MS })
         : fetch(openMeteoUrl).then(r=>r.json())).catch(()=>null),
+      epaHourlyUrl ? cachedJson(epaHourlyUrl, WEATHER_CACHE_TTL_MS).catch(()=>null) : null,
+      epaDailyUrl ? cachedJson(epaDailyUrl, WEATHER_CACHE_TTL_MS).catch(()=>null) : null,
     ]);
     const p=gd.properties;
 
+    const openMeteoDailyUv=openMeteoDailyUvMap(openMeteoRes);
+    const {hourlyMap:epaHourlyUvMap, calibration:epaUvCalibration}=epaUvMaps(epaHourlyRes, epaDailyRes, openMeteoDailyUv);
     const uvMap=new Map();
     if(openMeteoRes?.hourly?.time && openMeteoRes.hourly.uv_index){
       openMeteoRes.hourly.time.forEach((t,i)=>uvMap.set(t.slice(0,13), openMeteoRes.hourly.uv_index[i]));
@@ -539,11 +681,19 @@ async function loadForecast(options = {}) {
       snow:      snw[i]?.value??null,
       snowfall:  snw[i]?.value??null,
       snowPop:   snowPop[i]?.value??null,
-      uvIndex:   uvMap.get(tmp[i]?.time?.toISOString().slice(0,13))??null,
+      uvIndex:   epaHourlyUvMap.get(localHourKey(tmp[i]?.time))
+        ?? (uvMap.get(tmp[i]?.time?.toISOString().slice(0,13))==null
+          ? null
+          : uvMap.get(tmp[i]?.time?.toISOString().slice(0,13))*epaUvCalibration),
+      uvSource:  epaHourlyUvMap.has(localHourKey(tmp[i]?.time))
+        ? 'EPA'
+        : epaUvCalibration!==1
+          ? 'EPA-calibrated Open-Meteo'
+          : 'Open-Meteo',
       source:    'forecast',
     }));
     const forecastStart=forecastData[0]?.time;
-    const historyData=openMeteoHourlyRows(openMeteoRes)
+    const historyData=openMeteoHourlyRows(openMeteoRes, epaUvCalibration)
       .filter(d=>d.time<forecastStart);
     ALL_DATA=[...historyData,...forecastData];
 
@@ -651,9 +801,10 @@ function draw() {
   canvas=document.getElementById('c');
   axisCanvas=document.getElementById('axis-c');
   chartStage=document.getElementById('chart-stage');
+  const panels=visiblePanels();
 
   const W=LEFT+BUFFER*HW+n*HW+RIGHT;
-  const H=PANELS.reduce((s,p)=>s+DATE_H+TIME_H+p.h,0);
+  const H=panels.reduce((s,p)=>s+DATE_H+TIME_H+p.h,0);
   dpr=canvasDprForSize(W,H);
 
   if(chartStage){
@@ -710,7 +861,7 @@ function draw() {
   }
 
   let y=0;
-  for(const panel of PANELS){
+  for(const panel of panels){
     drawDateStrip(y,n,W);    y+=DATE_H;
     drawTimeStrip(y,n,W);    y+=TIME_H;
     drawPanel(panel,y,n,W);
@@ -719,8 +870,8 @@ function draw() {
     y+=panel.h;
   }
 
-  bindHover(n,W);
-  drawAxisOverlay(n,H);
+  bindHover(n,W,panels);
+  drawAxisOverlay(n,H,panels);
   setupMobileSectionNav();
 }
 
@@ -1033,7 +1184,7 @@ function drawUV(y0,h,n,stickyX=0){
   const axisX=stickyX+LEFT;
   const plotEnd=LEFT+BUFFER*HW+n*HW;
 
-  const maxUV=11, pad=Math.round(4*SCALE);
+  const maxUV=Math.max(11,Math.ceil(Math.max(...vals.filter(v=>v!=null)))), pad=Math.round(4*SCALE);
   const bH=h-pad*2;
   const baseY=y0+pad+bH;
   const toY=v=>y0+pad+bH-Math.min(v/maxUV,1)*bH;
@@ -1075,12 +1226,12 @@ function drawUV(y0,h,n,stickyX=0){
   // vertical gradient with hard band transitions
   const grad=ctx.createLinearGradient(0, toY(maxUV), 0, baseY);
   grad.addColorStop(0,      'rgba(200,64,48,0.72)');
-  grad.addColorStop(3/11,   'rgba(200,64,48,0.72)');
-  grad.addColorStop(3/11,   'rgba(191,120,40,0.72)');
-  grad.addColorStop(5/11,   'rgba(191,120,40,0.72)');
-  grad.addColorStop(5/11,   'rgba(184,154,40,0.72)');
-  grad.addColorStop(8/11,   'rgba(184,154,40,0.72)');
-  grad.addColorStop(8/11,   'rgba(58,171,82,0.72)');
+  grad.addColorStop(3/maxUV,   'rgba(200,64,48,0.72)');
+  grad.addColorStop(3/maxUV,   'rgba(191,120,40,0.72)');
+  grad.addColorStop(5/maxUV,   'rgba(191,120,40,0.72)');
+  grad.addColorStop(5/maxUV,   'rgba(184,154,40,0.72)');
+  grad.addColorStop(8/maxUV,   'rgba(184,154,40,0.72)');
+  grad.addColorStop(8/maxUV,   'rgba(58,171,82,0.72)');
   grad.addColorStop(1,      'rgba(58,171,82,0.72)');
 
   // smooth filled area using cubic bezier through midpoints
@@ -1122,7 +1273,7 @@ function drawUV(y0,h,n,stickyX=0){
   ctx.restore();
 }
 
-function drawAxisOverlay(n,H) {
+function drawAxisOverlay(n,H,panels) {
   if(!axisCanvas)return;
 
   axisCtx=axisCanvas.getContext('2d');
@@ -1132,7 +1283,7 @@ function drawAxisOverlay(n,H) {
   const labelPad=Math.round(8*SCALE);
   const labelFont=`bold ${Math.round(10*SCALE)}px Arial`;
   axisCtx.font=labelFont;
-  const labelW=Math.max(...PANELS.map(panel=>measurePanelLabels(axisCtx,getPanelLabelItems(panel),labelGap,wordGap)));
+  const labelW=Math.max(...panels.map(panel=>measurePanelLabels(axisCtx,getPanelLabelItems(panel),labelGap,wordGap)));
   const overlayW=Math.min(chartW,LEFT+labelPad+Math.ceil(labelW)+labelPad);
   const axisDpr=canvasDprForSize(overlayW,H);
   axisCanvas.width=Math.round(overlayW*axisDpr);
@@ -1203,7 +1354,8 @@ function drawAxisOverlay(n,H) {
   }
 
   function drawUVAxis(y0,h){
-    const maxUV=11, pad=Math.round(4*SCALE);
+    const vals=D.map(d=>d.uvIndex).filter(v=>v!=null);
+    const maxUV=Math.max(11,Math.ceil(Math.max(...vals))), pad=Math.round(4*SCALE);
     const bH=h-pad*2;
     const toY=v=>y0+pad+bH-Math.min(v/maxUV,1)*bH;
     const bands=[
@@ -1224,7 +1376,7 @@ function drawAxisOverlay(n,H) {
   }
 
   let y=0;
-  for(const panel of PANELS){
+  for(const panel of panels){
     y+=DATE_H+TIME_H;
     axisCtx.fillStyle=C.axisBg;
     axisCtx.fillRect(0,y,LEFT,panel.h);
@@ -1248,12 +1400,12 @@ function drawAxisOverlay(n,H) {
 // ════════════════════════════════════════════════════════════
 // TOOLTIP
 // ════════════════════════════════════════════════════════════
-function bindHover(n,W){
+function bindHover(n,W,panels){
   const tip=document.getElementById('tip');
 
   const panelRanges=[];
   let cy=0;
-  for(const p of PANELS){
+  for(const p of panels){
     const top=cy; cy+=DATE_H+TIME_H+p.h;
     panelRanges.push({top,bottom:cy,panel:p});
   }
@@ -1393,60 +1545,27 @@ function setupChartPinchZoom() {
 function setupMobileSectionNav() {
   const nav=document.getElementById('mobile-section-nav');
   if(!nav)return;
+  const navItems=chartSectionNavItems();
+  const signature=navItems.map(item=>item.id).join('|');
 
-  if(!mobileNavReady){
+  if(!mobileNavReady||mobileNavSignature!==signature){
     nav.innerHTML='';
-    for(const item of MOBILE_SECTION_NAV){
+    for(const item of navItems){
       const btn=document.createElement('button');
       btn.type='button';
       btn.textContent=item.label;
-      btn.dataset.target=item.id;
-      btn.setAttribute('aria-label', item.id==='location' ? 'Jump to location entry' : `Jump to ${item.label} section`);
-      btn.addEventListener('click',()=>scrollToMobileSection(item.id));
+      btn.dataset.panel=item.id;
+      btn.title=`Show or hide ${item.fullLabel}`;
+      btn.setAttribute('aria-label',`Show or hide ${item.fullLabel}`);
+      btn.addEventListener('click',()=>togglePanelVisibility(item.id));
       nav.appendChild(btn);
     }
-    window.addEventListener('scroll',queueMobileNavUpdate,{passive:true});
+    if(!mobileNavReady)window.addEventListener('scroll',queueMobileNavUpdate,{passive:true});
     mobileNavReady=true;
+    mobileNavSignature=signature;
   }
 
-  updateMobileSectionTargets();
   updateMobileSectionNav();
-}
-
-function getPanelOffsets() {
-  const offsets=new Map();
-  let y=0;
-  for(const panel of PANELS){
-    offsets.set(panel.id,y);
-    y+=DATE_H+TIME_H+panel.h;
-  }
-  return offsets;
-}
-
-function updateMobileSectionTargets() {
-  const controls=document.getElementById('controls');
-  const c=document.getElementById('c');
-  if(!controls||!c)return;
-
-  const scrollY=window.scrollY||window.pageYOffset;
-  const controlsTop=controls.getBoundingClientRect().top+scrollY;
-  const canvasTop=c.getBoundingClientRect().top+scrollY;
-  const offsets=getPanelOffsets();
-
-  mobileSectionTargets = MOBILE_SECTION_NAV.map(item => ({
-    id:item.id,
-    top:item.id==='location' ? controlsTop : canvasTop+(offsets.get(item.id)||0),
-  }));
-}
-
-function scrollToMobileSection(id) {
-  updateMobileSectionTargets();
-  const target=mobileSectionTargets.find(t=>t.id===id);
-  if(!target)return;
-  const nav=document.getElementById('mobile-section-nav');
-  const navH=nav?.offsetHeight||0;
-  const pad=6;
-  window.scrollTo({ top:Math.max(0,target.top-navH-pad), behavior:'auto' });
 }
 
 function queueMobileNavUpdate() {
@@ -1459,7 +1578,7 @@ function queueMobileNavUpdate() {
 
 function updateMobileSectionNav() {
   const nav=document.getElementById('mobile-section-nav');
-  if(!nav||!mobileSectionTargets.length)return;
+  if(!nav)return;
 
   const isMobile=window.matchMedia('(max-width: 560px)').matches;
   const scrollY=window.scrollY||window.pageYOffset;
@@ -1467,19 +1586,9 @@ function updateMobileSectionNav() {
   const showAfter=controls ? controls.getBoundingClientRect().bottom+scrollY-8 : 0;
   nav.classList.toggle('is-visible',isMobile&&scrollY>showAfter);
 
-  const navH=nav.offsetHeight||0;
-  const probe=scrollY+navH+12;
-  let active=mobileSectionTargets[0].id;
-  for(const target of mobileSectionTargets){
-    if(probe>=target.top)active=target.id;
-    else break;
-  }
-
-  nav.querySelectorAll('button').forEach(btn=>{
-    const isActive=btn.dataset.target===active;
-    btn.classList.toggle('is-active',isActive);
-    if(isActive)btn.setAttribute('aria-current','true');
-    else btn.removeAttribute('aria-current');
+  nav.querySelectorAll('button[data-panel]').forEach(btn=>{
+    const isVisible=!hiddenPanels.has(btn.dataset.panel);
+    btn.setAttribute('aria-pressed',String(isVisible));
   });
 }
 
@@ -1491,6 +1600,7 @@ window.addEventListener('resize',()=>{clearTimeout(rsz);rsz=setTimeout(()=>{if(D
 
 // Boot
 if('scrollRestoration' in history)history.scrollRestoration='manual';
+setupChartVisibilityControls();
 setupChartPinchZoom();
 window.SharedLocation?.initCheckbox({ getLocation: getCurrentDashboardLocation });
 window.addEventListener('popstate', () => {

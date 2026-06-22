@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Forecast: Graph</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 <div id="header">
@@ -20,32 +20,37 @@
   <a href="diving.html" class="tab">Surf Report</a>
 </div>
 
-<div id="controls">
-  <span class="control-group">
-    <label>City, State:</label>
-    <span class="city-input-wrap">
-      <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
-      <button id="use-location" class="use-location-button" type="button" onclick="useDashboardBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+<div id="graph-sticky-controls">
+  <div id="controls">
+    <span class="control-group">
+      <label>City, State:</label>
+      <span class="city-input-wrap">
+        <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
+        <button id="use-location" class="use-location-button" type="button" onclick="useDashboardBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+      </span>
     </span>
-  </span>
-  <span class="control-group">
-    <label>Lat, Lon:</label>
-    <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
-    <button type="button" onclick="loadForecast()">Go</button>
-  </span>
-  <label class="share-location-toggle">
-    <input id="share-location" type="checkbox">
-    <span>Use this location on all tabs</span>
-  </label>
-  <span class="control-group">
-    <label>Start:</label>
-    <select id="startSel"></select>
-    <button onclick="applyStart()">Go</button>
-  </span>
-  <div id="loc"></div>
+
+    <span class="control-group">
+      <label>Lat, Lon:</label>
+      <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
+      <button type="button" onclick="loadForecast()">Go</button>
+    </span>
+    <label class="share-location-toggle">
+      <input id="share-location" type="checkbox">
+      <span>Use this location on all tabs</span>
+    </label>
+    <span class="control-group">
+      <label>Start:</label>
+      <select id="startSel"></select>
+      <button onclick="applyStart()">Go</button>
+    </span>
+    <div id="loc"></div>
+  </div>
+
+  <div id="chart-controls" aria-label="Chart visibility controls"></div>
 </div>
 
-<nav id="mobile-section-nav" aria-label="Weather section jumps"></nav>
+<nav id="mobile-section-nav" aria-label="Chart visibility controls"></nav>
 
 <div id="city-suggestions"></div>
 <div id="status">Loading…</div>
@@ -58,10 +63,10 @@
   </div>
 </div>
 <div id="tip"></div>
-<div id="footer">History: Open-Meteo · Forecast: NOAA/NWS api.weather.gov · times shown in local browser timezone<span id="grid-ref"></span></div>
+<div id="footer">History: Open-Meteo · Forecast: NOAA/NWS api.weather.gov · UV: EPA/Open-Meteo · times shown in local browser timezone<span id="grid-ref"></span></div>
 
 <script src="shared-location.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=6"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

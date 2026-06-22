@@ -18,6 +18,7 @@
 #page-tabs.has-more-tabs .tabs-overflow-cue { display: grid; }
 
   /* ── Controls row ── */
+  #graph-sticky-controls { position: sticky; top: 0; z-index: 24; background: #2b2b2b; box-shadow: 0 4px 12px rgba(0,0,0,0.22); }
   #controls { padding: 9px 14px; background: #222; border-bottom: 1px solid #444; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   #controls .control-group { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; white-space: nowrap; }
   #controls label { font-weight: bold; color: #bbb; font-size: 12px; }
@@ -113,7 +114,13 @@
 
   #mobile-section-nav { display: none; }
 
-  #status { padding: 4px 14px; font-size: 12px; color: #888; min-height: 20px; text-align: center; }
+  #status { padding: 3px 14px; font-size: 12px; color: #888; min-height: 18px; text-align: center; }
+
+  #chart-controls { display: flex; align-items: center; gap: 5px; padding: 4px 14px; overflow-x: auto; scrollbar-width: none; background: rgba(14, 21, 32, 0.97); border-bottom: 1px solid #3c668f; }
+  #chart-controls::-webkit-scrollbar { display: none; }
+  #chart-controls button { flex: 0 0 auto; min-height: 24px; padding: 2px 8px; border: 1px solid #4b5563; border-radius: 3px; background: #262b31; color: #b8c7d6; font-size: 11px; cursor: pointer; white-space: nowrap; }
+  #chart-controls button:hover, #chart-controls button:focus-visible { border-color: #6d91b8; color: #eef4ff; outline: none; }
+  #chart-controls button[aria-pressed="false"] { background: #1e1e1e; border-color: #363b42; color: #68727d; text-decoration: line-through; }
 
   /* ── Canvas wrapper — full browser width with a horizontally scrolling timeline ── */
   #chart-shell { position: relative; }
@@ -174,6 +181,10 @@
   }
 
   @media (max-width: 560px) {
+    #graph-sticky-controls {
+      position: static;
+    }
+
     #mobile-section-nav {
       position: fixed;
       top: 0;
@@ -212,9 +223,16 @@
       cursor: pointer;
     }
 
-    #mobile-section-nav button.is-active {
+    #mobile-section-nav button[aria-pressed="true"] {
       border-color: #8cc7ff;
       background: #2f6ca1;
       color: #fff;
+    }
+
+    #mobile-section-nav button[aria-pressed="false"] {
+      background: #17202a;
+      border-color: #293341;
+      color: #657485;
+      text-decoration: line-through;
     }
   }
