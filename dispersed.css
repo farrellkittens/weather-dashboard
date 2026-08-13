@@ -1,4 +1,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --time-strip-bg: #1c1c1c;
+  --tab-text-color: #8eb4d8;
+}
 html, body { height: 100%; }
 body {
   min-height: 100%;
@@ -11,6 +15,7 @@ body {
 }
 
 #header {
+  flex: 0 0 auto;
   background: #13272f;
   color: #b9dbe4;
   padding: 9px 14px;
@@ -20,6 +25,7 @@ body {
 }
 
 #page-tabs {
+  flex: 0 0 auto;
   background: #0e1520;
   border-bottom: 2px solid #2e5a8a;
   display: flex;
@@ -37,6 +43,7 @@ body {
   display: inline-block;
   padding: 9px 14px;
   font-size: 13px;
+  line-height: 1.25;
   font-weight: bold;
   color: #8eb4d8;
   text-decoration: none;
@@ -52,6 +59,14 @@ body {
 #page-tabs .tab[href="roadtrip.html"] { order: 3; }
 .tab:hover { color: #d4e8fc; background: rgba(255,255,255,0.05); }
 .tab.active { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(91,158,214,0.1); }
+
+/* Shared page chrome */
+#header { flex: 0 0 auto; background: var(--tab-text-color); color: var(--time-strip-bg); padding: 9px 14px; font-size: 15px; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
+#page-tabs { flex: 0 0 auto; background: var(--time-strip-bg); border-bottom: 2px solid #2e5a8a; }
+.tab, .tab:visited { display: inline-block; padding: 9px 14px; font-size: 13px; color: var(--tab-text-color); border-bottom-width: 3px; margin-bottom: -2px; }
+.tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(255,255,255,0.06); }
+#page-tabs .tabs-overflow-cue { order: 100; position: sticky; right: 0; align-self: stretch; display: none; place-items: center; width: 34px; flex: 0 0 34px; margin-left: -34px; color: #eef4ff; font-size: 22px; font-weight: bold; pointer-events: none; text-shadow: 0 1px 8px rgba(140, 199, 255, 0.85); background: linear-gradient(90deg, rgba(28, 28, 28, 0), var(--time-strip-bg) 48%); }
+#page-tabs.has-more-tabs .tabs-overflow-cue { display: grid; }
 
 #dispersed-page {
   flex: 1 1 auto;
@@ -559,3 +574,30 @@ h2 {
     border-bottom: 1px solid #3d4d52;
   }
 }
+
+/* Green activity scheme */
+:root {
+  --time-strip-bg: #151816;
+  --tab-text-color: #9fcbb9;
+}
+#header { background: #14231f; color: #c3ded4; border-bottom-color: #3f4c48; }
+#page-tabs { background: #151816; border-bottom-color: #35584d; }
+.tab, .tab:visited { color: #9fcbb9; }
+.tab.active, .tab.active:visited { color: #f4fbf8; border-bottom-color: #3a8a77; background: rgba(58,138,119,0.14); }
+#page-tabs .tabs-overflow-cue { background: linear-gradient(90deg, rgba(21, 24, 22, 0), #151816 48%); }
+#map-panel,
+.panel-section,
+.filter-card,
+.map-card,
+.legend-panel,
+.road-card,
+.detail-panel,
+.layer-control,
+#footer { background: #1e2c29; border-color: #3a554d; }
+select,
+input,
+textarea { background: #303736; border-color: #586561; }
+button,
+.primary-button { background: #2f7564; border-color: #3a8a77; }
+button:hover,
+.primary-button:hover { background: #3a8a77; }

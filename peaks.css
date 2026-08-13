@@ -1,5 +1,9 @@
 /* ── Reset & base ── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --time-strip-bg: #1c1c1c;
+  --tab-text-color: #8eb4d8;
+}
 body { font-family: Arial, sans-serif; font-size: 13px; background: #2b2b2b; color: #ddd; }
 
 body.is-loading,
@@ -26,6 +30,13 @@ body.is-loading * {
 .tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(91,158,214,0.1); }
 #page-tabs .tabs-overflow-cue { order: 100; position: sticky; right: 0; align-self: stretch; display: none; place-items: center; width: 34px; flex: 0 0 34px; margin-left: -34px; color: #eef4ff; font-size: 22px; font-weight: bold; pointer-events: none; text-shadow: 0 1px 8px rgba(140, 199, 255, 0.85); background: linear-gradient(90deg, rgba(14, 21, 32, 0), #0e1520 48%); }
 #page-tabs.has-more-tabs .tabs-overflow-cue { display: grid; }
+
+/* Shared page chrome */
+#header { background: var(--tab-text-color); color: var(--time-strip-bg); padding: 9px 14px; font-size: 15px; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
+#page-tabs { background: var(--time-strip-bg); border-bottom: 2px solid #2e5a8a; }
+.tab, .tab:visited { display: inline-block; padding: 9px 14px; font-size: 13px; color: var(--tab-text-color); border-bottom-width: 3px; margin-bottom: -2px; }
+.tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(255,255,255,0.06); }
+#page-tabs .tabs-overflow-cue { background: linear-gradient(90deg, rgba(28, 28, 28, 0), var(--time-strip-bg) 48%); }
 /* ── Controls ── */
 #summit-sticky-controls {
   position: sticky;
@@ -893,3 +904,17 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
     font-size: 15px;
   }
 }
+
+/* Neutral surfaces */
+#summit-sticky-controls,
+#controls,
+#summit-mobile-nav,
+#sample-modal-panel,
+.explainer-card,
+#sample-map-card,
+.sample-rose-card,
+.rose-cell { background: #232323; border-color: #3a3f46; }
+#summit-mobile-nav button,
+#mobile-section-nav button[aria-pressed="true"] { background: #262b31; }
+#controls input,
+#controls select { background: #303030; border-color: #555c65; }

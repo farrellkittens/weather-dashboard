@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Forecast: Graph</title>
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 <div id="header">
@@ -34,14 +34,15 @@
             <button id="use-location" class="use-location-button" type="button" onclick="useDashboardBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
           </span>
         </span>
-
-        <span class="control-group control-group-coords">
-          <label>Lat, Lon</label>
-          <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
-          <button type="button" onclick="loadForecast()">Go</button>
+        <span class="coords-readout-row">
+          <span class="control-group control-group-coords">
+            <label>Lat, Lon</label>
+            <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
+            <button type="button" onclick="loadForecast()">Go</button>
+          </span>
         </span>
       </span>
-      <span class="control-row control-row-secondary">
+      <span class="control-row control-row-secondary location-readout-row">
         <label class="share-location-toggle">
           <input id="share-location" type="checkbox">
           <span>Use this location on all tabs</span>

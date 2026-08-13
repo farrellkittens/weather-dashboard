@@ -1,4 +1,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --time-strip-bg: #1c1c1c;
+  --tab-text-color: #8eb4d8;
+}
 body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; color: #e2e6e8; }
 
 #header {
@@ -18,6 +22,13 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 .tab.active { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(91,158,214,0.1); }
 #page-tabs .tabs-overflow-cue { order: 100; position: sticky; right: 0; align-self: stretch; display: none; place-items: center; width: 34px; flex: 0 0 34px; margin-left: -34px; color: #eef4ff; font-size: 22px; font-weight: bold; pointer-events: none; text-shadow: 0 1px 8px rgba(140, 199, 255, 0.85); background: linear-gradient(90deg, rgba(14, 21, 32, 0), #0e1520 48%); }
 #page-tabs.has-more-tabs .tabs-overflow-cue { display: grid; }
+
+/* Shared page chrome */
+#header { background: var(--tab-text-color); color: var(--time-strip-bg); padding: 9px 14px; font-size: 15px; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
+#page-tabs { background: var(--time-strip-bg); border-bottom: 2px solid #2e5a8a; }
+.tab, .tab:visited { display: inline-block; padding: 9px 14px; font-size: 13px; color: var(--tab-text-color); border-bottom-width: 3px; margin-bottom: -2px; }
+.tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(255,255,255,0.06); }
+#page-tabs .tabs-overflow-cue { background: linear-gradient(90deg, rgba(28, 28, 28, 0), var(--time-strip-bg) 48%); }
 #controls {
   padding: 9px 14px; background: #202426; border-bottom: 1px solid #3d4d52;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -223,3 +234,10 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
     min-height: 22px;
   }
 }
+
+/* Blue water/surf scheme */
+#header { background: #13272f; color: #b9dbe4; border-bottom-color: #3d4d52; }
+#page-tabs { background: #0e1520; border-bottom-color: #2e5a8a; }
+.tab, .tab:visited { color: #8eb4d8; }
+.tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(91,158,214,0.1); }
+#page-tabs .tabs-overflow-cue { background: linear-gradient(90deg, rgba(14, 21, 32, 0), #0e1520 48%); }

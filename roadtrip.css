@@ -1,4 +1,8 @@
 * { box-sizing: border-box; }
+:root {
+  --time-strip-bg: #1c1c1c;
+  --tab-text-color: #8eb4d8;
+}
 body {
   margin: 0;
   color: #eef4ff;
@@ -63,6 +67,13 @@ body {
   background: linear-gradient(90deg, rgba(14, 21, 32, 0), #0e1520 48%);
 }
 #page-tabs.has-more-tabs .tabs-overflow-cue { display: grid; }
+
+/* Shared page chrome */
+#header { background: var(--tab-text-color); color: var(--time-strip-bg); padding: 9px 14px; font-size: 15px; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
+#page-tabs { background: var(--time-strip-bg); border-bottom: 2px solid #2e5a8a; }
+.tab, .tab:visited { display: inline-block; padding: 9px 14px; font-size: 13px; color: var(--tab-text-color); border-bottom-width: 3px; margin-bottom: -2px; }
+.tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(255,255,255,0.06); }
+#page-tabs .tabs-overflow-cue { background: linear-gradient(90deg, rgba(28, 28, 28, 0), var(--time-strip-bg) 48%); }
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -436,3 +447,33 @@ button:disabled {
   .route-map-waypoint text { font-size: 12px; }
   .forecast-table { min-width: 760px; }
 }
+
+/* Green activity scheme */
+:root {
+  --time-strip-bg: #151816;
+  --tab-text-color: #9fcbb9;
+}
+#header { background: #14231f; color: #c3ded4; border-bottom-color: #3f4c48; }
+#page-tabs { background: #151816; border-bottom-color: #35584d; }
+.tab, .tab:visited { color: #9fcbb9; }
+.tab.active, .tab.active:visited { color: #f4fbf8; border-bottom-color: #3a8a77; background: rgba(58,138,119,0.14); }
+#page-tabs .tabs-overflow-cue { background: linear-gradient(90deg, rgba(21, 24, 22, 0), #151816 48%); }
+#route-controls,
+.stop-row,
+.summary-card,
+.forecast-table-wrap,
+.forecast-card,
+.route-map,
+.map-tooltip { background: #1e2c29; border-color: #3a554d; }
+.route-inputs,
+#stops-panel,
+.forecast-table th,
+.forecast-table td,
+.weather-cell { border-color: #3f4c48; }
+input,
+select,
+textarea { background: #303736; border-color: #586561; }
+button,
+#maps-link { background: #2f7564; border-color: #3a8a77; }
+button:hover,
+#maps-link:hover { background: #3a8a77; }

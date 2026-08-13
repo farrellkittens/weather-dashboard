@@ -7,9 +7,9 @@
 
   function isEnabled() {
     try {
-      return localStorage.getItem(ENABLED_KEY) === 'true';
+      return localStorage.getItem(ENABLED_KEY) !== 'false';
     } catch (error) {
-      return false;
+      return true;
     }
   }
 

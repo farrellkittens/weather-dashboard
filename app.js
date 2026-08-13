@@ -44,6 +44,7 @@ const C = {
 // ════════════════════════════════════════════════════════════
 const PANELS = [
   { id:'temp', label:'Temperature / Wind Chill / Dewpoint (°F)', h: Math.round(145*SCALE), type:'multi',
+    scaleKeys:['temp','windChill','dewpoint'],
     lines:[
       {key:'temp',      color:'#e03030', label:'Temp'},
       {key:'windChill', color:'#4488ee', label:'Wind Chill'},
@@ -52,7 +53,7 @@ const PANELS = [
     tooltipKeys:['temp','windChill','dewpoint'],
   },
 
-  { id:'sky', label:'Sky Cover / Rel. Humidity / Precipitation Potential (%)', h: Math.round(110*SCALE), type:'multi', fixedRange:[0,100],
+  { id:'sky', label:'Sky Cover / Rel. Humidity / Precipitation Potential (%)', h: Math.round(145*SCALE), type:'multi', fixedRange:[0,100],
     lines:[
       {key:'skyCover', color:'#6aaddd', label:'Sky Cover'},
       {key:'rh',       color:'#44bb55', label:'Humidity'},
@@ -61,7 +62,7 @@ const PANELS = [
     tooltipKeys:['skyCover','rh','pop'],
   },
 
-  { id:'wind', label:'Wind Speed / Gust (mph)', h: Math.round(105*SCALE), type:'wind',
+  { id:'wind', label:'Wind Speed / Gust (mph)', h: Math.round(145*SCALE), type:'wind',
     tooltipKeys:['windSpeed','windGust','windDir'],
   },
 
@@ -87,6 +88,7 @@ const PANELS = [
 
 const PANEL_SHORT_LABELS = { temp:'Temp', sky:'Sky', wind:'Wind', rain:'Rain', thunder:'Storm', snow:'Snow', uv:'UV' };
 const PANEL_VISIBILITY_STORAGE_KEY = 'forecastGraphVisiblePanels';
+const PANEL_AUTO_VISIBILITY_STORAGE_KEY = 'forecastGraphAutoHiddenPanels';
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -99,6 +101,7 @@ let mobileNavReady = false;
 let mobileNavSignature = '';
 let mobileNavRaf = null;
 const hiddenPanels = new Set(loadHiddenPanels());
+const autoHiddenPanels = new Set(loadAutoHiddenPanels());
 
 // ════════════════════════════════════════════════════════════
 // HELPERS
@@ -150,6 +153,7 @@ function expandThunder(vals, n) {
 const cToF   = c => c==null?null:Math.round(c*9/5+32);
 const kToMph = v => v==null?null:Math.round(v/1.60934);
 const mmToIn = v => v==null?null:+(v/25.4).toFixed(2);
+const roundNumber = v => v==null?null:Math.round(v);
 const coordForRequest = v => Number(v).toFixed(3);
 const card   = d => ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round((d??0)/22.5)%16];
 const LOCATION_LOOKUP_TTL_MS = 12 * 60 * 60 * 1000;
@@ -166,9 +170,24 @@ function loadHiddenPanels() {
   }
 }
 
+function loadAutoHiddenPanels() {
+  try {
+    const saved=JSON.parse(localStorage.getItem(PANEL_AUTO_VISIBILITY_STORAGE_KEY)||'[]');
+    return Array.isArray(saved) ? saved.filter(id=>PANELS.some(panel=>panel.id===id)) : [];
+  } catch {
+    return [];
+  }
+}
+
 function saveHiddenPanels() {
   try {
     localStorage.setItem(PANEL_VISIBILITY_STORAGE_KEY,JSON.stringify([...hiddenPanels]));
+  } catch {}
+}
+
+function saveAutoHiddenPanels() {
+  try {
+    localStorage.setItem(PANEL_AUTO_VISIBILITY_STORAGE_KEY,JSON.stringify([...autoHiddenPanels]));
   } catch {}
 }
 
@@ -184,9 +203,11 @@ function chartSectionNavItems() {
 function togglePanelVisibility(panelId) {
   const isHidden=hiddenPanels.has(panelId);
   const visibleCount=PANELS.length-hiddenPanels.size;
+  autoHiddenPanels.delete(panelId);
   if(isHidden)hiddenPanels.delete(panelId);
   else if(visibleCount>1)hiddenPanels.add(panelId);
   saveHiddenPanels();
+  saveAutoHiddenPanels();
   updateChartVisibilityControls();
   updateMobileSectionNav();
   if(D.length)draw();
@@ -220,6 +241,42 @@ function updateChartVisibilityControls() {
   });
 }
 
+function hasMeaningfulForecastValue(rows, checks) {
+  return rows.some(row=>checks.some(check=>check(row)));
+}
+
+function autoHideEmptyWeatherPanels(forecastRows) {
+  const rules=[
+    {id:'rain', checks:[
+      row=>Number.isFinite(row.qpf)&&row.qpf>=0.005,
+      row=>Number.isFinite(row.pop)&&row.pop>=20,
+    ]},
+    {id:'thunder', checks:[
+      row=>Number.isFinite(row.thunder)&&row.thunder>=20,
+    ]},
+    {id:'snow', checks:[
+      row=>Number.isFinite(row.snowfall)&&row.snowfall>=0.005,
+      row=>Number.isFinite(row.snowPop)&&row.snowPop>=20,
+    ]},
+  ];
+
+  for(const rule of rules){
+    const hasData=hasMeaningfulForecastValue(forecastRows,rule.checks);
+    if(hasData && autoHiddenPanels.has(rule.id)){
+      autoHiddenPanels.delete(rule.id);
+      hiddenPanels.delete(rule.id);
+    } else if(!hasData && !hiddenPanels.has(rule.id)){
+      autoHiddenPanels.add(rule.id);
+      hiddenPanels.add(rule.id);
+    }
+  }
+
+  saveHiddenPanels();
+  saveAutoHiddenPanels();
+  updateChartVisibilityControls();
+  updateMobileSectionNav();
+}
+
 function niceStep(mn,mx,ticks){ const r=(mx-mn||1)/ticks,m=Math.pow(10,Math.floor(Math.log10(r))); for(const c of[1,2,5,10])if(c*m>=r)return c*m; return 10; }
 
 function niceAxisRange(values,{ticks=4,includeZero=false,minSpan=10,padRatio=0.18}={}){
@@ -243,6 +300,49 @@ function niceAxisRange(values,{ticks=4,includeZero=false,minSpan=10,padRatio=0.1
   const mn=includeZero?0:Math.floor(paddedMn/step)*step;
   const mx=Math.ceil(paddedMx/step)*step;
   return {mn,mx:mx===mn?mn+step:mx,step};
+}
+
+function tempAxisRange(values){
+  const nums=values.filter(Number.isFinite);
+  if(!nums.length)return {mn:0,mx:1,step:1};
+  const rawMn=Math.min(...nums);
+  const rawMx=Math.max(...nums);
+  const mn=Math.floor(rawMn/10)*10;
+  const mx=Math.ceil(rawMx/10)*10;
+  return {mn,mx:mx===mn?mn+10:mx,step:10};
+}
+
+function axisDataWindow(){
+  if(!D.length)return [];
+  const from=Math.max(0,Math.min(startIdx,D.length-1));
+  const to=Math.min(D.length,from+HOURS);
+  return D.slice(from,to);
+}
+
+function forecastDataFromNow(){
+  if(!D.length)return [];
+  const nowHour=floorHour(new Date());
+  const rows=D.filter(d=>d.source==='forecast'&&d.time>=nowHour);
+  return rows.length?rows:axisDataWindow();
+}
+
+function panelScaleValues(panel){
+  const keys=panel.scaleKeys||panel.lines.map(l=>l.key);
+  const scaleData=panel.id==='temp'?forecastDataFromNow():axisDataWindow();
+  let vals=keys.flatMap(key=>scaleData.map(d=>d[key])).filter(Number.isFinite);
+  if(vals.length)return vals;
+  return panel.lines.flatMap(l=>D.map(d=>d[l.key])).filter(Number.isFinite);
+}
+
+function panelAxisRange(panel){
+  if(panel.fixedRange)return {mn:panel.fixedRange[0],mx:panel.fixedRange[1],step:25};
+  const vals=panelScaleValues(panel);
+  if(panel.id==='temp')return tempAxisRange(vals);
+  return niceAxisRange(vals,{
+    ticks:4,
+    minSpan:10,
+    padRatio:0.18,
+  });
 }
 
 function popLabel(p){ if(p==null)return null; if(p>=70)return'Ocnl'; if(p>=55)return'Lkly'; if(p>=40)return'Chc'; if(p>=20)return'SChc'; return null; }
@@ -322,21 +422,21 @@ function openMeteoHourlyRows(res, uvCalibration=1) {
   if(!hourly?.time)return [];
   return hourly.time.map((time,i)=>({
       time:parseUtcHour(time),
-      temp:hourly.temperature_2m?.[i]??null,
-      dewpoint:hourly.dew_point_2m?.[i]??null,
-      windChill:hourly.apparent_temperature?.[i]??null,
-      rh:hourly.relative_humidity_2m?.[i]??null,
-      skyCover:hourly.cloud_cover?.[i]??null,
-      windSpeed:hourly.wind_speed_10m?.[i]??null,
-      windDir:hourly.wind_direction_10m?.[i]??null,
-      windGust:hourly.wind_gusts_10m?.[i]??null,
-      pop:hourly.precipitation_probability?.[i]??null,
+      temp:roundNumber(hourly.temperature_2m?.[i]),
+      dewpoint:roundNumber(hourly.dew_point_2m?.[i]),
+      windChill:roundNumber(hourly.apparent_temperature?.[i]),
+      rh:roundNumber(hourly.relative_humidity_2m?.[i]),
+      skyCover:roundNumber(hourly.cloud_cover?.[i]),
+      windSpeed:roundNumber(hourly.wind_speed_10m?.[i]),
+      windDir:roundNumber(hourly.wind_direction_10m?.[i]),
+      windGust:roundNumber(hourly.wind_gusts_10m?.[i]),
+      pop:roundNumber(hourly.precipitation_probability?.[i]),
       thunder:(hourly.weather_code?.[i]??0)>=95 ? 100 : null,
       qpf:hourly.rain?.[i]??null,
       snow:hourly.snowfall?.[i]??null,
       snowfall:hourly.snowfall?.[i]??null,
       snowPop:null,
-      uvIndex:hourly.uv_index?.[i]==null?null:hourly.uv_index[i]*uvCalibration,
+      uvIndex:roundNumber(hourly.uv_index?.[i]==null?null:hourly.uv_index[i]*uvCalibration),
       uvSource:uvCalibration!==1?'EPA-calibrated Open-Meteo':'Open-Meteo',
       source:'history',
     }))
@@ -719,6 +819,7 @@ async function loadForecast(options = {}) {
     const historyData=openMeteoHourlyRows(openMeteoRes, epaUvCalibration)
       .filter(d=>d.time<forecastStart);
     ALL_DATA=[...historyData,...forecastData];
+    autoHideEmptyWeatherPanels(forecastData);
 
     document.getElementById('grid-ref').textContent =
       `  ·  ${gridId} ${gridX},${gridY} · updated ${new Date(p.updateTime || gd.properties.updateTime).toLocaleString()}`;
@@ -1008,9 +1109,7 @@ function drawMulti(panel,y0,h,n,stickyX=0){
   if(!allVals.length)return;
   const axisX=stickyX+LEFT;
   const plotEnd=LEFT+BUFFER*HW+n*HW;
-  const range=panel.fixedRange
-    ? {mn:panel.fixedRange[0],mx:panel.fixedRange[1],step:25}
-    : niceAxisRange(allVals,{ticks:4,minSpan:panel.id==='temp'?20:10,padRatio:0.2});
+  const range=panelAxisRange(panel);
   const {mn,mx,step}=range;
   const pad=6, iH=h-pad*2;
   const toY=v=>y0+pad+iH-((v-mn)/(mx-mn||1))*iH;
@@ -1330,9 +1429,7 @@ function drawAxisOverlay(n,H,panels) {
   function drawMultiAxis(panel,y0,h){
     const allVals=panel.lines.flatMap(l=>D.map(d=>d[l.key])).filter(v=>v!=null);
     if(!allVals.length)return;
-    const range=panel.fixedRange
-      ? {mn:panel.fixedRange[0],mx:panel.fixedRange[1],step:25}
-      : niceAxisRange(allVals,{ticks:4,minSpan:panel.id==='temp'?20:10,padRatio:0.2});
+    const range=panelAxisRange(panel);
     const {mn,mx,step}=range;
     const pad=6, iH=h-pad*2;
     const toY=v=>y0+pad+iH-((v-mn)/(mx-mn||1))*iH;
