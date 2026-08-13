@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadtrip Weather</title>
+<link rel="stylesheet" href="roadtrip.css?v=1">
+</head>
+<body>
+<div id="header">
+  <span>Roadtrip Weather</span>
+</div>
+
+<div id="page-tabs">
+  <a href="peaks.html" class="tab">Forecast: Directional</a>
+  <a href="index.html" class="tab">Forecast: Graph</a>
+  <a href="roadtrip.html" class="tab active">Roadtrip</a>
+  <a href="camping.html" class="tab">Camping</a>
+  <a href="dispersed.html" class="tab">Dispersed Camping</a>
+  <a href="climbing.html" class="tab">Climbing</a>
+  <a href="water.html" class="tab">SUP/Float</a>
+  <a href="diving.html" class="tab">Surf Report</a>
+</div>
+
+<main id="roadtrip-page">
+  <section id="route-controls" aria-label="Roadtrip route controls">
+    <div class="route-inputs">
+      <label>
+        <span>From</span>
+        <input id="from-input" value="Denver, CO" autocomplete="off">
+      </label>
+      <label>
+        <span>To</span>
+        <input id="to-input" value="Moab, UT" autocomplete="off">
+      </label>
+      <button id="use-location" type="button" title="Use current location for trip start">Use Current</button>
+      <button id="load-route" type="button">Load Trip Weather</button>
+    </div>
+    <div id="stops-panel">
+      <div class="stops-heading">
+        <h2>Stops</h2>
+        <button id="add-stop" type="button">Add Stop</button>
+      </div>
+      <div id="stops-list" aria-live="polite"></div>
+    </div>
+    <div id="status">Enter a start and destination to sample five-day high/low forecasts every 100 miles.</div>
+  </section>
+
+  <section id="summary-section" class="section-block" hidden>
+    <div class="section-heading">
+      <h1>Trip Summary</h1>
+      <a id="maps-link" href="#" target="_blank" rel="noopener noreferrer">Open route</a>
+    </div>
+    <div id="summary-grid" class="summary-grid"></div>
+    <div id="route-map" class="route-map" aria-label="Route map overview"></div>
+  </section>
+
+  <section id="forecast-section" class="section-block" hidden>
+    <div class="section-heading">
+      <h2>Route Forecasts</h2>
+      <span id="forecast-updated"></span>
+    </div>
+    <div id="forecast-grid" class="forecast-table-wrap"></div>
+  </section>
+</main>
+
+<div id="footer">Routing: OSRM. Weather: Open-Meteo daily forecasts. Forecasts are sampled at route endpoints, added stops, and each 100-mile marker.</div>
+
+<script src="shared-location.js?v=3"></script>
+<script src="roadtrip.js?v=1"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

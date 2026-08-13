@@ -43,7 +43,7 @@ const C = {
 // PANEL DEFINITIONS
 // ════════════════════════════════════════════════════════════
 const PANELS = [
-  { id:'temp', label:'Temperature / Wind Chill / Dewpoint (°F)', h: Math.round(115*SCALE), type:'multi',
+  { id:'temp', label:'Temperature / Wind Chill / Dewpoint (°F)', h: Math.round(145*SCALE), type:'multi',
     lines:[
       {key:'temp',      color:'#e03030', label:'Temp'},
       {key:'windChill', color:'#4488ee', label:'Wind Chill'},
@@ -52,7 +52,7 @@ const PANELS = [
     tooltipKeys:['temp','windChill','dewpoint'],
   },
 
-  { id:'sky', label:'Sky Cover / Rel. Humidity / Precipitation Potential (%)', h: Math.round(90*SCALE), type:'multi', fixedRange:[0,100],
+  { id:'sky', label:'Sky Cover / Rel. Humidity / Precipitation Potential (%)', h: Math.round(110*SCALE), type:'multi', fixedRange:[0,100],
     lines:[
       {key:'skyCover', color:'#6aaddd', label:'Sky Cover'},
       {key:'rh',       color:'#44bb55', label:'Humidity'},
@@ -61,26 +61,26 @@ const PANELS = [
     tooltipKeys:['skyCover','rh','pop'],
   },
 
-  { id:'wind', label:'Wind Speed / Gust (mph)', h: Math.round(85*SCALE), type:'wind',
+  { id:'wind', label:'Wind Speed / Gust (mph)', h: Math.round(105*SCALE), type:'wind',
     tooltipKeys:['windSpeed','windGust','windDir'],
   },
 
-  { id:'rain', label:'Rain (%)', h: Math.round(85*SCALE), type:'precip',
+  { id:'rain', label:'Rain (%)', h: Math.round(105*SCALE), type:'precip',
     precipKey:'qpf', popKey:'pop', barColor:'#44bb66', labelColor:'#44bb66',
     tooltipKeys:['pop','qpf'],
   },
 
-  { id:'thunder', label:'Thunderstorm (%)', h: Math.round(85*SCALE), type:'precip',
+  { id:'thunder', label:'Thunderstorm (%)', h: Math.round(105*SCALE), type:'precip',
     precipKey:null, popKey:'thunder', barColor:'#cc4444', labelColor:'#cc4444',
     tooltipKeys:['thunder'],
   },
 
-  { id:'snow', label:'Snow (%)', h: Math.round(85*SCALE), type:'precip',
+  { id:'snow', label:'Snow (%)', h: Math.round(105*SCALE), type:'precip',
     precipKey:'snowfall', popKey:'snowPop', barColor:'#5599dd', labelColor:'#5599dd',
     tooltipKeys:['snowPop','snowfall'],
   },
 
-  { id:'uv', label:'UV Index', h: Math.round(90*SCALE), type:'uv',
+  { id:'uv', label:'UV Index', h: Math.round(105*SCALE), type:'uv',
     tooltipKeys:['uvIndex'],
   },
 ];
@@ -221,6 +221,29 @@ function updateChartVisibilityControls() {
 }
 
 function niceStep(mn,mx,ticks){ const r=(mx-mn||1)/ticks,m=Math.pow(10,Math.floor(Math.log10(r))); for(const c of[1,2,5,10])if(c*m>=r)return c*m; return 10; }
+
+function niceAxisRange(values,{ticks=4,includeZero=false,minSpan=10,padRatio=0.18}={}){
+  const nums=values.filter(Number.isFinite);
+  if(!nums.length)return {mn:0,mx:1,step:1};
+  let rawMn=Math.min(...nums);
+  let rawMx=Math.max(...nums);
+  if(includeZero)rawMn=Math.min(0,rawMn);
+
+  let span=rawMx-rawMn;
+  if(span<minSpan){
+    const mid=(rawMn+rawMx)/2;
+    rawMn=mid-minSpan/2;
+    rawMx=mid+minSpan/2;
+    span=minSpan;
+  }
+
+  const paddedMn=includeZero?0:rawMn-span*padRatio;
+  const paddedMx=rawMx+span*padRatio;
+  const step=niceStep(paddedMn,paddedMx,ticks);
+  const mn=includeZero?0:Math.floor(paddedMn/step)*step;
+  const mx=Math.ceil(paddedMx/step)*step;
+  return {mn,mx:mx===mn?mn+step:mx,step};
+}
 
 function popLabel(p){ if(p==null)return null; if(p>=70)return'Ocnl'; if(p>=55)return'Lkly'; if(p>=40)return'Chc'; if(p>=20)return'SChc'; return null; }
 
@@ -985,12 +1008,13 @@ function drawMulti(panel,y0,h,n,stickyX=0){
   if(!allVals.length)return;
   const axisX=stickyX+LEFT;
   const plotEnd=LEFT+BUFFER*HW+n*HW;
-  const mn=panel.fixedRange?panel.fixedRange[0]:Math.min(...allVals);
-  const mx=panel.fixedRange?panel.fixedRange[1]:Math.max(...allVals);
+  const range=panel.fixedRange
+    ? {mn:panel.fixedRange[0],mx:panel.fixedRange[1],step:25}
+    : niceAxisRange(allVals,{ticks:4,minSpan:panel.id==='temp'?20:10,padRatio:0.2});
+  const {mn,mx,step}=range;
   const pad=6, iH=h-pad*2;
   const toY=v=>y0+pad+iH-((v-mn)/(mx-mn||1))*iH;
 
-  const step=panel.fixedRange?25:niceStep(mn,mx,4);
   ctx.font=`${Math.round(9*SCALE)}px Arial`;
   ctx.fillStyle=C.axisTxt;
   ctx.textAlign='right';ctx.textBaseline='middle';
@@ -1054,11 +1078,10 @@ function drawWind(y0,h,n,stickyX=0){
 
   const arrowH=Math.round(22*SCALE);
   const lineY0=y0+arrowH, lineH=h-arrowH;
-  const mx=Math.max(...all);
+  const {mx,step}=niceAxisRange(all,{ticks:3,includeZero:true,minSpan:10,padRatio:0.15});
   const pad=6, iH=lineH-pad*2;
   const toY=v=>lineY0+pad+iH-(v/(mx||1))*iH;
 
-  const step=niceStep(0,mx,3);
   ctx.font=`${Math.round(9*SCALE)}px Arial`;
   ctx.fillStyle=C.axisTxt;ctx.textAlign='right';ctx.textBaseline='middle';
   for(let v=step;v<=mx*1.05;v+=step){
@@ -1307,11 +1330,12 @@ function drawAxisOverlay(n,H,panels) {
   function drawMultiAxis(panel,y0,h){
     const allVals=panel.lines.flatMap(l=>D.map(d=>d[l.key])).filter(v=>v!=null);
     if(!allVals.length)return;
-    const mn=panel.fixedRange?panel.fixedRange[0]:Math.min(...allVals);
-    const mx=panel.fixedRange?panel.fixedRange[1]:Math.max(...allVals);
+    const range=panel.fixedRange
+      ? {mn:panel.fixedRange[0],mx:panel.fixedRange[1],step:25}
+      : niceAxisRange(allVals,{ticks:4,minSpan:panel.id==='temp'?20:10,padRatio:0.2});
+    const {mn,mx,step}=range;
     const pad=6, iH=h-pad*2;
     const toY=v=>y0+pad+iH-((v-mn)/(mx-mn||1))*iH;
-    const step=panel.fixedRange?25:niceStep(mn,mx,4);
     axisCtx.font=`${Math.round(9*SCALE)}px Arial`;
     axisCtx.fillStyle=C.axisTxt;
     axisCtx.textAlign='right';
@@ -1328,10 +1352,9 @@ function drawAxisOverlay(n,H,panels) {
     if(!all.length)return;
     const arrowH=Math.round(22*SCALE);
     const lineY0=y0+arrowH, lineH=h-arrowH;
-    const mx=Math.max(...all);
+    const {mx,step}=niceAxisRange(all,{ticks:3,includeZero:true,minSpan:10,padRatio:0.15});
     const pad=6, iH=lineH-pad*2;
     const toY=v=>lineY0+pad+iH-(v/(mx||1))*iH;
-    const step=niceStep(0,mx,3);
     axisCtx.font=`${Math.round(9*SCALE)}px Arial`;
     axisCtx.fillStyle=C.axisTxt;
     axisCtx.textAlign='right';

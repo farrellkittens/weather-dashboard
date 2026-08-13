@@ -14,7 +14,9 @@
 <div id="page-tabs">
   <a href="peaks.html" class="tab">Forecast: Directional</a>
   <a href="index.html" class="tab active">Forecast: Graph</a>
+  <a href="roadtrip.html" class="tab">Roadtrip</a>
   <a href="camping.html" class="tab">Camping</a>
+  <a href="dispersed.html" class="tab">Dispersed Camping</a>
   <a href="climbing.html" class="tab">Climbing</a>
   <a href="water.html" class="tab">SUP/Float</a>
   <a href="diving.html" class="tab">Surf Report</a>
@@ -22,32 +24,46 @@
 
 <div id="graph-sticky-controls">
   <div id="controls">
-    <span class="control-group">
-      <label>City, State:</label>
-      <span class="city-input-wrap">
-        <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
-        <button id="use-location" class="use-location-button" type="button" onclick="useDashboardBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
-      </span>
-    </span>
+    <section class="control-section control-section-location" aria-label="Location controls">
+      <div class="control-section-title">Location</div>
+      <span class="control-row">
+        <span class="control-group">
+          <label>City, State</label>
+          <span class="city-input-wrap">
+            <input id="city" placeholder="Denver, CO" autocomplete="off" oninput="debounceSuggest()">
+            <button id="use-location" class="use-location-button" type="button" onclick="useDashboardBrowserLocation()" aria-label="Get my location" title="Get my location"></button>
+          </span>
+        </span>
 
-    <span class="control-group">
-      <label>Lat, Lon:</label>
-      <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
-      <button type="button" onclick="loadForecast()">Go</button>
-    </span>
-    <label class="share-location-toggle">
-      <input id="share-location" type="checkbox">
-      <span>Use this location on all tabs</span>
-    </label>
-    <span class="control-group">
-      <label>Start:</label>
-      <select id="startSel"></select>
-      <button onclick="applyStart()">Go</button>
-    </span>
-    <div id="loc"></div>
+        <span class="control-group control-group-coords">
+          <label>Lat, Lon</label>
+          <input id="coords" value="39.741678, -104.976111" placeholder="lat, lon" onkeydown="if(event.key==='Enter')loadForecast()">
+          <button type="button" onclick="loadForecast()">Go</button>
+        </span>
+      </span>
+      <span class="control-row control-row-secondary">
+        <label class="share-location-toggle">
+          <input id="share-location" type="checkbox">
+          <span>Use this location on all tabs</span>
+        </label>
+        <div id="loc"></div>
+      </span>
+    </section>
+
+    <section class="control-section control-section-start" aria-label="Forecast start controls">
+      <div class="control-section-title">Start</div>
+      <span class="control-group">
+        <label>Time</label>
+        <select id="startSel"></select>
+        <button onclick="applyStart()">Go</button>
+      </span>
+    </section>
   </div>
 
-  <div id="chart-controls" aria-label="Chart visibility controls"></div>
+  <div id="chart-controls-shell">
+    <div class="control-section-title">Chart Layers</div>
+    <div id="chart-controls" aria-label="Chart visibility controls"></div>
+  </div>
 </div>
 
 <nav id="mobile-section-nav" aria-label="Chart visibility controls"></nav>

@@ -21,6 +21,7 @@ body.is-loading * {
 #page-tabs .tab { order: 10; }
 #page-tabs .tab[href="peaks.html"] { order: 1; }
 #page-tabs .tab[href="index.html"] { order: 2; }
+#page-tabs .tab[href="roadtrip.html"] { order: 3; }
 .tab:hover { color: #d4e8fc; background: rgba(255,255,255,0.05); text-decoration: none; }
 .tab.active, .tab.active:visited { color: #eef4ff; border-bottom-color: #5b9ed6; background: rgba(91,158,214,0.1); }
 #page-tabs .tabs-overflow-cue { order: 100; position: sticky; right: 0; align-self: stretch; display: none; place-items: center; width: 34px; flex: 0 0 34px; margin-left: -34px; color: #eef4ff; font-size: 22px; font-weight: bold; pointer-events: none; text-shadow: 0 1px 8px rgba(140, 199, 255, 0.85); background: linear-gradient(90deg, rgba(14, 21, 32, 0), #0e1520 48%); }
@@ -303,9 +304,10 @@ body.is-loading * {
 }
 
 .legend-bar {
-  height: 9px;
-  border: 1px solid rgba(255,255,255,0.16);
-  border-radius: 4px;
+  height: 11px;
+  border-radius: 6px;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
   margin-top: 9px;
 }
 
@@ -313,7 +315,7 @@ body.is-loading * {
 .legend-wind { background: linear-gradient(90deg, #f8fafc, #f7df72, #f29a3f, #e675ad, #7c3ba6); }
 .legend-precip { background: linear-gradient(90deg, #f7fbef, #d9ef8b, #7fcdbb, #41b6c4, #1d91c0, #225ea8, #0c2c84); }
 .legend-sky { background: linear-gradient(90deg, #174d86, #4f8fc8, #a7b5c1, #eef2f6); }
-.legend-thunder { background: linear-gradient(90deg, #2b255a, #5f4eb2, #9a4bc1, #e64da4); }
+.legend-thunder { background: linear-gradient(90deg, #d9d9d9 0%, #6a46ae 50%, #ff00b7 100%); }
 
 .legend-labels {
   display: flex;
@@ -494,10 +496,16 @@ body.is-loading * {
 }
 
 .rose-header-row {
+  position: sticky;
+  top: var(--summit-sticky-offset, 0px);
+  z-index: 23;
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  padding-bottom: 4px;
+  padding: 8px 0 7px;
+  background: #2b2b2b;
+  border-bottom: 1px solid rgba(68,68,68,0.9);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.18);
 }
 
 .rose-col-header {
@@ -573,9 +581,10 @@ canvas[data-rose-canvas="true"] { cursor: crosshair; }
 }
 
 .rose-legend-bar {
-  height: 7px;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 4px;
+  height: 9px;
+  border-radius: 5px;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
 .rose-legend-labels {

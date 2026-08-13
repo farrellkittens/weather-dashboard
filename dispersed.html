@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispersed Camping</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQzJx4bR9G3AhM2p1lqgkG2f5K72U6E=" crossorigin="">
+<link rel="stylesheet" href="dispersed.css?v=4">
+</head>
+<body>
+<div id="header">
+  <span>Dispersed Camping Map</span>
+</div>
+
+<div id="page-tabs">
+  <a href="peaks.html" class="tab">Forecast: Directional</a>
+  <a href="index.html" class="tab">Forecast: Graph</a>
+  <a href="roadtrip.html" class="tab">Roadtrip</a>
+  <a href="camping.html" class="tab">Camping</a>
+  <a href="dispersed.html" class="tab active">Dispersed Camping</a>
+  <a href="climbing.html" class="tab">Climbing</a>
+  <a href="water.html" class="tab">SUP/Float</a>
+  <a href="diving.html" class="tab">Surf Report</a>
+</div>
+
+<main id="dispersed-page">
+  <aside id="map-panel" aria-label="Dispersed camping controls">
+    <section class="panel-section">
+      <div class="panel-kicker">White River NF</div>
+      <h1>Eagle-Holy Cross East</h1>
+      <p class="panel-copy">Review map with dispersed-camping traces, BLM road candidates, and separate USFS MVUM road context.</p>
+    </section>
+
+    <section class="panel-section controls-section">
+      <label class="toggle-row">
+        <input id="toggle-dispersed" type="checkbox" checked>
+        <span>Dispersed camping lines</span>
+      </label>
+      <label class="toggle-row">
+        <input id="toggle-road-context" type="checkbox">
+        <span>USFS MVUM road context</span>
+      </label>
+      <label class="toggle-row">
+        <input id="toggle-open-only" type="checkbox">
+        <span>Open for selected date only</span>
+      </label>
+      <label class="toggle-row">
+        <input id="toggle-passenger-only" type="checkbox" checked>
+        <span>Passenger roads only</span>
+      </label>
+      <label class="field-row" for="season-date">
+        <span>Season date</span>
+        <input id="season-date" type="date">
+      </label>
+      <label class="field-row" for="color-mode">
+        <span>Color mode</span>
+        <select id="color-mode">
+          <option value="review">Review status</option>
+          <option value="season">Season status</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="panel-section">
+      <h2>Layer Summary</h2>
+      <div id="layer-summary" class="summary-list"></div>
+    </section>
+
+    <section class="panel-section">
+      <h2>Source Material</h2>
+      <p class="panel-note">USFS motorized roads are context only. The primary layer contains reviewed camping traces plus BLM route candidates when present.</p>
+      <div class="source-list">
+        <div class="source-item">
+          <span class="source-name">USFS EDW MVUM Roads</span>
+          <span class="source-meta">White River NF · Eagle and Holy Cross Ranger Districts · symbols 1-4</span>
+        </div>
+        <div class="source-item">
+          <span class="source-name">2025 Summer MVUM</span>
+          <span class="source-meta">Eagle-Holy Cross RD East WRNF · May 21 to Nov 22</span>
+        </div>
+        <div class="source-item">
+          <span class="source-name">BLM National GTLF</span>
+          <span class="source-meta">BLM-authority motorized route candidates inside the map bounds</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-section">
+      <h2>Export Visible Lines</h2>
+      <div class="export-actions" aria-label="Export visible dispersed camping lines">
+        <button id="export-geojson" type="button">GeoJSON</button>
+        <button id="export-kml" type="button">KML</button>
+        <button id="export-gpx" type="button">GPX</button>
+      </div>
+      <p class="panel-note">Exports use the current filters and include visible camping lines plus BLM candidates.</p>
+    </section>
+
+    <section class="panel-section">
+      <h2>Review Queue</h2>
+      <div id="segment-list" class="segment-list"></div>
+    </section>
+  </aside>
+
+  <section id="map-shell" aria-label="Interactive dispersed camping map">
+    <div id="map"></div>
+    <div id="map-status" role="status">Loading map layers...</div>
+  </section>
+</main>
+
+<div id="footer">
+  Sources: USDA Forest Service EDW MVUM roads, BLM National GTLF, and local 2025 Summer MVUM KMZ. Road access is not camping permission; verify current MVUMs, closure orders, land manager rules, and fire restrictions.
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="dispersed.js?v=6"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

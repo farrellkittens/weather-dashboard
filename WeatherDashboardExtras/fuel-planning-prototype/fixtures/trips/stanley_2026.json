@@ -1,0 +1,325 @@
+{
+  "label": "Denver to Grand Teton, Yellowstone, Stanley, Dinosaur, Denver",
+  "dates": {
+    "start": "2026-07-23",
+    "end": "2026-07-27"
+  },
+  "vehicle": {
+    "label": "2014 Subaru Outback Premium 6MT",
+    "tank_capacity_gal": 16.9,
+    "avg_mpg": 22.2,
+    "fuel_grade": "regular"
+  },
+  "range_policy": {
+    "latest_stop_miles_left": 40,
+    "earliest_stop_tank_fraction": 0.25,
+    "max_station_detour_miles": 5
+  },
+  "waypoints": [
+    {
+      "label": "Denver, CO",
+      "lat": 39.7392,
+      "lon": -104.9903
+    },
+    {
+      "label": "Grand Teton National Park, WY",
+      "lat": 43.7904,
+      "lon": -110.6818
+    },
+    {
+      "label": "Yellowstone National Park, WY",
+      "lat": 44.428,
+      "lon": -110.5885
+    },
+    {
+      "label": "Stanley, ID",
+      "lat": 44.2177,
+      "lon": -114.9359
+    },
+    {
+      "label": "Dinosaur, CO",
+      "lat": 40.2444,
+      "lon": -109.0109
+    },
+    {
+      "label": "Denver, CO",
+      "lat": 39.7392,
+      "lon": -104.9903
+    }
+  ],
+  "route": {
+    "provider": "mock_fixture",
+    "total_miles": 1604,
+    "legs": [
+      {
+        "from": "Denver, CO",
+        "to": "Grand Teton National Park, WY",
+        "miles": 492
+      },
+      {
+        "from": "Grand Teton National Park, WY",
+        "to": "Yellowstone National Park, WY",
+        "miles": 88
+      },
+      {
+        "from": "Yellowstone National Park, WY",
+        "to": "Stanley, ID",
+        "miles": 349
+      },
+      {
+        "from": "Stanley, ID",
+        "to": "Dinosaur, CO",
+        "miles": 392
+      },
+      {
+        "from": "Dinosaur, CO",
+        "to": "Denver, CO",
+        "miles": 283
+      }
+    ],
+    "geometry": [
+      {
+        "label": "Denver, CO",
+        "lat": 39.7392,
+        "lon": -104.9903,
+        "mile": 0
+      },
+      {
+        "label": "Rawlins, WY",
+        "lat": 41.7911,
+        "lon": -107.2387,
+        "mile": 241
+      },
+      {
+        "label": "Riverton, WY",
+        "lat": 43.0249,
+        "lon": -108.3801,
+        "mile": 328
+      },
+      {
+        "label": "Grand Teton National Park, WY",
+        "lat": 43.7904,
+        "lon": -110.6818,
+        "mile": 492
+      },
+      {
+        "label": "Yellowstone National Park, WY",
+        "lat": 44.428,
+        "lon": -110.5885,
+        "mile": 580
+      },
+      {
+        "label": "West Yellowstone, MT",
+        "lat": 44.6621,
+        "lon": -111.1041,
+        "mile": 620
+      },
+      {
+        "label": "Stanley, ID",
+        "lat": 44.2177,
+        "lon": -114.9359,
+        "mile": 929
+      },
+      {
+        "label": "Pocatello, ID",
+        "lat": 42.8713,
+        "lon": -112.4455,
+        "mile": 1160
+      },
+      {
+        "label": "Rock Springs, WY",
+        "lat": 41.5875,
+        "lon": -109.2029,
+        "mile": 1248
+      },
+      {
+        "label": "Dinosaur, CO",
+        "lat": 40.2444,
+        "lon": -109.0109,
+        "mile": 1321
+      },
+      {
+        "label": "Silverthorne, CO",
+        "lat": 39.6321,
+        "lon": -106.0743,
+        "mile": 1536
+      },
+      {
+        "label": "Denver, CO",
+        "lat": 39.7392,
+        "lon": -104.9903,
+        "mile": 1604
+      }
+    ]
+  },
+  "fuel_prices": [
+    {
+      "id": "laramie-regular",
+      "name": "Laramie corridor average",
+      "brand": "Regional average",
+      "address": "Laramie, WY",
+      "lat": 41.3114,
+      "lon": -105.5911,
+      "route_mile": 130,
+      "detour_miles": 1.2,
+      "price_per_gal": 3.42,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-21T10:30:00-06:00",
+      "provider": "mock_average",
+      "confidence": 0.62,
+      "is_average": true
+    },
+    {
+      "id": "rawlins-regular",
+      "name": "Rawlins Travel Plaza",
+      "brand": "Mock Fuel",
+      "address": "Rawlins, WY",
+      "lat": 41.7911,
+      "lon": -107.2387,
+      "route_mile": 241,
+      "detour_miles": 1.4,
+      "price_per_gal": 3.51,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-21T09:10:00-06:00",
+      "provider": "mock_station",
+      "confidence": 0.82
+    },
+    {
+      "id": "riverton-regular",
+      "name": "Riverton Main Street Fuel",
+      "brand": "Mock Fuel",
+      "address": "Riverton, WY",
+      "lat": 43.0249,
+      "lon": -108.3801,
+      "route_mile": 328,
+      "detour_miles": 1.7,
+      "price_per_gal": 3.39,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-21T15:45:00-06:00",
+      "provider": "mock_station",
+      "confidence": 0.9
+    },
+    {
+      "id": "jackson-regular",
+      "name": "Jackson South Fuel",
+      "brand": "Mock Fuel",
+      "address": "Jackson, WY",
+      "lat": 43.4799,
+      "lon": -110.7624,
+      "route_mile": 480,
+      "detour_miles": 2.3,
+      "price_per_gal": 3.99,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-20T18:00:00-06:00",
+      "provider": "mock_station",
+      "confidence": 0.79
+    },
+    {
+      "id": "west-yellowstone-regular",
+      "name": "West Yellowstone Gateway Fuel",
+      "brand": "Mock Fuel",
+      "address": "West Yellowstone, MT",
+      "lat": 44.6621,
+      "lon": -111.1041,
+      "route_mile": 620,
+      "detour_miles": 0.8,
+      "price_per_gal": 3.89,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-21T07:20:00-06:00",
+      "provider": "mock_station",
+      "confidence": 0.86
+    },
+    {
+      "id": "stanley-regular",
+      "name": "Stanley regional fallback",
+      "brand": "Regional average",
+      "address": "Stanley, ID",
+      "lat": 44.2177,
+      "lon": -114.9359,
+      "route_mile": 929,
+      "detour_miles": 0.5,
+      "price_per_gal": 4.1,
+      "fuel_grade": "regular",
+      "updated_at": null,
+      "provider": "mock_average",
+      "confidence": 0.48,
+      "is_average": true
+    },
+    {
+      "id": "pocatello-regular",
+      "name": "Pocatello Interstate Fuel",
+      "brand": "Mock Fuel",
+      "address": "Pocatello, ID",
+      "lat": 42.8713,
+      "lon": -112.4455,
+      "route_mile": 1160,
+      "detour_miles": 1.9,
+      "price_per_gal": 3.67,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-18T14:15:00-06:00",
+      "provider": "mock_station",
+      "confidence": 0.66
+    },
+    {
+      "id": "rock-springs-regular",
+      "name": "Rock Springs Pilot Mock",
+      "brand": "Mock Fuel",
+      "address": "Rock Springs, WY",
+      "lat": 41.5875,
+      "lon": -109.2029,
+      "route_mile": 1248,
+      "detour_miles": 1.1,
+      "price_per_gal": 3.49,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-21T13:00:00-06:00",
+      "provider": "mock_station",
+      "confidence": 0.88
+    },
+    {
+      "id": "dinosaur-regular",
+      "name": "Dinosaur town average",
+      "brand": "Regional average",
+      "address": "Dinosaur, CO",
+      "lat": 40.2444,
+      "lon": -109.0109,
+      "route_mile": 1321,
+      "detour_miles": 0.6,
+      "price_per_gal": 3.81,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-15T08:00:00-06:00",
+      "provider": "mock_average",
+      "confidence": 0.5,
+      "is_average": true
+    },
+    {
+      "id": "craig-regular",
+      "name": "Craig Highway Fuel",
+      "brand": "Mock Fuel",
+      "address": "Craig, CO",
+      "lat": 40.5152,
+      "lon": -107.5465,
+      "route_mile": 1440,
+      "detour_miles": 2.8,
+      "price_per_gal": 3.72,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-20T12:25:00-06:00",
+      "provider": "mock_station",
+      "confidence": 0.74
+    },
+    {
+      "id": "silverthorne-regular",
+      "name": "Silverthorne Summit Fuel",
+      "brand": "Mock Fuel",
+      "address": "Silverthorne, CO",
+      "lat": 39.6321,
+      "lon": -106.0743,
+      "route_mile": 1536,
+      "detour_miles": 1.0,
+      "price_per_gal": 4.19,
+      "fuel_grade": "regular",
+      "updated_at": "2026-07-21T16:05:00-06:00",
+      "provider": "mock_station",
+      "confidence": 0.84
+    }
+  ]
+}

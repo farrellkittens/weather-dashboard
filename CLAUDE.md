@@ -2,7 +2,7 @@
 
 ## What this project is
 
-A weather dashboard with four static frontend views: Camping Conditions, an hourly NOAA/NWS forecast chart, a Summit Weather Rose page, and a Diving Conditions page for Oahu dive sites. Deployed on Vercel. No build tools, no dependencies beyond a local dev server for testing.
+A weather dashboard with static frontend views for Camping Conditions, Roadtrip Weather, an hourly NOAA/NWS forecast chart, a Summit Weather Rose page, and a Diving Conditions page for Oahu dive sites. Deployed on Vercel. No build tools, no dependencies beyond a local dev server for testing.
 
 ## Architecture
 
@@ -22,6 +22,7 @@ The main hourly forecast view is split across three files:
 Supporting files:
 - **`vercel.json`** — Vercel deployment config (`outputDirectory: "."`)
 - **`package.json`** — defines `npm run dev` (uses `npx serve .`)
+- **`roadtrip.html` / `roadtrip.css` / `roadtrip.js`** — Roadtrip Weather view. It geocodes a start, optional route-shaping stops, and destination, routes via OSRM, samples the route endpoints and every 100 miles, reverse-geocodes each sample to a nearest city/state label, and renders five-day Open-Meteo high/low forecast cards for each sample point.
 - **`camping.html` / `camping.css` / `camping.js`** — Camping Conditions view. It looks up the selected point's county with the FCC Census area API, shows county-first fire restriction verification language and resources, checks the USFS fire restriction ArcGIS layer where available, and renders a short Open-Meteo temperature forecast.
 - **`peaks.html` / `peaks.css` / `peaks.js`** — Summit Weather Rose view linked from the shared page tabs. It samples NWS forecast grids around a selected peak, city, or coordinates at 1, 5, 10, and 20 miles, supports 8- or 16-direction sampling, progressively renders from summit data outward through the distance rings, and tries `/api/nws-cache` before falling back to direct NWS calls. Initial load uses generic local placeholder roses until a location is selected.
 - **`api/nws-cache.js`** — Vercel API route that only proxies allowed `api.weather.gov/points` and `api.weather.gov/gridpoints` URLs. It uses Upstash Redis env vars (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) for shared cross-user caching when configured.
@@ -37,7 +38,7 @@ Supporting files:
 
 ## How to test changes
 
-Run `npm run dev` and open the local URL in a browser. The camping page starts empty until a location is selected. The hourly page auto-loads on open (default coords: Denver, CO). The summit page starts with generic placeholder roses until a location is selected. The diving page auto-loads the first Oahu preset.
+Run `npm run dev` and open the local URL in a browser. The camping and roadtrip pages start empty until a location or route is selected. The hourly page auto-loads on open (default coords: Denver, CO). The summit page starts with generic placeholder roses until a location is selected. The diving page auto-loads the first Oahu preset.
 
 When multiple changes are made, agents should proactively close any Weather Dashboard-related local hosting ports they started or find still running, then serve the current local workspace on port 8000 and give the user the local URL, including the Mac LAN address when available.
 

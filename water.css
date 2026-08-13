@@ -7,6 +7,7 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #262b2d; col
 #page-tabs .tab { order: 10; }
 #page-tabs .tab[href="peaks.html"] { order: 1; }
 #page-tabs .tab[href="index.html"] { order: 2; }
+#page-tabs .tab[href="roadtrip.html"] { order: 3; }
 .tab:hover { color: #d4e8fc; background: rgba(255,255,255,.05); }
 .tab.active { color: #eef4ff; border-bottom-color: #55bdd2; background: rgba(85,189,210,.1); }
 #page-tabs .tabs-overflow-cue { order: 100; position: sticky; right: 0; align-self: stretch; display: none; place-items: center; width: 34px; flex: 0 0 34px; margin-left: -34px; color: #eef4ff; font-size: 22px; font-weight: bold; pointer-events: none; text-shadow: 0 1px 8px rgba(140, 199, 255, 0.85); background: linear-gradient(90deg, rgba(14, 21, 32, 0), #0e1520 48%); }

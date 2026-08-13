@@ -174,6 +174,7 @@ const DISTANCE_BANDS = [
   { label: '10 mi', miles: 10, km: 10 * MI_TO_KM },
   { label: '20 mi', miles: 20, km: 20 * MI_TO_KM },
 ];
+const THUNDER_COLOR_STOPS = ['#d9d9d9', '#6a46ae', '#ff00b7'];
 
 // ════════════════════════════════════════════════════════════
 // VARIABLE CONFIG
@@ -315,7 +316,7 @@ function skyColor(pct) {
 }
 
 function thunderColor(pct) {
-  return colorRamp(['#2b255a', '#5f4eb2', '#9a4bc1', '#e64da4'], clamp01(pct / 100));
+  return colorRamp(THUNDER_COLOR_STOPS, clamp01(pct / 100));
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1171,7 +1172,7 @@ function gradientFor(variable, min, max) {
   if (variable === 'wind') return 'linear-gradient(90deg, #f8fafc 0 20%, #f7df72 20% 40%, #f29a3f 40% 60%, #e675ad 60% 80%, #7c3ba6 80% 100%)';
   if (variable === 'precip') return 'linear-gradient(90deg, #f7fbef, #d9ef8b, #7fcdbb, #41b6c4, #1d91c0, #225ea8, #0c2c84)';
   if (variable === 'sky') return 'linear-gradient(90deg, #174d86, #4f8fc8, #a7b5c1, #eef2f6)';
-  if (variable === 'thunder') return 'linear-gradient(90deg, #2b255a, #5f4eb2, #9a4bc1, #e64da4)';
+  if (variable === 'thunder') return `linear-gradient(90deg, ${THUNDER_COLOR_STOPS[0]} 0%, ${THUNDER_COLOR_STOPS[1]} 50%, ${THUNDER_COLOR_STOPS[2]} 100%)`;
   return 'linear-gradient(90deg, #555, #aaa)';
 }
 
@@ -1193,7 +1194,7 @@ function legendLabels(variable, min, max) {
 function legendNote(variable) {
   if (variable === 'sky') return `Each panel has ${directionSampleCount()} sky-cover boxes; blue is clear sky, white is overcast.`;
   if (variable === 'precip') return 'Deeper blue means higher chance.';
-  if (variable === 'thunder') return 'Violet to magenta shows increasing thunderstorm probability.';
+  if (variable === 'thunder') return 'Gray to purple to pink shows increasing thunderstorm probability.';
   if (variable === 'wind') return 'Bins are >= lower mph and < upper mph; purple is 40+.';
   return 'Shared scale across +0, +3, +6, and +12 hours.';
 }
@@ -2617,6 +2618,20 @@ function updateSummitMobileNav() {
   });
 }
 
+function updateRoseHeaderStickyOffset() {
+  const controls = document.getElementById('summit-sticky-controls');
+  const offset = controls?.offsetHeight || 0;
+  document.documentElement.style.setProperty('--summit-sticky-offset', `${offset}px`);
+}
+
+function setupRoseHeaderStickyOffset() {
+  updateRoseHeaderStickyOffset();
+  if (window.ResizeObserver) {
+    const controls = document.getElementById('summit-sticky-controls');
+    if (controls) new ResizeObserver(updateRoseHeaderStickyOffset).observe(controls);
+  }
+}
+
 // ════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════
@@ -2764,6 +2779,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (event.key === 'Escape') closeSampleModal();
   });
   window.addEventListener('resize', () => {
+    updateRoseHeaderStickyOffset();
     if (roseData) drawSampleMap('sample-map', 'sample-map-status', roseData, currentPeak, false);
     else drawGenericSampleMap('sample-map', 'sample-map-status');
     updateSummitMobileNavTargets();
@@ -2782,4 +2798,5 @@ window.addEventListener('DOMContentLoaded', () => {
   drawNoLocationState();
   if (!applyUrlPeakLocation()) applySharedPeakLocation();
   setupSummitMobileNav();
+  setupRoseHeaderStickyOffset();
 });

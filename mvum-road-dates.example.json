@@ -1,0 +1,12 @@
+{
+  "401": {
+    "open_dates": "MM/DD-MM/DD",
+    "camping": "unknown",
+    "notes": "Use this broad road-id key only when every segment for the road has the same official open dates and camping status."
+  },
+  "610|Special Designation, Seasonal": {
+    "open_dates": "MM/DD-MM/DD",
+    "camping": "allowed/limited/prohibited/unknown",
+    "notes": "Use road-id plus MVUM symbol when different segments of the same road have different rules."
+  }
+}

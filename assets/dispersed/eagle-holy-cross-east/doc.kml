@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<name>2025 MVUM Summer - Eagle-HolyCross RD East WRNF</name>
+	<description>2025 Summer Motor Vehicle Use Map (MVUM) - Eagle-HolyCross Ranger District Map East, White River National Forest
+ 
+The summer (snow-free) season is defined as: May 21 through November 22.
+
+Means of summer travel over roads and trails include: 
+	1) licensed and unlicensed vehicles
+	2) motorized vehicles under 50” wide
+	3) motorcycles
+	4) mountain bikes
+	5) horses
+	6) foot
+
+White River National Forest
+Supervisor&apos;s Office
+P.O. Box 948
+900 Grand Avenue
+Glenwood Springs, CO 81602
+Phone: (970) 945-2521
+
+Eagle-Holy Cross Ranger District
+24747 US Hwy 24
+Minturn, CO 81645
+Phone: (970) 827-5715
+
+White River National Forest
+Website: www.fs.usda.gov/whiteriver
+
+In case of emergency, Dial 911
+
+E-Bikes
+Where are e-bikes currently allowed on national forests and grasslands?
+Class 1, 2, and 3 e-bikes are allowed on motorized trails and roads on national forests and grasslands. Additionally, several year-round resorts operating under a special use permit have established e-bike use within their permit boundary.
+
+Local Forest Service officials may consider new opportunities for e-bike use on non-motorized trails and in non-motorized areas by utilizing a designation process in accordance with the Travel Management Rule (36 CFR Part 212, Subpart B).  Designations involve appropriate environmental analysis, public involvement, and local decision-making.</description>
+	<atom:link rel="app" href="https://www.google.com/earth/about/versions/#earth-pro" title="Google Earth Pro 7.3.6.10201"></atom:link>
+	<GroundOverlay>
+		<name>tile1</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img1.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.95997073330193</north>
+			<south>39.7085363493534</south>
+			<east>-106.8560244923064</east>
+			<west>-107.1890132066087</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile2</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img2.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.7085363493534</north>
+			<south>39.45710196540486</south>
+			<east>-106.8560244923064</east>
+			<west>-107.1890132066087</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile3</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img3.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.45710196540486</north>
+			<south>39.20566758145633</south>
+			<east>-106.8560244923064</east>
+			<west>-107.1890132066087</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile4</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img4.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.20566758145633</north>
+			<south>38.95511336454613</south>
+			<east>-106.8560244923064</east>
+			<west>-107.1890132066087</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile5</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img5.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.95997073330193</north>
+			<south>39.7085363493534</south>
+			<east>-106.5230357780041</east>
+			<west>-106.8560244923064</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile6</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img6.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.7085363493534</north>
+			<south>39.45710196540486</south>
+			<east>-106.5230357780041</east>
+			<west>-106.8560244923064</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile7</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img7.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.45710196540486</north>
+			<south>39.20566758145633</south>
+			<east>-106.5230357780041</east>
+			<west>-106.8560244923064</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile8</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img8.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.20566758145633</north>
+			<south>38.95511336454613</south>
+			<east>-106.5230357780041</east>
+			<west>-106.8560244923064</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile9</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img9.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.95997073330193</north>
+			<south>39.7085363493534</south>
+			<east>-106.1900470637019</east>
+			<west>-106.5230357780041</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile10</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img10.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.7085363493534</north>
+			<south>39.45710196540486</south>
+			<east>-106.1900470637019</east>
+			<west>-106.5230357780041</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile11</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img11.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.45710196540486</north>
+			<south>39.20566758145633</south>
+			<east>-106.1900470637019</east>
+			<west>-106.5230357780041</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile12</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img12.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.20566758145633</north>
+			<south>38.95511336454613</south>
+			<east>-106.1900470637019</east>
+			<west>-106.5230357780041</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile13</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img13.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.95997073330193</north>
+			<south>39.7085363493534</south>
+			<east>-105.8570583493996</east>
+			<west>-106.1900470637019</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile14</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img14.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.7085363493534</north>
+			<south>39.45710196540486</south>
+			<east>-105.8570583493996</east>
+			<west>-106.1900470637019</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile15</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img15.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.45710196540486</north>
+			<south>39.20566758145633</south>
+			<east>-105.8570583493996</east>
+			<west>-106.1900470637019</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile16</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img16.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.20566758145633</north>
+			<south>38.95511336454613</south>
+			<east>-105.8570583493996</east>
+			<west>-106.1900470637019</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile17</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img17.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.95997073330193</north>
+			<south>39.7085363493534</south>
+			<east>-105.5240696350973</east>
+			<west>-105.8570583493996</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile18</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img18.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.7085363493534</north>
+			<south>39.45710196540486</south>
+			<east>-105.5240696350973</east>
+			<west>-105.8570583493996</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile19</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img19.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.45710196540486</north>
+			<south>39.20566758145633</south>
+			<east>-105.5240696350973</east>
+			<west>-105.8570583493996</west>
+		</LatLonBox>
+	</GroundOverlay>
+	<GroundOverlay>
+		<name>tile20</name>
+		<color>80ffffff</color>
+		<drawOrder>10</drawOrder>
+		<Icon>
+			<href>files/img20.jpg</href>
+		</Icon>
+		<LatLonBox>
+			<north>39.20566758145633</north>
+			<south>38.95511336454613</south>
+			<east>-105.5240696350973</east>
+			<west>-105.8570583493996</west>
+		</LatLonBox>
+	</GroundOverlay>
+</Document>
+</kml>

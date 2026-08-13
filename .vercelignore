@@ -1,1 +1,7 @@
 .storage
+*.icloud
+~$*
+WeatherDashboardExtras/
+WeatherDashboardExtras/local-generated-do-not-merge/
+WeatherDashboardExtras/**/__pycache__/
+WeatherDashboardExtras/**/*.pyc

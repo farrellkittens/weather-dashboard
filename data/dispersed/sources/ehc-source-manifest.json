@@ -1,0 +1,84 @@
+{
+  "sourceName": "USFS EDW MVUM Roads",
+  "sourceUrl": "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MVUM_01/MapServer/1",
+  "queryUrl": "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MVUM_01/MapServer/1/query",
+  "queryParameters": {
+    "where": "forestname = 'White River National Forest' AND districtname IN ('Eagle Ranger District', 'Holy Cross Ranger District') AND symbol IN ('1','2','3','4')",
+    "outFields": [
+      "id",
+      "name",
+      "field_id",
+      "forestname",
+      "districtname",
+      "symbol",
+      "mvum_symbol_name",
+      "seasonal",
+      "passengervehicle",
+      "passengervehicle_datesopen",
+      "highclearancevehicle",
+      "highclearancevehicle_datesopen",
+      "bmp",
+      "emp",
+      "gis_miles",
+      "globalid"
+    ],
+    "returnGeometry": true,
+    "outSR": 4326,
+    "outputFormat": "geojson"
+  },
+  "generatedAt": "2026-08-13T14:30:16.885Z",
+  "featureCount": 181,
+  "districtNames": [
+    "Eagle Ranger District",
+    "Holy Cross Ranger District"
+  ],
+  "outputFiles": {
+    "sourceGeoJson": "data/dispersed/sources/ehc-usfs-mvum-roads.geojson",
+    "processedGeoJson": "data/dispersed/processed/ehc-road-segments.geojson",
+    "blmSourceGeoJson": "data/dispersed/sources/ehc-blm-gtlf-roads.geojson",
+    "blmProcessedGeoJson": "data/dispersed/processed/ehc-blm-road-segments.geojson"
+  },
+  "blmSource": {
+    "sourceName": "BLM National GTLF",
+    "sourceUrl": "https://gis.blm.gov/arcgis/rest/services/transportation/BLM_Natl_GTLF/MapServer/0",
+    "queryUrl": "https://gis.blm.gov/arcgis/rest/services/transportation/BLM_Natl_GTLF/MapServer/0/query",
+    "queryParameters": {
+      "where": "ADMIN_ST = 'CO'",
+      "outFields": [
+        "OBJECTID",
+        "ADMIN_ST",
+        "PLAN_ROUTE_DSGNTN_AUTH",
+        "PLAN_ASSET_CLASS",
+        "PLAN_OHV_ROUTE_DSGNTN",
+        "PLAN_MODE_TRNSPRT",
+        "PLAN_ACCESS_RSTRCT",
+        "PLAN_SEASON_RSTRCT_CODE",
+        "OBSRVE_ROUTE_USE_CLASS",
+        "ROUTE_PRMRY_NM",
+        "GIS_MILES",
+        "BLM_MILES",
+        "GLOBALID"
+      ],
+      "returnGeometry": true,
+      "outSR": 4326,
+      "geometry": {
+        "west": -107.1890132066087,
+        "south": 38.95511336454613,
+        "east": -105.5240696350973,
+        "north": 39.95997073330193
+      },
+      "spatialRel": "esriSpatialRelIntersects",
+      "outputFormat": "geojson"
+    },
+    "sourceFeatureCount": 0,
+    "candidateFeatureCount": 0
+  },
+  "notes": [
+    "Official USFS MVUM vector road data is the road-access backbone for the EHC pilot.",
+    "The Eagle-Holy Cross MVUM map name is represented in this service by Eagle Ranger District and Holy Cross Ranger District records.",
+    "When vehicle-specific date fields are blank, yearlong routes are inferred from the MVUM symbol and seasonal routes are assigned the local EHC summer MVUM sheet window of 05/21-11/22 for review.",
+    "These road records do not, by themselves, prove dispersed camping is allowed along a route.",
+    "Camping eligibility should be reviewed separately against the MVUM overlay, closure orders, land manager rules, and fire restrictions.",
+    "BLM GTLF routes are included in the primary map layer only as conservative candidates when BLM has route designation authority and the route appears motorized and not closed."
+  ]
+}
